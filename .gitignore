@@ -1,0 +1,35 @@
+# =========================================================
+# KiG POS - was NICHT zu GitHub gehört
+# =========================================================
+
+# Virtuelle Umgebung: 119 MB, wird auf jedem Rechner neu erzeugt
+.venv/
+venv/
+
+# Datenbank: Betriebsdaten des Vereins. Sie gehört weder auf GitHub
+# noch in die Android-App - dort wird beim ersten Start eine leere
+# angelegt (siehe buildozer.spec).
+database/
+*.db
+*.db-shm
+*.db-wal
+
+# Sicherungen
+backups/
+
+# Ausgaben und Protokolle
+exports/
+logs/
+*.log
+
+# Ergebnisse des Android-Baus
+.buildozer/
+bin/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# PyCharm
+.idea/

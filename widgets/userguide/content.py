@@ -1,0 +1,748 @@
+"""
+=========================================================
+KiG POS
+=========================================================
+
+Datei:
+    widgets/userguide/content.py
+
+Beschreibung:
+    Inhalte des Benutzerhandbuchs (Userguide-Screen).
+
+    Jedes Thema entspricht einem Screen der Anwendung und
+    besteht aus einer Liste nummerierter Schritte. Ein
+    Schritt besteht aus einer Überschrift, einem
+    Beschreibungstext und optional einem Screenshot.
+
+    Neue Themen/Schritte einfach unten ergänzen - der
+    Userguide-Screen stellt sie automatisch dar, und der
+    PDF-Export (widgets/userguide/pdf_export.py) übernimmt
+    sie ohne weiteres Zutun mit.
+
+    Themen ohne Schritte zeigen automatisch den Hinweis
+    "wird noch ergänzt".
+
+Bildpfade sind relativ zu config.ASSETS_DIR / "userguide".
+Die Screenshots werden aus der laufenden Anwendung heraus
+aufgenommen - ändert sich ein Screen deutlich, sollten sie
+neu erzeugt werden.
+
+Version:
+    2.0.0
+=========================================================
+"""
+
+TOPICS = [
+
+    # =====================================================
+    # Erste Schritte
+    # =====================================================
+
+    {
+        "id": "start",
+        "title": "Erste Schritte",
+        "steps": [
+            {
+                "heading": "Aufbau des Programms",
+                "text": (
+                    "Nach dem Start landest du auf der Startseite. Von "
+                    "hier aus erreichst du über die sechs Kacheln alle "
+                    "Bereiche des Programms: Kasse, Statistik, Events, "
+                    "Artikel, Userguide und Einstellungen. Ein Tipp auf "
+                    "eine Kachel öffnet den jeweiligen Bereich."
+                ),
+                "image": "start/01_startseite.png",
+            },
+            {
+                "heading": "Kopfzeile",
+                "text": (
+                    "Die Kopfzeile ist immer sichtbar. Links das "
+                    "Vereinslogo - ein Tipp darauf bringt dich jederzeit "
+                    "zurück zur Startseite. In der Mitte steht das "
+                    "aktuelle Event des Tages (falls im Kalender "
+                    "eines angelegt ist), rechts das Datum, die Uhrzeit "
+                    "und der Tagesumsatz. Der Tagesumsatz aktualisiert "
+                    "sich automatisch, sobald ein Verkauf abgeschlossen "
+                    "oder in der Statistik gelöscht wird."
+                ),
+            },
+            {
+                "heading": "Fußzeile",
+                "text": (
+                    "Unten stehen links Programmname, Version und "
+                    "Build-Nummer - diese Angaben helfen bei Rückfragen. "
+                    "Rechts beendest du über \"Programm beenden\" die "
+                    "Anwendung; damit das nicht versehentlich mitten in "
+                    "einer Veranstaltung passiert, kommt vorher eine "
+                    "Sicherheitsabfrage."
+                ),
+            },
+            {
+                "heading": "Automatische Datensicherung",
+                "text": (
+                    "Bei jedem Start legt KiG POS eine Sicherungskopie "
+                    "der Datenbank an - im Unterordner \"backups\" neben "
+                    "der Datenbank selbst. Die letzten 15 Sicherungen "
+                    "bleiben erhalten, ältere werden automatisch "
+                    "entfernt. Geht etwas schief, lässt sich eine dieser "
+                    "Dateien in \"kig.db\" umbenennen und damit der "
+                    "Stand eines früheren Abends zurückholen. Sollte die "
+                    "Datenbank beim Start nicht lesbar sein, zeigt das "
+                    "Programm einen Hinweis mit dem genauen Speicherort, "
+                    "statt einfach nicht zu starten."
+                ),
+            },
+            {
+                "heading": "Bedienung mit Touch",
+                "text": (
+                    "Das Programm ist für Touchbedienung ausgelegt: alle "
+                    "Schaltflächen sind bewusst großflächig. Längere "
+                    "Listen lassen sich mit dem Finger senkrecht "
+                    "scrollen. Für Eingaben erscheint je nach Feld "
+                    "entweder ein Zahlenfeld (Preise, Mengen) oder eine "
+                    "Bildschirmtastatur (Namen, Texte) - ein externes "
+                    "Keyboard ist also nicht nötig."
+                ),
+            },
+            {
+                "heading": "Dieses Handbuch",
+                "text": (
+                    "Links wählst du das Thema, rechts erscheint die "
+                    "Anleitung dazu. Über \"Als PDF exportieren\" oben "
+                    "rechts speicherst du das komplette Handbuch mit "
+                    "allen Screenshots als PDF-Datei - praktisch zum "
+                    "Ausdrucken oder Weitergeben an neue Helfer."
+                ),
+                "image": "start/02_handbuch.png",
+            },
+        ],
+    },
+
+    # =====================================================
+    # Kasse
+    # =====================================================
+
+    {
+        "id": "cash",
+        "title": "Kasse",
+        "steps": [
+            {
+                "heading": "Überblick",
+                "text": (
+                    "Der Kassen-Screen ist in drei Bereiche geteilt: "
+                    "oben links die Kategorien, darunter die Artikel als "
+                    "Kacheln, rechts der Warenkorb mit der Summe. So "
+                    "lässt sich ein Verkauf mit wenigen Berührungen "
+                    "abschließen."
+                ),
+                "image": "kasse/01_uebersicht.png",
+            },
+            {
+                "heading": "Nach Kategorie filtern",
+                "text": (
+                    "Ein Tipp auf eine Kategorie zeigt nur noch deren "
+                    "Artikel - die gewählte Kategorie wird orange "
+                    "hervorgehoben. Ein zweiter Tipp auf dieselbe "
+                    "Kategorie hebt den Filter wieder auf und zeigt alle "
+                    "Artikel. Kategorien, in denen kein einziger an der "
+                    "Kasse verkäuflicher Artikel liegt (z. B. reine "
+                    "Zutaten), tauchen hier gar nicht erst auf."
+                ),
+                "image": "kasse/02_kategorie_filter.png",
+            },
+            {
+                "heading": "Bestand auf den Kacheln lesen",
+                "text": (
+                    "Jede Artikelkachel zeigt Name, Bestand und Preis. "
+                    "Bei normalen Artikeln steht dort \"Bestand\" - also "
+                    "das, was tatsächlich im Lager liegt. Bei Mix- bzw. "
+                    "Rezeptartikeln steht stattdessen \"Verfügbar\": "
+                    "diese Artikel haben keinen eigenen Bestand, die "
+                    "Zahl sagt, wie oft die knappste Zutat den Verkauf "
+                    "noch hergibt."
+                ),
+            },
+            {
+                "heading": "Artikel suchen",
+                "text": (
+                    "Über das Suchfeld rechts neben der Überschrift "
+                    "\"Artikel\" schränkst du die Kacheln auf einen "
+                    "Suchbegriff ein - es genügt ein Teil des Namens, "
+                    "\"cola\" findet also auch \"Jacky Cola\". Groß- und "
+                    "Kleinschreibung spielen keine Rolle. Das kleine "
+                    "Kreuz daneben setzt die Suche zurück; beim Wechsel "
+                    "der Kategorie und beim Betreten der Kasse geschieht "
+                    "das automatisch."
+                ),
+            },
+            {
+                "heading": "Artikel in den Warenkorb legen",
+                "text": (
+                    "Ein Tipp auf eine Artikelkachel legt den Artikel in "
+                    "den Warenkorb. Tippst du denselben Artikel erneut "
+                    "an, erhöht sich einfach dessen Menge. Rechts siehst "
+                    "du jede Position mit Menge, Einzelpreis und "
+                    "Zeilensumme sowie unten die Gesamtsumme."
+                ),
+                "image": "kasse/03_warenkorb.png",
+            },
+            {
+                "heading": "Menge direkt ändern",
+                "text": (
+                    "In jeder Warenkorbzeile sitzen die Tasten \"-\" und "
+                    "\"+\". Damit änderst du die Menge, ohne den Artikel "
+                    "mehrfach antippen oder den Umweg über \"Bearbeiten\" "
+                    "gehen zu müssen. Geht die Menge auf 0, verschwindet "
+                    "die Position - der schnellste Weg, einen "
+                    "versehentlich angetippten Artikel wieder "
+                    "loszuwerden."
+                ),
+            },
+            {
+                "heading": "Rezept als Hilfe anzeigen",
+                "text": (
+                    "Tippst du im Warenkorb auf eine Position, die ein "
+                    "Rezept hat (Mix-Artikel), erscheint eine Sprechblase "
+                    "mit allen Zutaten samt Menge und Einheit - gedacht "
+                    "als Gedächtnisstütze für alle hinter der Bar. Die "
+                    "Sprechblase verschwindet wieder, sobald du "
+                    "irgendwo anders hintippst."
+                ),
+                "image": "kasse/04_rezept_hinweis.png",
+            },
+            {
+                "heading": "Position ändern",
+                "text": (
+                    "Wähle eine Position im Warenkorb aus und tippe auf "
+                    "\"Bearbeiten\". Im Panel kannst du die Menge über "
+                    "Plus/Minus anpassen, den Preis für diesen einen "
+                    "Verkauf abändern (z. B. Sonderpreis), die Position "
+                    "duplizieren oder löschen. \"Übernehmen\" schließt "
+                    "die Bearbeitung ab, \"Abbrechen\" verwirft sie."
+                ),
+                "image": "kasse/05_position_bearbeiten.png",
+            },
+            {
+                "heading": "Warenkorb leeren",
+                "text": (
+                    "Über \"Leeren\" oben rechts wird der komplette "
+                    "Warenkorb verworfen. Das ist folgenlos: Solange "
+                    "nicht bezahlt wurde, ändert sich am Bestand nichts."
+                ),
+            },
+            {
+                "heading": "Stornieren",
+                "text": (
+                    "Ist ein Verkauf bereits abgeschlossen und war "
+                    "falsch, hilft \"Storno\" oben neben \"Leeren\". Der "
+                    "Warenkorb färbt sich rot und trägt den Hinweis "
+                    "\"Zu stornierende Artikel antippen\" - es ist also "
+                    "immer erkennbar, dass gerade nicht verkauft, "
+                    "sondern zurückgenommen wird. Tippe die betroffenen "
+                    "Artikel an und schließe mit \"Storno buchen\" ab; "
+                    "danach folgt noch eine Sicherheitsabfrage. "
+                    "\"Abbrechen\" verwirft den Vorgang, ohne dass "
+                    "etwas gebucht wird."
+                ),
+                "image": "kasse/07_storno.png",
+            },
+            {
+                "heading": "Was ein Storno bewirkt",
+                "text": (
+                    "Der ursprüngliche Verkauf bleibt stehen; das Storno "
+                    "kommt als eigene Gegenbuchung mit negativer Menge "
+                    "dazu. In der Statistik erscheint es rot hinterlegt "
+                    "mit dem Zusatz \"Storno\", und Umsatz wie Gewinn "
+                    "verrechnen sich automatisch. So bleibt "
+                    "nachvollziehbar, was passiert ist - wichtig, wenn "
+                    "am Ende des Abends die Kasse stimmen soll."
+                ),
+            },
+            {
+                "heading": "Storno und Bestand",
+                "text": (
+                    "Zurück ins Lager geht nur, was verschlossen "
+                    "übergeben wurde: Einzelartikel wie Flaschen und "
+                    "Dosen werden dem Bestand wieder gutgeschrieben, und "
+                    "auch ihr Einkaufspreis wird gegengerechnet - der "
+                    "Vorgang ist damit vollständig neutralisiert. Bei "
+                    "Mix- und Rezeptartikeln bleibt der Bestand "
+                    "unverändert: Das Getränk ist eingeschenkt und die "
+                    "Zutaten sind verbraucht. Deren Einkaufspreis lässt "
+                    "sich nicht zurückholen und bleibt als Verlust in "
+                    "der Auswertung stehen. Jeder Storno wird zusätzlich "
+                    "in der Bestandshistorie des Artikels vermerkt."
+                ),
+            },
+            {
+                "heading": "Bezahlen",
+                "text": (
+                    "\"Bezahlen\" öffnet den Zahlungsbereich. Über das "
+                    "Zahlenfeld gibst du den erhaltenen Betrag ein - das "
+                    "Rückgeld wird sofort mitgerechnet. Erst wenn der "
+                    "gegebene Betrag mindestens der Summe entspricht, "
+                    "lässt sich der Verkauf mit \"OK\" abschließen. "
+                    "\"Abbrechen\" bricht den Zahlvorgang ab, der "
+                    "Warenkorb bleibt erhalten."
+                ),
+                "image": "kasse/06_bezahlen.png",
+            },
+            {
+                "heading": "Was beim Abschluss passiert",
+                "text": (
+                    "Mit dem Abschluss wird der Verkauf für die Statistik "
+                    "gespeichert und der Bestand abgezogen: bei normalen "
+                    "Artikeln der Artikel selbst, bei Mix-Artikeln "
+                    "stattdessen jede einzelne Zutat in der im Rezept "
+                    "hinterlegten Menge. Anschließend aktualisieren sich "
+                    "Tagesumsatz und die Bestände auf den Kacheln "
+                    "automatisch."
+                ),
+            },
+        ],
+    },
+
+    # =====================================================
+    # Artikelverwaltung
+    # =====================================================
+
+    {
+        # Fasst die frueher getrennten Screens Artikel, Einkauf,
+        # Inventar und Rezepte zusammen (siehe products_screen.py).
+        "id": "products",
+        "title": "Artikelverwaltung",
+        "steps": [
+            {
+                "heading": "Überblick",
+                "text": (
+                    "Die Artikelverwaltung fasst alles rund um Artikel "
+                    "an einem Ort zusammen: Stammdaten, Bestand, Einkauf "
+                    "und Rezepte. Links stehen die Kategorien, rechts die "
+                    "Artikelliste mit Verkaufs- und Einkaufspreis, "
+                    "Bestand und offener Bestellmenge."
+                ),
+                "image": "artikel/01_liste.png",
+            },
+            {
+                "heading": "Nach Kategorie filtern",
+                "text": (
+                    "Ein Tipp auf eine Kategorie links zeigt nur deren "
+                    "Artikel, ein zweiter Tipp hebt den Filter wieder "
+                    "auf. Die Überschrift der Liste zeigt jeweils mit an, "
+                    "welche Kategorie gerade gefiltert ist."
+                ),
+            },
+            {
+                "heading": "Kategorien anlegen und ändern",
+                "text": (
+                    "Über \"Neu\" legst du eine neue Kategorie an. Um "
+                    "eine bestehende zu ändern, wähle sie zuerst in der "
+                    "Liste aus und tippe dann auf \"Bearbeiten\" - dort "
+                    "kannst du sie umbenennen oder löschen. Löschen geht "
+                    "nur, solange kein Artikel mehr in der Kategorie "
+                    "liegt."
+                ),
+                "image": "artikel/02_kategorie_anlegen.png",
+            },
+            {
+                "heading": "Bestellmenge erfassen und buchen",
+                "text": (
+                    "In der Spalte \"Menge\" trägst du direkt in der "
+                    "Liste ein, wie viel nachbestellt werden soll. Ist "
+                    "die Ware da, bucht \"Buchen\" die Menge sofort dem "
+                    "Bestand zu und leert das Mengenfeld wieder. Bei "
+                    "Mix-/Rezeptartikeln sind beide Felder ausgegraut - "
+                    "sie führen keinen eigenen Bestand."
+                ),
+            },
+            {
+                "heading": "Einkaufsliste exportieren",
+                "text": (
+                    "\"Einkaufsliste exportieren\" schreibt alle Artikel "
+                    "mit eingetragener Bestellmenge in eine CSV-Datei "
+                    "(Kategorie, Artikel, Menge). Sie landet im Ordner "
+                    "exports/csv des Programmverzeichnisses und lässt "
+                    "sich mit Excel öffnen oder direkt verschicken."
+                ),
+            },
+            {
+                "heading": "Reihenfolge festlegen",
+                "text": (
+                    "Über \"Sortierung\" bestimmst du, in welcher "
+                    "Reihenfolge die Artikel an der Kasse erscheinen. "
+                    "Das lohnt sich, um die meistverkauften Artikel nach "
+                    "vorne zu holen."
+                ),
+            },
+            {
+                "heading": "Artikel bearbeiten",
+                "text": (
+                    "\"Bearbeiten\" öffnet das Dashboard eines Artikels "
+                    "und ersetzt dabei die Liste. Bei normalen Artikeln "
+                    "siehst du drei Karten nebeneinander: Stammdaten, "
+                    "Bestand und Einkauf/Bestellmenge. Über \"← Zurück\" "
+                    "kommst du wieder zur Liste."
+                ),
+                "image": "artikel/03_dashboard_einzelartikel.png",
+            },
+            {
+                "heading": "Stammdaten pflegen",
+                "text": (
+                    "In der Karte \"Stammdaten\" steht links die "
+                    "Bezeichnung, rechts das jeweilige Feld: Name, "
+                    "Einheit, Verkaufspreis, Einkaufspreis, Kategorie und "
+                    "Artikeltyp. Der Schalter \"Verkauf an Kasse\" "
+                    "steuert, ob der Artikel im Kassen-Screen auftaucht - "
+                    "reine Zutaten schaltest du hier aus. \"Aktiv\" "
+                    "blendet einen Artikel komplett aus, ohne die "
+                    "Verkaufshistorie zu verlieren. Änderungen werden "
+                    "erst mit \"Speichern\" übernommen."
+                ),
+            },
+            {
+                "heading": "Bestand korrigieren",
+                "text": (
+                    "\"Bestand anpassen\" öffnet die Bestandskorrektur "
+                    "für eine Inventur oder zum Ausbuchen von Bruch. "
+                    "Neben dem neuen Bestand musst du einen Grund und "
+                    "deinen Namen angeben - beides landet in der "
+                    "Änderungshistorie, die direkt darunter mitläuft. So "
+                    "ist später nachvollziehbar, wer wann was geändert "
+                    "hat."
+                ),
+                "image": "artikel/04_bestandskorrektur.png",
+            },
+            {
+                "heading": "Neuen Artikel anlegen",
+                "text": (
+                    "\"+ Neuer Artikel\" öffnet ein leeres Formular. "
+                    "Trage zuerst den Namen ein und wähle dann die "
+                    "Einheit - davon hängt ab, welche Felder überhaupt "
+                    "abgefragt werden. Nach dem Speichern landest du "
+                    "wieder in der Liste; Bestand, Bestellmenge und "
+                    "Rezept lassen sich erst danach pflegen."
+                ),
+                "image": "artikel/07_neuer_artikel.png",
+            },
+            {
+                "heading": "Mix- und Rezeptartikel",
+                "text": (
+                    "Setzt du den Artikeltyp auf \"Mix / Rezept\", "
+                    "erscheint statt Bestand und Einkauf die Karte "
+                    "\"Zusammensetzung\". Solche Artikel führen keinen "
+                    "eigenen Bestand - beim Verkauf werden stattdessen "
+                    "die Zutaten abgezogen. Der Einkaufspreis entfällt "
+                    "deshalb ebenfalls: Er ergibt sich aus den Zutaten."
+                ),
+                "image": "artikel/05_rezept.png",
+            },
+            {
+                "heading": "Zutaten zuordnen",
+                "text": (
+                    "Wähle unten die Zutat aus, trage die Menge ein, "
+                    "prüfe die Einheit und tippe auf \"Hinzufügen\". Im "
+                    "Auswahlfeld stehen nur echte Zutaten-Artikel, also "
+                    "solche, die nicht an der Kasse verkauft werden. Die "
+                    "Einheit lässt sich nur auf passende Werte umstellen "
+                    "(z. B. ml/cl/l) - so kann beim Lagerabzug nichts "
+                    "durcheinandergeraten."
+                ),
+            },
+            {
+                "heading": "Zutaten ohne eigenen Artikel",
+                "text": (
+                    "Für Dinge, die man nicht im Bestand führen möchte - "
+                    "Minze, Limettenscheibe, brauner Zucker - gibt es die "
+                    "Zeile \"...oder eine Zutat ohne Artikel eintragen\". "
+                    "Name, Menge und eine frei wählbare Einheit genügen. "
+                    "Solche Zutaten erscheinen im Rezept und in der "
+                    "Sprechblase an der Kasse, werden aber nicht vom "
+                    "Bestand abgezogen."
+                ),
+            },
+            {
+                "heading": "Verfügbarkeit und Kosten je Portion",
+                "text": (
+                    "Über der Zutatenliste steht, wie oft sich das Rezept "
+                    "mit dem aktuellen Zutatenbestand noch verkaufen "
+                    "lässt (begrenzt durch die knappste Zutat) und was "
+                    "eine Portion im Einkauf kostet - hochgerechnet aus "
+                    "den Einkaufspreisen aller Zutaten. Dieser berechnete "
+                    "Preis fließt beim Verkauf automatisch in die "
+                    "Gewinnermittlung der Statistik ein."
+                ),
+            },
+            {
+                "heading": "Spirituosen als Flasche führen",
+                "text": (
+                    "Wählst du bei der Einheit \"Flasche\", handelt es "
+                    "sich immer um eine reine Lagerzutat. Kategorie, "
+                    "Artikeltyp, Verkaufspreis und der Verkauf-Schalter "
+                    "entfallen dann, weil sie feststehen. Der Bestand "
+                    "wird intern immer in Millilitern geführt - beim "
+                    "Buchen oder Korrigieren fragt das Programm nach der "
+                    "Flaschengröße und rechnet selbst um. Der Bestand "
+                    "zeigt zusätzlich an, wie vielen Flaschen die "
+                    "Milliliter entsprechen."
+                ),
+                "image": "artikel/06_flasche_und_shot.png",
+            },
+            {
+                "heading": "Flasche zusätzlich als Shot verkaufen",
+                "text": (
+                    "Der Schalter \"Auch als Shot verkaufen\" legt dir "
+                    "automatisch einen passenden Verkaufsartikel an. Du "
+                    "gibst nur Kassenname, Portionsgröße in ml, Preis je "
+                    "Shot und Kategorie an - das Programm erstellt daraus "
+                    "einen Mix-Artikel, der beim Verkauf genau diese "
+                    "Menge von der Flasche abzieht. Der Name muss sich "
+                    "vom Flaschennamen unterscheiden, da jeder Artikel "
+                    "nur einmal vorkommen darf. Schaltest du den Regler "
+                    "wieder aus, verschwindet der Shot aus der Kasse."
+                ),
+            },
+            {
+                "heading": "Artikel löschen",
+                "text": (
+                    "Das rote Kreuz am Ende einer Listenzeile entfernt "
+                    "einen Artikel nach einer Sicherheitsabfrage aus der "
+                    "Übersicht. Er wird dabei nur deaktiviert, nicht "
+                    "wirklich gelöscht - bereits erfasste Verkäufe "
+                    "bleiben in der Statistik also vollständig erhalten."
+                ),
+            },
+        ],
+    },
+
+    # =====================================================
+    # Kalender
+    # =====================================================
+
+    {
+        "id": "events",
+        "title": "Kalender",
+        "steps": [
+            {
+                "heading": "Überblick",
+                "text": (
+                    "Der Kalender zeigt einen Monat am Stück. Der heutige "
+                    "Tag ist orange hervorgehoben, Tage mit Einträgen sind "
+                    "gekennzeichnet. Über die Pfeile links und rechts "
+                    "neben dem Monatsnamen blätterst du zwischen den "
+                    "Monaten, über das Auswahlfeld springst du direkt zu "
+                    "einem bestimmten Monat."
+                ),
+                "image": "kalender/01_uebersicht.png",
+            },
+            {
+                "heading": "Einen Tag öffnen",
+                "text": (
+                    "Ein Tipp auf einen Tag öffnet dessen Übersicht mit "
+                    "allen Einträgen. Von dort legst du über \"Neu\" "
+                    "einen weiteren Eintrag an oder tippst einen "
+                    "bestehenden an, um ihn zu bearbeiten. \"Schließen\" "
+                    "bringt dich zurück zum Kalender."
+                ),
+                "image": "kalender/02_tag.png",
+            },
+            {
+                "heading": "Eintragsarten",
+                "text": (
+                    "Es gibt drei Arten: \"Event\" für Veranstaltungen, "
+                    "\"Barschicht\" für die Diensteinteilung und "
+                    "\"Termin\" für alles Übrige. Bei einer Barschicht "
+                    "trägst du die Namen der arbeitenden Personen ein, "
+                    "bei Event und Termin den Namen der Veranstaltung."
+                ),
+            },
+            {
+                "heading": "Eintrag speichern oder löschen",
+                "text": (
+                    "\"Speichern\" übernimmt den Eintrag, \"Abbrechen\" "
+                    "verwirft ihn. Bearbeitest du einen bestehenden "
+                    "Eintrag, gibt es zusätzlich \"Löschen\". Ein leeres "
+                    "Namensfeld wird nicht gespeichert."
+                ),
+            },
+            {
+                "heading": "Zusammenspiel mit Kasse und Statistik",
+                "text": (
+                    "Liegt für den aktuellen Geschäftstag ein Event vor, "
+                    "erscheint dessen Name in der Kopfzeile, und alle "
+                    "Verkäufe dieses Tages werden dem Event zugeordnet. "
+                    "In der Statistik kannst du später gezielt nach "
+                    "diesem Event auswerten. Ein Geschäftstag läuft dabei "
+                    "von 6:00 Uhr morgens bis 5:59 Uhr des Folgetags - "
+                    "Verkäufe nach Mitternacht zählen also noch zur "
+                    "Veranstaltung des Vorabends."
+                ),
+            },
+        ],
+    },
+
+    # =====================================================
+    # Statistik
+    # =====================================================
+
+    {
+        "id": "statistics",
+        "title": "Statistik",
+        "steps": [
+            {
+                "heading": "Überblick",
+                "text": (
+                    "Der Statistik-Screen zeigt alle über die Kasse "
+                    "abgeschlossenen Verkäufe. Links siehst du die "
+                    "einzelnen Verkaufspositionen als Tabelle, rechts "
+                    "eine Zusammenfassung mit den meistverkauften "
+                    "Artikeln und den Gesamteinnahmen je Artikel."
+                ),
+                "image": "statistik/01_uebersicht.png",
+            },
+            {
+                "heading": "Nach Event filtern",
+                "text": (
+                    "Über das Auswahlfeld \"Alle Events\" oben links "
+                    "kannst du die Liste auf ein einzelnes, im Kalender "
+                    "angelegtes Event einschränken. \"Alle Events\" "
+                    "zeigt wieder sämtliche Verkäufe ohne "
+                    "Event-Einschränkung."
+                ),
+            },
+            {
+                "heading": "Nach Zeitraum filtern",
+                "text": (
+                    "Über die Schaltflächen \"Von\" und \"Bis\" öffnest "
+                    "du je einen Kalender und wählst das Datum direkt "
+                    "aus. Mit dem kleinen Kreuz daneben setzt du ein "
+                    "Datum wieder zurück, um den Zeitraum nur nach oben "
+                    "oder unten zu begrenzen. \"Aktualisieren\" wendet "
+                    "den Filter an."
+                ),
+            },
+            {
+                "heading": "Verkaufsliste lesen",
+                "text": (
+                    "Jede Zeile zeigt Event, Datum, Kategorie, Artikel "
+                    "sowie Verkaufspreis, Einkaufspreis und den daraus "
+                    "berechneten Gewinn der jeweiligen Position. Bei "
+                    "Mix-Artikeln stammt der Einkaufspreis aus den "
+                    "Zutaten, hochgerechnet auf die verkaufte Portion. "
+                    "Die Liste lässt sich senkrecht scrollen."
+                ),
+            },
+            {
+                "heading": "Einzelne Positionen löschen",
+                "text": (
+                    "Tippe eine oder mehrere Zeilen an, um sie "
+                    "auszuwählen - ausgewählte Zeilen werden orange "
+                    "hervorgehoben. Über \"Ausgewählte löschen\" werden "
+                    "genau diese Positionen nach einer Sicherheitsabfrage "
+                    "entfernt. Betrifft eine gelöschte Position den "
+                    "heutigen Tag, aktualisiert sich der Tagesumsatz in "
+                    "der Kopfzeile sofort mit."
+                ),
+                "image": "statistik/02_zeile_gewaehlt.png",
+            },
+            {
+                "heading": "Ganzen Zeitraum löschen",
+                "text": (
+                    "Über \"Zeitraum löschen\" werden alle Verkäufe im "
+                    "aktuell gewählten Von/Bis-Zeitraum auf einmal "
+                    "gelöscht - dafür müssen beide Datumsfelder gesetzt "
+                    "sein. Auch hier erscheint vorher eine "
+                    "Sicherheitsabfrage, da sich dieser Schritt nicht "
+                    "rückgängig machen lässt."
+                ),
+            },
+            {
+                "heading": "Nach Excel exportieren",
+                "text": (
+                    "\"Excel exportieren\" schreibt die aktuelle "
+                    "Auswertung in eine Excel-Datei: ein Blatt mit allen "
+                    "Verkaufspositionen und ein Blatt mit der "
+                    "Zusammenfassung inklusive Diagrammen. Die Datei "
+                    "landet im Ordner exports/excel des "
+                    "Programmverzeichnisses."
+                ),
+            },
+            {
+                "heading": "Top 5 Positionen",
+                "text": (
+                    "Oben rechts zeigt das Balkendiagramm die fünf "
+                    "meistverkauften Artikel nach Menge im aktuell "
+                    "gewählten Filter - praktisch, um auf einen Blick die "
+                    "Verkaufsschlager zu erkennen."
+                ),
+            },
+            {
+                "heading": "Gesamtverkaufszahlen",
+                "text": (
+                    "Unten rechts listet die Tabelle die Einnahmen je "
+                    "Artikel für den aktuell gewählten Filter - ideal für "
+                    "die Abrechnung nach einer Veranstaltung."
+                ),
+            },
+        ],
+    },
+
+    # =====================================================
+    # Einstellungen
+    # =====================================================
+
+    {
+        "id": "settings",
+        "title": "Einstellungen",
+        "steps": [
+            {
+                "heading": "Farbmodus umstellen",
+                "text": (
+                    "Unter \"Farbmodus\" wechselst du zwischen hellem und "
+                    "dunklem Erscheinungsbild. Der dunkle Modus ist "
+                    "angenehmer bei Abendveranstaltungen und schont in "
+                    "dunkler Umgebung die Augen. Die Umstellung wirkt "
+                    "sofort im ganzen Programm."
+                ),
+                "image": "einstellungen/01_uebersicht.png",
+            },
+            {
+                "heading": "Hoch- oder Querformat wählen",
+                "text": (
+                    "Unter \"Bildschirmausrichtung\" stellst du ein, wie "
+                    "das Programm aufgebaut wird. Im Querformat stehen "
+                    "zusammengehörige Bereiche nebeneinander - an der "
+                    "Kasse zum Beispiel die Artikel links und der "
+                    "Warenkorb rechts. Im Hochformat stehen dieselben "
+                    "Bereiche untereinander: Artikel oben, Warenkorb "
+                    "unten. Das ist für hochkant montierte Bildschirme "
+                    "und Tablets gedacht.\n\n"
+                    "Auf dem Telefon fehlt diese Auswahl: Dort läuft die "
+                    "App immer im Hochformat."
+                ),
+            },
+            {
+                "heading": "Was sich im Hochformat ändert",
+                "text": (
+                    "Das Fenster wird beim Umschalten automatisch "
+                    "schmaler und höher. Die Startseite zeigt zwei "
+                    "Kacheln je Reihe statt drei, in der Artikelliste "
+                    "steht jeder Artikel zweizeilig (oben Name und "
+                    "Kategorie, darunter Preise, Bestand und die "
+                    "Schaltflächen), und der Nummernblock sowie das "
+                    "Bearbeiten-Fenster nutzen die ganze Fläche, solange "
+                    "sie geöffnet sind. Es geht dabei keine Funktion "
+                    "verloren - alles ist nur anders angeordnet."
+                ),
+            },
+            {
+                "heading": "Einstellungen bleiben erhalten",
+                "text": (
+                    "Farbmodus und Ausrichtung werden gespeichert und "
+                    "beim nächsten Start automatisch wieder verwendet - "
+                    "du musst sie also nur einmal einstellen."
+                ),
+            },
+        ],
+    },
+
+]

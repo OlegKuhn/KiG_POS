@@ -1,0 +1,304 @@
+"""
+=========================================================
+KiG POS
+=========================================================
+
+Modul:
+    M100.0
+
+Datei:
+    home_screen.py
+
+Beschreibung:
+    HomeScreen der Anwendung.
+
+Der HomeScreen enthält die zentrale Navigation
+zu allen Hauptbereichen.
+
+Version:
+    1.0.0
+
+Build:
+    0001
+=========================================================
+"""
+
+from kivy.metrics import dp
+from kivy.uix.screenmanager import Screen
+from kivy.uix.anchorlayout import AnchorLayout
+from kivy.uix.gridlayout import GridLayout
+
+
+from widgets.home.home_tile import HomeTile
+
+import config
+import theme
+
+class HomeScreen(Screen):
+    """
+    Startbildschirm der Anwendung.
+    """
+
+    # =====================================================
+    # Konstruktor
+    # =====================================================
+
+    def __init__(self, **kwargs):
+
+        super().__init__(**kwargs)
+
+        #
+        # Hauptlayout
+        #
+
+        self.root_layout = AnchorLayout(
+
+            anchor_x="center",
+
+            anchor_y="center"
+        )
+
+        self.add_widget(
+            self.root_layout
+        )
+
+        #
+        # Grid für die Tiles
+        #
+
+        # Die Kacheln sind 260 px breit; drei nebeneinander brauchen
+        # rund 830 px und passen im Hochformat nicht mehr auf den
+        # Bildschirm. Dort stehen sie deshalb zu zweit in einer Reihe
+        # (3 Reihen statt 2).
+        self.grid = GridLayout(
+
+            cols=2 if theme.is_portrait() else 3,
+
+            spacing=dp(theme.TILE_SPACING),
+
+            padding=dp(theme.SCREEN_PADDING),
+
+            size_hint=(None, None)
+        )
+
+        #
+        # Grid zum Layout hinzufügen
+        #
+
+        self.root_layout.add_widget(
+            self.grid
+        )
+        # =====================================================
+        # Kacheln
+        # =====================================================
+
+        #
+        # Kasse
+        #
+
+        self.tile_cash = HomeTile()
+
+        self.tile_cash.set_icon(
+            str(config.ICON_CASH)
+        )
+
+        self.tile_cash.set_title("KASSE")
+
+        self.tile_cash.set_subtitle(
+            "Verkauf starten"
+        )
+
+        #
+        # Statistik
+        #
+
+        self.tile_statistics = HomeTile()
+
+        self.tile_statistics.set_icon(
+            str(config.ICON_STATISTICS)
+        )
+
+        self.tile_statistics.set_title(
+            "STATISTIK"
+        )
+
+        self.tile_statistics.set_subtitle(
+            "Auswertungen"
+        )
+
+        #
+        # Veranstaltungen
+        #
+
+        self.tile_events = HomeTile()
+
+        self.tile_events.set_icon(
+            str(config.ICON_EVENTS)
+        )
+
+        self.tile_events.set_title(
+            "EVENTS"
+        )
+
+        self.tile_events.set_subtitle(
+            "Veranstaltungen verwalten"
+        )
+
+        #
+        # Artikelverwaltung (Artikel, Einkauf, Inventar, Rezepte)
+        #
+
+        self.tile_articles = HomeTile()
+
+        self.tile_articles.set_icon(
+            str(config.ICON_ARTICLES)
+        )
+
+        self.tile_articles.set_title(
+            "ARTIKEL"
+        )
+
+        self.tile_articles.set_subtitle(
+            "Artikel, Bestand, Einkauf & Rezepte"
+        )
+
+        #
+        # Bedienungsanleitung
+        #
+
+        self.tile_use = HomeTile()
+
+        self.tile_use.set_icon(
+            str(config.ICON_USE)
+        )
+
+        self.tile_use.set_title(
+            "USERGUIDE"
+        )
+
+        self.tile_use.set_subtitle(
+            "Benutzerhandbuch"
+        )
+
+        #
+        # Einstellungen
+        #
+
+        self.tile_settings = HomeTile()
+
+        self.tile_settings.set_icon(
+            str(config.ICON_SETTINGS)
+        )
+
+        self.tile_settings.set_title(
+            "EINSTELLUNGEN"
+        )
+
+        self.tile_settings.set_subtitle(
+            "Programm konfigurieren"
+        )
+
+        # =====================================================
+        # Grid füllen
+        # =====================================================
+
+        self.grid.add_widget(
+            self.tile_cash
+        )
+
+        self.grid.add_widget(
+            self.tile_statistics
+        )
+
+        self.grid.add_widget(
+            self.tile_events
+        )
+
+        self.grid.add_widget(
+            self.tile_articles
+        )
+
+        self.grid.add_widget(
+            self.tile_use
+        )
+
+        self.grid.add_widget(
+            self.tile_settings
+        )
+
+        #
+        # Grid automatisch an Inhalt anpassen
+        #
+
+        self.grid.bind(
+            minimum_size=self.grid.setter("size")
+        )
+
+        # =====================================================
+        # Navigation
+        # =====================================================
+
+        self.tile_cash.set_callback(
+            self.open_cash
+        )
+
+        self.tile_statistics.set_callback(
+            self.open_statistics
+        )
+
+        self.tile_events.set_callback(
+            self.open_events
+        )
+
+        self.tile_articles.set_callback(
+            self.open_articles
+        )
+
+        self.tile_use.set_callback(
+            self.open_userguide
+        )
+
+        self.tile_settings.set_callback(
+            self.open_settings
+        )
+
+    # =====================================================
+    # Callbacks
+    # =====================================================
+
+    def open_cash(self):
+
+        self.manager.current = config.SCREEN_CASH
+
+
+    # -----------------------------------------------------
+
+    def open_statistics(self):
+
+        self.manager.current = config.SCREEN_STATISTICS
+
+
+    # -----------------------------------------------------
+
+    def open_events(self):
+
+        self.manager.current = config.SCREEN_EVENTS
+
+    # -----------------------------------------------------
+
+    def open_articles(self):
+
+        self.manager.current = config.SCREEN_PRODUCTS
+
+
+    # ---------------------------------------------A--------
+
+    def open_settings(self):
+
+        self.manager.current = config.SCREEN_SETTINGS
+
+    # -----------------------------------------------------
+
+    def open_userguide(self):
+
+        self.manager.current = config.SCREEN_USE

@@ -1,0 +1,66 @@
+name: Android-App bauen
+
+# Baut aus dem Projekt eine installierbare APK-Datei.
+#
+# Buildozer läuft ausschließlich unter Linux - dieser Ablauf erledigt
+# das deshalb auf einem Linux-Rechner bei GitHub, ganz ohne lokale
+# Installation. Der erste Durchlauf dauert 30-45 Minuten (Android-SDK
+# und -NDK werden geladen), spätere sind dank Zwischenspeicher
+# deutlich kürzer.
+#
+# Starten: Reiter "Actions" -> "Android-App bauen" -> "Run workflow".
+# Ergebnis: unten auf der Seite des Laufs unter "Artifacts".
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  apk:
+
+    runs-on: ubuntu-latest
+
+    # Der erste Lauf lädt SDK und NDK - das darf dauern.
+    timeout-minutes: 120
+
+    steps:
+
+      - name: Projekt holen
+        uses: actions/checkout@v4
+
+      - name: Python bereitstellen
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Spart bei jedem weiteren Lauf das erneute Laden von SDK/NDK.
+      # Ändert sich buildozer.spec, wird der Zwischenspeicher erneuert.
+      - name: Zwischenspeicher
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.buildozer
+            .buildozer
+          key: buildozer-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-
+
+      - name: Werkzeuge einrichten
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git zip unzip openjdk-17-jdk autoconf libtool pkg-config \
+            zlib1g-dev libncurses-dev libtinfo6 cmake libffi-dev libssl-dev
+          pip install --upgrade buildozer cython==0.29.36
+
+      - name: APK bauen
+        run: buildozer android debug
+
+      - name: APK bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: KiG-POS-APK
+          path: bin/*.apk
+          if-no-files-found: error

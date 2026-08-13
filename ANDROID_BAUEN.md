@@ -1,0 +1,175 @@
+# KiG POS als Android-App bauen
+
+Das Projekt ist vollständig vorbereitet: `main.py` als Startdatei,
+`buildozer.spec` mit allen Einstellungen, App-Symbol und Startbild
+liegen bereit.
+
+**Was noch fehlt, ist der eigentliche Bauvorgang.** Buildozer, das
+Werkzeug dafür, läuft ausschließlich unter Linux — auf diesem Rechner
+gibt es weder WSL noch Docker noch Java. Es gibt zwei Wege, beide unten
+beschrieben.
+
+---
+
+## Weg 1: Bei GitHub bauen lassen (empfohlen)
+
+Nichts zu installieren: **Git ist auf deinem Rechner schon vorhanden**
+(Version 2.55, samt Anmeldehelfer). Der Bau läuft auf einem
+Linux-Rechner bei GitHub, du lädst die fertige APK herunter. Der Ablauf
+dafür liegt schon im Projekt (`.github/workflows/android.yml`).
+
+### 1. Einmalig: Wer bist du?
+
+Git weiß noch nicht, unter welchem Namen es Änderungen einträgt. Einmal
+festlegen (die Adresse sollte die deines GitHub-Kontos sein):
+
+```bash
+git config --global user.name "Oleg Kuhn"
+```
+
+```bash
+git config --global user.email "oleg.kuhn@googlemail.com"
+```
+
+### 2. GitHub-Konto und Projekt anlegen
+
+Auf [github.com](https://github.com) anmelden (oder Konto erstellen),
+dann oben rechts **+** → **New repository**:
+
+- **Repository name:** `KiG_POS`
+- **Private** auswählen — die Kasse geht niemanden etwas an
+- **NICHT** "Add a README" ankreuzen, das Projekt bringt alles mit
+- **Create repository**
+
+### 3. Projekt hochladen
+
+Im Projektordner nacheinander ausführen. Beim letzten Befehl öffnet
+sich ein Browserfenster zur Anmeldung bei GitHub — danach merkt sich
+der Rechner die Anmeldung.
+
+```bash
+git init -b main
+```
+
+```bash
+git add .
+```
+
+```bash
+git commit -m "KiG POS mit Hochformat und Android-Paket"
+```
+
+```bash
+git remote add origin https://github.com/DEINNAME/KiG_POS.git
+```
+
+```bash
+git push -u origin main
+```
+
+`DEINNAME` durch deinen GitHub-Benutzernamen ersetzen — die fertige
+Zeile steht nach dem Anlegen auch auf der GitHub-Seite.
+
+Hochgeladen werden rund **3 MB in 129 Dateien**. Die virtuelle
+Umgebung (119 MB), die Datenbank, Sicherungen, Protokolle und Ausgaben
+bleiben dank `.gitignore` außen vor.
+
+### 4. Bau starten
+
+Im Projekt bei GitHub auf **Actions**. Beim ersten Besuch fragt GitHub,
+ob Abläufe ausgeführt werden dürfen → bestätigen. Dann links
+**Android-App bauen** → rechts **Run workflow** → grüner Knopf
+**Run workflow**.
+
+### 5. APK herunterladen
+
+Nach 30–45 Minuten (erster Lauf) ist der Punkt grün. Den Lauf
+anklicken, unten unter **Artifacts** liegt `KiG-POS-APK` — das ist eine
+ZIP-Datei mit der `.apk` darin.
+
+### Später etwas ändern
+
+Nach jeder Änderung am Programm genügen drei Befehle, und GitHub baut
+automatisch eine neue APK:
+
+```bash
+git add . && git commit -m "Was geändert wurde" && git push
+```
+
+---
+
+## Weg 2: Auf diesem Rechner bauen (WSL)
+
+Braucht rund 10 GB Platz und eine einmalige Einrichtung.
+
+1. **WSL installieren** (PowerShell als Administrator), danach Neustart:
+
+```powershell
+wsl --install -d Ubuntu
+```
+
+2. **In Ubuntu die Werkzeuge einrichten:**
+
+```bash
+sudo apt update && sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses-dev libtinfo6 cmake libffi-dev libssl-dev
+pip3 install --user buildozer cython==0.29.36
+echo 'export PATH=$PATH:~/.local/bin' >> ~/.bashrc && source ~/.bashrc
+```
+
+3. **Bauen** (Projektordner liegt unter `/mnt/c/...`):
+
+```bash
+cd /mnt/c/Users/oleg_/PycharmProjects/KiG_POS
+buildozer android debug
+```
+
+Wichtig: Der erste Lauf lädt Android-SDK und -NDK (mehrere GB) und
+dauert 30–60 Minuten. Die fertige Datei liegt danach in `bin/`.
+
+---
+
+## Aufs Telefon bringen
+
+Die `.apk` per USB, E-Mail oder Cloud aufs Telefon kopieren und
+antippen. Android fragt einmalig nach der Erlaubnis, Apps aus
+unbekannter Quelle zu installieren — das ist bei selbst gebauten Apps
+normal.
+
+---
+
+## Was auf dem Telefon anders ist
+
+| | Windows | Android |
+|---|---|---|
+| Datenbank | `AppData\Roaming\kigpos\kig.db` | privater App-Ordner, **startet leer** |
+| Sicherungen | daneben im Ordner `backups` | ebenso, privat |
+| PDF / Excel / CSV | Projektordner `exports\` | `Android/data/de.kigev.kigpos/files/exports/` |
+| Ausrichtung | umschaltbar in den Einstellungen | fest im Hochformat |
+| Zurück-Taste | – | zur Startseite, von dort Rückfrage vor dem Beenden |
+| Bildschirm | – | bleibt an, solange die App läuft |
+
+Die Datenbank wird **bewusst nicht** mitgeliefert: Beim ersten Start
+legt die App eine leere an. Kategorien (Alkoholfrei, Alkohol, Cocktail,
+Essen, Sonstiges, Zutat), Pfandarten und Grundeinstellungen entstehen
+automatisch — Getränke, Rezepte und Events legst du auf dem Telefon neu
+an.
+
+Den Ordner mit den Ausgaben erreichst du am Telefon mit jedem
+Dateimanager oder am PC über das USB-Kabel unter
+`Android/data/de.kigev.kigpos/files/exports/`.
+
+---
+
+## Falls der Bau abbricht
+
+**`reportlab` schlägt fehl** — die wahrscheinlichste Stelle. Diese
+Bibliothek wird nur für den PDF-Export des Handbuchs gebraucht. In
+`buildozer.spec` in der Zeile `requirements` das `,reportlab` streichen
+und neu bauen: Die App läuft vollständig weiter, nur der Export-Knopf im
+Handbuch sperrt sich dann selbst.
+
+**Andere Fehler** — meist hilft ein sauberer Neuanfang:
+
+```bash
+buildozer android clean
+```

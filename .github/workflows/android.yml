@@ -47,16 +47,43 @@ jobs:
           key: buildozer-${{ hashFiles('buildozer.spec') }}
           restore-keys: buildozer-
 
+      # Der Bau übersetzt Python selbst mit - dafür braucht er die
+      # Entwicklungspakete der Bibliotheken, gegen die Python linkt
+      # (zlib, ssl, ffi, sqlite, bz2, lzma, readline, ...). Fehlt eines
+      # davon, bricht er mitten im Übersetzen ab.
       - name: Werkzeuge einrichten
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            git zip unzip openjdk-17-jdk autoconf libtool pkg-config \
-            zlib1g-dev libncurses-dev libtinfo6 cmake libffi-dev libssl-dev
+            build-essential ccache git zip unzip openjdk-17-jdk \
+            autoconf automake libtool libtool-bin pkg-config cmake \
+            patch python3-dev \
+            zlib1g-dev libffi-dev libssl-dev libsqlite3-dev \
+            libbz2-dev liblzma-dev libreadline-dev libncurses-dev \
+            libncursesw5-dev libgdbm-dev tk-dev uuid-dev
           pip install --upgrade buildozer cython==0.29.36
 
+      # Die Ausgabe zusätzlich in eine Datei schreiben, damit sie im
+      # Fehlerfall komplett heruntergeladen werden kann.
+      #
+      # pipefail ist zwingend: Ohne diese Zeile liefert die Pipe den
+      # Rückgabewert von "tee" (immer 0), ein fehlgeschlagener Bau
+      # würde also als Erfolg durchgehen.
       - name: APK bauen
-        run: buildozer android debug
+        run: |
+          set -o pipefail
+          buildozer android debug 2>&1 | tee bauprotokoll.txt
+
+      # Auch (und gerade) wenn der Bau scheitert: Protokoll sichern.
+      - name: Bauprotokoll bereitstellen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bauprotokoll
+          path: |
+            bauprotokoll.txt
+            .buildozer/android/platform/build-*/build.log
+          if-no-files-found: warn
 
       - name: APK bereitstellen
         uses: actions/upload-artifact@v4

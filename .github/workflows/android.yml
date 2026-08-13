@@ -44,8 +44,11 @@ jobs:
           path: |
             ~/.buildozer
             .buildozer
+          # BEWUSST ohne restore-keys: Ändert sich die Werkzeugkette in
+          # buildozer.spec, muss von vorn gebaut werden. Sonst käme das
+          # alte python-for-android samt altem NDK aus dem Speicher
+          # zurück und die Änderung liefe ins Leere.
           key: buildozer-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-
 
       # Der Bau übersetzt Python selbst mit - dafür braucht er die
       # Entwicklungspakete der Bibliotheken, gegen die Python linkt
@@ -56,8 +59,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             build-essential ccache git zip unzip openjdk-17-jdk \
-            autoconf automake libtool libtool-bin pkg-config cmake \
-            patch python3-dev \
+            autoconf automake libtool libtool-bin libltdl-dev m4 \
+            pkg-config cmake patch python3-dev \
             zlib1g-dev libffi-dev libssl-dev libsqlite3-dev \
             libbz2-dev liblzma-dev libreadline-dev libncurses-dev \
             libncursesw5-dev libgdbm-dev tk-dev uuid-dev
@@ -69,7 +72,13 @@ jobs:
       # pipefail ist zwingend: Ohne diese Zeile liefert die Pipe den
       # Rückgabewert von "tee" (immer 0), ein fehlgeschlagener Bau
       # würde also als Erfolg durchgehen.
+      # ACLOCAL_PATH: Das Rezept "libffi" ruft autoreconf auf und fand
+      # dabei die Makros von libtool nicht ("possibly undefined macro:
+      # LT_SYS_SYMBOL_USCORE"). Mit gesetztem Suchpfad findet aclocal
+      # sie zuverlässig.
       - name: APK bauen
+        env:
+          ACLOCAL_PATH: /usr/share/aclocal
         run: |
           set -o pipefail
           buildozer android debug 2>&1 | tee bauprotokoll.txt

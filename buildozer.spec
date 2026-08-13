@@ -74,9 +74,22 @@ android.wakelock = True
 # Berechtigung erlaubt (siehe storage.py).
 android.permissions =
 
-android.api = 34
-android.minapi = 24
-android.ndk_api = 24
+# Werkzeugkette bewusst festgenagelt.
+#
+# Ohne Angabe holt Buildozer python-for-android vom Zweig "master".
+# Der baute im ersten Versuch Python 3.14 fuer das Telefon - dafuer
+# gibt es weder ein passendes Kivy 2.3.1 noch ein passendes Cython
+# 0.29. Diese Fassung baut Python 3.11 und ist mit Kivy 2.3.1
+# erprobt.
+p4a.branch = v2024.01.21
+
+android.api = 33
+android.minapi = 21
+android.ndk_api = 21
+
+# Zur p4a-Fassung oben passendes NDK (der Standard waere inzwischen
+# r28c und damit deutlich neuer als alles, was diese Rezepte kennen).
+android.ndk = 25b
 
 android.archs = arm64-v8a, armeabi-v7a
 

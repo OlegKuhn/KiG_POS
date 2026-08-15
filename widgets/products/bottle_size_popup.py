@@ -25,7 +25,7 @@ class BottleSizePopup(Popup):
 
         self.title = "Flaschengröße"
         self.size_hint = (None, None)
-        self.size = (theme.NUMPAD_PANEL_WIDTH + dp(50), dp(580))
+        self.size = (dp(theme.NUMPAD_PANEL_WIDTH + 50), dp(580))
         self.auto_dismiss = False
 
         root = BoxLayout(

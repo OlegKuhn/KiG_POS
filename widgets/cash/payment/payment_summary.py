@@ -22,6 +22,8 @@ Build:
 
 from kivy.uix.boxlayout import BoxLayout
 
+from kivy.metrics import dp
+
 import theme
 
 from widgets.kig_label import KiGLabel
@@ -39,7 +41,7 @@ class PaymentSummary(BoxLayout):
         super().__init__(**kwargs)
 
         self.orientation = "vertical"
-        self.spacing = self.SPACING
+        self.spacing = dp(self.SPACING)
 
         self._paid = 0.0
         self._total = 0.0

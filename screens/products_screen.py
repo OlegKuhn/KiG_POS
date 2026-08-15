@@ -159,13 +159,23 @@ class ProductsScreen(Screen):
             self.root.add_widget(self.numpad_panel)
             return
 
+        nummernblock_offen = not self.numpad_panel.disabled
+
         if self.mode == "list":
-            self.root.add_widget(self.category_panel)
+
+            # Solange der Nummernblock offen ist, tritt die
+            # Kategorienkarte zur Seite: Die Artikelliste braucht ihre
+            # sieben Spalten, und gefiltert wird gerade ohnehin nicht -
+            # es wird eine Menge eingetippt.
+            if not nummernblock_offen:
+                self.root.add_widget(self.category_panel)
+
             self.root.add_widget(self.article_list_panel)
+
         else:
             self.root.add_widget(self.dashboard_panel)
 
-        if not self.numpad_panel.disabled:
+        if nummernblock_offen:
             self.root.add_widget(self.numpad_panel)
 
     # =====================================================

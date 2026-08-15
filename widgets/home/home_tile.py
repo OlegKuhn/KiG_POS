@@ -3,6 +3,8 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.image import Image
 from kivy.properties import StringProperty
 
+from kivy.metrics import dp
+
 import theme
 
 from widgets.kig_label import KiGLabel
@@ -29,8 +31,8 @@ class HomeTile(KiGTile):
 
         self.layout = BoxLayout(
             orientation="vertical",
-            padding=self.PADDING,
-            spacing=self.SPACING
+            padding=dp(self.PADDING),
+            spacing=dp(self.SPACING)
         )
 
         self.add_widget(self.layout)
@@ -44,7 +46,7 @@ class HomeTile(KiGTile):
         self.img_icon = Image(
             source="",
             size_hint=(None, None),
-            size=(self.ICON_SIZE, self.ICON_SIZE),
+            size=(dp(self.ICON_SIZE), dp(self.ICON_SIZE)),
             fit_mode="contain",
             mipmap=True
         )

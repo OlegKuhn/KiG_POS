@@ -89,11 +89,11 @@ class CashArticlePanel(RoundedPanel):
         # KiGAdaptiveGrid.add_tile) - im Hochformat kleiner, damit eine
         # ganze Reihe sichtbar bleibt.
         if theme.is_portrait():
-            kachel_breite = theme.PORTRAIT_ARTICLE_TILE_WIDTH
-            kachel_hoehe = theme.PORTRAIT_ARTICLE_TILE_HEIGHT
+            kachel_breite = dp(theme.PORTRAIT_ARTICLE_TILE_WIDTH)
+            kachel_hoehe = dp(theme.PORTRAIT_ARTICLE_TILE_HEIGHT)
         else:
-            kachel_breite = theme.ARTICLE_TILE_WIDTH
-            kachel_hoehe = theme.ARTICLE_TILE_HEIGHT
+            kachel_breite = dp(theme.ARTICLE_TILE_WIDTH)
+            kachel_hoehe = dp(theme.ARTICLE_TILE_HEIGHT)
 
         self.grid = KiGAdaptiveGrid(
             tile_width=kachel_breite,

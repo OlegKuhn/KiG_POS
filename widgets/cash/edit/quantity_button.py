@@ -2,6 +2,8 @@ from kivy.graphics import Color, RoundedRectangle
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
 
+from kivy.metrics import dp
+
 import theme
 
 from widgets.kig_label import KiGLabel
@@ -19,7 +21,7 @@ class QuantityButton(ButtonBehavior, BoxLayout):
         self.callback = callback
 
         self.size_hint = (None, None)
-        self.size = (self.SIZE, self.SIZE)
+        self.size = (dp(self.SIZE), dp(self.SIZE))
 
         with self.canvas.before:
 

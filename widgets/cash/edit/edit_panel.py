@@ -6,6 +6,8 @@ from kivy.graphics import (
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.widget import Widget
 
+from kivy.metrics import dp
+
 import theme
 
 from widgets.kig_label import KiGLabel
@@ -51,10 +53,10 @@ class EditPanel(SlidePanel, BoxLayout):
 
         self.orientation = "vertical"
 
-        self.init_slide(self.WIDTH)
+        self.init_slide(dp(self.WIDTH))
 
-        self.padding = self.PADDING
-        self.spacing = self.SPACING
+        self.padding = dp(self.PADDING)
+        self.spacing = dp(self.SPACING)
 
         self.cart_item = None
 
@@ -95,7 +97,7 @@ class EditPanel(SlidePanel, BoxLayout):
         self.lbl_title.vertical_alignment = "middle"
 
         self.lbl_title.size_hint = (1, None)
-        self.lbl_title.height = self.HEADER_HEIGHT
+        self.lbl_title.height = dp(self.HEADER_HEIGHT)
 
         self.lbl_title.bind(
             size=lambda instance, value:
@@ -122,7 +124,7 @@ class EditPanel(SlidePanel, BoxLayout):
         self.lbl_article.vertical_alignment = "middle"
 
         self.lbl_article.size_hint = (1, None)
-        self.lbl_article.height = 40
+        self.lbl_article.height = dp(40)
 
         self.lbl_article.bind(
             size=lambda instance, value:
@@ -148,7 +150,7 @@ class EditPanel(SlidePanel, BoxLayout):
         self.lbl_quantity.horizontal_alignment = "left"
 
         self.lbl_quantity.size_hint = (1, None)
-        self.lbl_quantity.height = 28
+        self.lbl_quantity.height = dp(28)
 
         self.lbl_quantity.bind(
             size=lambda instance, value:
@@ -166,7 +168,7 @@ class EditPanel(SlidePanel, BoxLayout):
         self.quantity_container = BoxLayout(
             orientation="horizontal",
             size_hint=(1, None),
-            height=70
+            height=dp(70)
         )
 
         self.quantity_editor = QuantityEditor(
@@ -204,7 +206,7 @@ class EditPanel(SlidePanel, BoxLayout):
         self.lbl_price.horizontal_alignment = "left"
 
         self.lbl_price.size_hint = (1, None)
-        self.lbl_price.height = 28
+        self.lbl_price.height = dp(28)
 
         self.lbl_price.bind(
             size=lambda instance, value:
@@ -226,7 +228,7 @@ class EditPanel(SlidePanel, BoxLayout):
 
         self.btn_price.size_hint = (1, None)
 
-        self.btn_price.height = theme.CATEGORY_TILE_HEIGHT
+        self.btn_price.height = dp(theme.CATEGORY_TILE_HEIGHT)
 
         self.add_widget(
             self.btn_price
@@ -246,9 +248,9 @@ class EditPanel(SlidePanel, BoxLayout):
 
         self.button_area = BoxLayout(
             orientation="vertical",
-            spacing=self.BUTTON_SPACING,
+            spacing=dp(self.BUTTON_SPACING),
             size_hint=(1, None),
-            height=self.BUTTON_HEIGHT * 2 + self.BUTTON_SPACING
+            height=dp(self.BUTTON_HEIGHT) * 2 + dp(self.BUTTON_SPACING)
         )
 
         # -----------------------------------------------------
@@ -256,9 +258,9 @@ class EditPanel(SlidePanel, BoxLayout):
         # -----------------------------------------------------
 
         self.row1 = BoxLayout(
-            spacing=self.BUTTON_SPACING,
+            spacing=dp(self.BUTTON_SPACING),
             size_hint=(1, None),
-            height=self.BUTTON_HEIGHT
+            height=dp(self.BUTTON_HEIGHT)
         )
 
         # -----------------------------------------------------
@@ -266,9 +268,9 @@ class EditPanel(SlidePanel, BoxLayout):
         # -----------------------------------------------------
 
         self.row2 = BoxLayout(
-            spacing=self.BUTTON_SPACING,
+            spacing=dp(self.BUTTON_SPACING),
             size_hint=(1, None),
-            height=self.BUTTON_HEIGHT
+            height=dp(self.BUTTON_HEIGHT)
         )
 
         # -----------------------------------------------------
@@ -285,12 +287,12 @@ class EditPanel(SlidePanel, BoxLayout):
 
             kachel = KiGActionTile(
                 text=text,
-                height=self.BUTTON_HEIGHT,
+                height=dp(self.BUTTON_HEIGHT),
                 callback=callback
             )
 
             kachel.size_hint = (1, None)
-            kachel.height = self.BUTTON_HEIGHT
+            kachel.height = dp(self.BUTTON_HEIGHT)
 
             return kachel
 

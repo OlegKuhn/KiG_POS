@@ -22,6 +22,8 @@ Build:
 
 from kivy.uix.boxlayout import BoxLayout
 
+from kivy.metrics import dp
+
 import theme
 
 from widgets.common.kig_action_tile import KiGActionTile
@@ -50,9 +52,9 @@ class PaymentFooter(BoxLayout):
         self.orientation = "horizontal"
 
         self.size_hint = (1, None)
-        self.height = self.HEIGHT
+        self.height = dp(self.HEIGHT)
 
-        self.spacing = self.SPACING
+        self.spacing = dp(self.SPACING)
 
         # =====================================================
         # Abbrechen

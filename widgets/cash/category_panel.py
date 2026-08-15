@@ -64,8 +64,8 @@ class CashCategoryPanel(RoundedPanel):
         # =====================================================
 
         self.grid = KiGAdaptiveGrid(
-            tile_width=theme.CATEGORY_TILE_WIDTH,
-            tile_height=theme.CATEGORY_TILE_HEIGHT
+            tile_width=dp(theme.CATEGORY_TILE_WIDTH),
+            tile_height=dp(theme.CATEGORY_TILE_HEIGHT)
         )
 
         self.scroll.add_widget(

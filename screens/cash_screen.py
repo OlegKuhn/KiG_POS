@@ -136,7 +136,7 @@ class CashScreen(Screen):
 
         self.right_panel = CartPanel(
             size_hint=(1, None) if self.hochformat else (None, 1),
-            width=theme.CART_PANEL_WIDTH,
+            width=dp(theme.CART_PANEL_WIDTH),
             edit_callback=self.edit_clicked,
             pay_callback=self.pay_clicked,
             clear_callback=self.clear_cart_clicked,

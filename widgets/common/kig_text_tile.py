@@ -2,6 +2,8 @@ from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
 from kivy.uix.boxlayout import BoxLayout
 
+from kivy.metrics import dp
+
 import theme
 
 from widgets.kig_label import KiGLabel
@@ -31,13 +33,13 @@ class KiGTextTile(KiGTile):
 
         self.size_hint = (None, None)
         self.size = (
-            theme.CATEGORY_TILE_WIDTH,
-            theme.CATEGORY_TILE_HEIGHT
+            dp(theme.CATEGORY_TILE_WIDTH),
+            dp(theme.CATEGORY_TILE_HEIGHT)
         )
 
         self.layout = BoxLayout(
             orientation="vertical",
-            padding=self.PADDING
+            padding=dp(self.PADDING)
         )
 
         self.add_widget(self.layout)

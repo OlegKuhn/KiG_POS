@@ -11,6 +11,8 @@ from kivy.properties import (
 )
 from kivy.uix.behaviors import ButtonBehavior
 
+from kivy.metrics import dp
+
 import theme
 
 from widgets.kig_widget import KiGWidget
@@ -57,9 +59,13 @@ class KiGTile(ButtonBehavior, KiGWidget):
 
         self.size_hint = (None, None)
 
+        # dp: Die Kachel soll auf jedem Geraet gleich GROSS sein, nicht
+        # gleich viele Bildpunkte breit. Ohne diese Umrechnung waere sie
+        # auf einem 300-dpi-Geraet halb so gross wie am Rechner (siehe
+        # theme.py, Abschnitt GROESSEN).
         self.size = (
-            self.WIDTH,
-            self.HEIGHT
+            dp(self.WIDTH),
+            dp(self.HEIGHT)
         )
 
         # ButtonBehavior

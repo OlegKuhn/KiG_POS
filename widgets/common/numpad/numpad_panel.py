@@ -4,6 +4,8 @@ from kivy.uix.anchorlayout import AnchorLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 
+from kivy.metrics import dp
+
 import theme
 
 from widgets.common.kig_action_tile import KiGActionTile
@@ -37,10 +39,10 @@ class NumpadPanel(SlidePanel, BoxLayout):
 
         self.orientation = "vertical"
 
-        self.init_slide(theme.NUMPAD_PANEL_WIDTH)
+        self.init_slide(dp(theme.NUMPAD_PANEL_WIDTH))
 
-        self.padding = theme.CARD_PADDING
-        self.spacing = theme.CARD_SPACING
+        self.padding = dp(theme.CARD_PADDING)
+        self.spacing = dp(theme.CARD_SPACING)
 
         self.mode = "price"
 
@@ -75,14 +77,14 @@ class NumpadPanel(SlidePanel, BoxLayout):
             anchor_x="center",
             anchor_y="center",
             size_hint=(1, None),
-            height=self.DISPLAY_HEIGHT
+            height=dp(self.DISPLAY_HEIGHT)
         )
 
         self.display = AmountDisplay()
 
         self.display.size_hint = (None, None)
-        self.display.width = self.DISPLAY_WIDTH
-        self.display.height = self.DISPLAY_HEIGHT
+        self.display.width = dp(self.DISPLAY_WIDTH)
+        self.display.height = dp(self.DISPLAY_HEIGHT)
 
         self.display_container.add_widget(
             self.display
@@ -104,7 +106,7 @@ class NumpadPanel(SlidePanel, BoxLayout):
 
         self.grid = GridLayout(
             cols=3,
-            spacing=self.GRID_SPACING,
+            spacing=dp(self.GRID_SPACING),
             size_hint=(None, None)
         )
 
@@ -116,6 +118,13 @@ class NumpadPanel(SlidePanel, BoxLayout):
         self.grid_container.add_widget(
             self.grid
         )
+
+        # Die Tasten haben eine Wunschgröße (dp(NUMPAD_BUTTON_SIZE)),
+        # dürfen aber nicht über den Bereich hinauswachsen, der ihnen
+        # bleibt: Vier Reihen zu 90 dp brauchen bei hoher
+        # Bildschirmdichte mehr Höhe, als ein 875 px hohes Fenster
+        # zwischen Anzeige und Schaltflächen übrig lässt.
+        self.grid_container.bind(size=self._update_button_size)
 
         self.add_widget(
             self.grid_container
@@ -258,8 +267,8 @@ class NumpadPanel(SlidePanel, BoxLayout):
         self.button_layout = BoxLayout(
             orientation="horizontal",
             size_hint=(1, None),
-            height=self.BUTTON_BAR_HEIGHT,
-            spacing=theme.ROW_SPACING
+            height=dp(self.BUTTON_BAR_HEIGHT),
+            spacing=dp(theme.ROW_SPACING)
         )
 
         # Zwei Kacheln zu je 160 px (theme.CATEGORY_TILE_WIDTH) plus
@@ -273,7 +282,7 @@ class NumpadPanel(SlidePanel, BoxLayout):
             kachel = KiGActionTile(text=text, callback=callback)
 
             kachel.size_hint = (1, None)
-            kachel.height = theme.CATEGORY_TILE_HEIGHT
+            kachel.height = dp(theme.CATEGORY_TILE_HEIGHT)
 
             return kachel
 
@@ -298,6 +307,35 @@ class NumpadPanel(SlidePanel, BoxLayout):
         #
 
         self.display.set_value(0)
+
+    # =====================================================
+    # Tastengröße
+    # =====================================================
+
+    def _update_button_size(self, *_args):
+
+        tasten = self.grid.children
+
+        if not tasten:
+            return
+
+        abstand = self.grid.spacing[0]
+
+        passt_in_breite = (self.grid_container.width - 2 * abstand) / 3
+        passt_in_hoehe = (self.grid_container.height - 3 * abstand) / 4
+
+        groesse = min(
+            dp(theme.NUMPAD_BUTTON_SIZE),
+            passt_in_breite,
+            passt_in_hoehe
+        )
+
+        if groesse <= 0:
+            return
+
+        for taste in tasten:
+            taste.width = groesse
+            taste.height = groesse
 
     # =====================================================
     # Zeichenfläche

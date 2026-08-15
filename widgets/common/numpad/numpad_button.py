@@ -1,5 +1,7 @@
 from kivy.animation import Animation
 
+from kivy.metrics import dp
+
 import theme
 
 from widgets.common.kig_action_tile import KiGActionTile
@@ -26,8 +28,8 @@ class NumpadButton(KiGActionTile):
         self.size_hint = (None, None)
 
         self.size = (
-            self.WIDTH,
-            self.HEIGHT
+            dp(self.WIDTH),
+            dp(self.HEIGHT)
         )
 
         self.background_color = theme.PRIMARY_ORANGE

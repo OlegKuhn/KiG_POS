@@ -13,6 +13,8 @@ from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 
+from kivy.metrics import dp
+
 import theme
 import config
 
@@ -58,7 +60,7 @@ class CartItemWidget(ButtonBehavior, BoxLayout):
         self.orientation = "vertical"
 
         self.size_hint = (1, None)
-        self.height = self.HEIGHT
+        self.height = dp(self.HEIGHT)
 
         self.padding = self.PADDING
         self.spacing = self.SPACING

@@ -1,6 +1,8 @@
 from kivy.properties import StringProperty
 from kivy.uix.boxlayout import BoxLayout
 
+from kivy.metrics import dp
+
 import theme
 
 from widgets.kig_label import KiGLabel
@@ -53,8 +55,8 @@ class CashArticleTile(KiGTile):
         self.size_hint = (None, None)
 
         self.size = (
-            theme.ARTICLE_TILE_WIDTH,
-            theme.ARTICLE_TILE_HEIGHT
+            dp(theme.ARTICLE_TILE_WIDTH),
+            dp(theme.ARTICLE_TILE_HEIGHT)
         )
 
         # =====================================================
@@ -63,8 +65,8 @@ class CashArticleTile(KiGTile):
 
         self.layout = BoxLayout(
             orientation="vertical",
-            padding=self.PADDING,
-            spacing=self.SPACING
+            padding=dp(self.PADDING),
+            spacing=dp(self.SPACING)
         )
 
         self.add_widget(

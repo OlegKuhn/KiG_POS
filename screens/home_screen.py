@@ -39,6 +39,10 @@ class HomeScreen(Screen):
     Startbildschirm der Anwendung.
     """
 
+    # Mehr als drei Kacheln nebeneinander lassen die Startseite auf
+    # breiten Bildschirmen auseinanderfallen.
+    MAX_COLUMNS = 3
+
     # =====================================================
     # Konstruktor
     # =====================================================
@@ -66,13 +70,15 @@ class HomeScreen(Screen):
         # Grid für die Tiles
         #
 
-        # Die Kacheln sind 260 px breit; drei nebeneinander brauchen
-        # rund 830 px und passen im Hochformat nicht mehr auf den
-        # Bildschirm. Dort stehen sie deshalb zu zweit in einer Reihe
-        # (3 Reihen statt 2).
+        # Die Kacheln haben auf jedem Gerät dieselbe physische Größe
+        # (siehe KiGTile: dp). Deshalb steht hier keine feste
+        # Spaltenzahl: Wie viele nebeneinander passen, hängt vom
+        # Bildschirm ab - auf einem Telefon eine, auf dem Tablet drei.
+        # Höchstens drei, sonst zerfasert die Startseite auf breiten
+        # Bildschirmen zu einer langen Reihe.
         self.grid = GridLayout(
 
-            cols=2 if theme.is_portrait() else 3,
+            cols=self.MAX_COLUMNS,
 
             spacing=dp(theme.TILE_SPACING),
 
@@ -80,6 +86,8 @@ class HomeScreen(Screen):
 
             size_hint=(None, None)
         )
+
+        self.bind(size=self._update_columns)
 
         #
         # Grid zum Layout hinzufügen
@@ -261,6 +269,31 @@ class HomeScreen(Screen):
         self.tile_settings.set_callback(
             self.open_settings
         )
+
+    # =====================================================
+    # Spaltenzahl
+    # =====================================================
+
+    def _update_columns(self, *_args):
+        """Passt an, wie viele Kacheln nebeneinander stehen.
+
+        Die Kacheln behalten ihre Größe - es ändert sich nur, wie viele
+        in eine Reihe passen. Damit sieht die Startseite auf dem
+        Telefon, auf dem E-Ink-Tablet und am Rechner gleich aus, nur
+        unterschiedlich breit umbrochen.
+        """
+
+        kachel_breite = dp(HomeTile.WIDTH)
+        abstand = dp(theme.TILE_SPACING)
+
+        verfuegbar = self.width - 2 * dp(theme.SCREEN_PADDING)
+
+        passend = int((verfuegbar + abstand) // (kachel_breite + abstand))
+
+        spalten = max(1, min(self.MAX_COLUMNS, passend))
+
+        if spalten != self.grid.cols:
+            self.grid.cols = spalten
 
     # =====================================================
     # Callbacks

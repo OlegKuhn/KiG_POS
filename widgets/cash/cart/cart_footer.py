@@ -1,6 +1,8 @@
 from kivy.graphics import Color, Line, Rectangle
 from kivy.uix.boxlayout import BoxLayout
 
+from kivy.metrics import dp
+
 import theme
 
 from widgets.kig_label import KiGLabel
@@ -21,10 +23,10 @@ class CartFooter(BoxLayout):
         super().__init__(**kwargs)
 
         self.orientation = "vertical"
-        self.padding = (theme.CARD_PADDING,) * 4
-        self.spacing = theme.CARD_SPACING
+        self.padding = (dp(theme.CARD_PADDING),) * 4
+        self.spacing = dp(theme.CARD_SPACING)
         self.size_hint_y = None
-        self.height = 135
+        self.height = dp(135)
 
         with self.canvas.before:
             Color(*theme.CART_FOOTER_BACKGROUND)
@@ -37,7 +39,7 @@ class CartFooter(BoxLayout):
         total_row = BoxLayout(
             orientation="horizontal",
             size_hint_y=None,
-            height=46
+            height=dp(46)
         )
 
         caption = KiGLabel(text="Summe")
@@ -50,7 +52,7 @@ class CartFooter(BoxLayout):
         self.lbl_total.set_font_size(32)
         self.lbl_total.horizontal_alignment = "right"
         self.lbl_total.size_hint_x = None
-        self.lbl_total.width = 170
+        self.lbl_total.width = dp(170)
 
         total_row.add_widget(caption)
         total_row.add_widget(self.lbl_total)
@@ -58,9 +60,9 @@ class CartFooter(BoxLayout):
 
         self.buttons = BoxLayout(
             orientation="horizontal",
-            spacing=theme.ROW_SPACING,
+            spacing=dp(theme.ROW_SPACING),
             size_hint_y=None,
-            height=theme.CART_ACTION_TILE_HEIGHT
+            height=dp(theme.CART_ACTION_TILE_HEIGHT)
         )
         self.add_widget(self.buttons)
 
@@ -68,7 +70,7 @@ class CartFooter(BoxLayout):
             schaltflaeche = KiGActionTile(
                 text=text,
                 callback=callback,
-                height=theme.CART_ACTION_TILE_HEIGHT
+                height=dp(theme.CART_ACTION_TILE_HEIGHT)
             )
 
             # KiGActionTile setzt sich intern auf eine feste Breite
@@ -77,7 +79,7 @@ class CartFooter(BoxLayout):
             # deshalb bestimmt hier das Layout die Breite.
             schaltflaeche.size_hint_x = 1
             schaltflaeche.size_hint_y = None
-            schaltflaeche.height = theme.CART_ACTION_TILE_HEIGHT
+            schaltflaeche.height = dp(theme.CART_ACTION_TILE_HEIGHT)
 
             return schaltflaeche
 

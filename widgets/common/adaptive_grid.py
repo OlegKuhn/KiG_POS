@@ -2,6 +2,8 @@ from math import ceil
 
 from kivy.uix.gridlayout import GridLayout
 
+from kivy.metrics import dp
+
 import theme
 
 
@@ -18,7 +20,7 @@ class KiGAdaptiveGrid(GridLayout):
             self,
             tile_width,
             tile_height,
-            spacing=theme.TILE_SPACING,
+            spacing=dp(theme.TILE_SPACING),
             padding=0,
             fixed_cols=None,
             **kwargs

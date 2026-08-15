@@ -1,5 +1,7 @@
 from kivy.uix.boxlayout import BoxLayout
 
+from kivy.metrics import dp
+
 import theme
 
 from widgets.common.clickable_label import ClickableLabel
@@ -30,9 +32,9 @@ class QuantityEditor(BoxLayout):
         self.orientation = "horizontal"
 
         self.size_hint = (None, None)
-        self.height = self.HEIGHT
+        self.height = dp(self.HEIGHT)
 
-        self.spacing = self.SPACING
+        self.spacing = dp(self.SPACING)
 
         # =====================================================
         # Minus
@@ -61,7 +63,7 @@ class QuantityEditor(BoxLayout):
         self.lbl_quantity.vertical_alignment = "middle"
 
         self.lbl_quantity.size_hint = (None, None)
-        self.lbl_quantity.width = self.LABEL_WIDTH
+        self.lbl_quantity.width = dp(self.LABEL_WIDTH)
         self.lbl_quantity.height = self.HEIGHT
 
         self.lbl_quantity.bind(
@@ -85,9 +87,9 @@ class QuantityEditor(BoxLayout):
         # Gesamtbreite berechnen
         self.width = (
             self.btn_minus.width +
-            self.SPACING +
-            self.LABEL_WIDTH +
-            self.SPACING +
+            dp(self.SPACING) +
+            dp(self.LABEL_WIDTH) +
+            dp(self.SPACING) +
             self.btn_plus.width
         )
 

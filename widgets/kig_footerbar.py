@@ -37,6 +37,8 @@ from kivy.properties import (
 from kivy.uix.anchorlayout import AnchorLayout
 from kivy.uix.boxlayout import BoxLayout
 
+from kivy.metrics import dp
+
 import theme
 
 from widgets.kig_widget import KiGWidget
@@ -88,7 +90,7 @@ class KiGFooterBar(KiGWidget):
         #
 
         self.size_hint_y = None
-        self.height = theme.FOOTER_HEIGHT
+        self.height = dp(theme.FOOTER_HEIGHT)
 
         #
         # Hintergrund
@@ -121,13 +123,13 @@ class KiGFooterBar(KiGWidget):
             orientation="horizontal",
 
             padding=(
-                15,
+                dp(15),
                 0,
-                15,
+                dp(15),
                 0
             ),
 
-            spacing=self.SPACING
+            spacing=dp(self.SPACING)
         )
 
         self.add_widget(
@@ -144,7 +146,7 @@ class KiGFooterBar(KiGWidget):
 
             size_hint=(None, 1),
 
-            width=self.LEFT_WIDTH,
+            width=dp(self.LEFT_WIDTH),
 
             padding=(0, 8, 0, 8),
 
@@ -175,7 +177,7 @@ class KiGFooterBar(KiGWidget):
 
             size_hint=(None, 1),
 
-            width=self.RIGHT_WIDTH
+            width=dp(self.RIGHT_WIDTH)
 
         )
 
@@ -215,8 +217,8 @@ class KiGFooterBar(KiGWidget):
             orientation="vertical",
             spacing=2,
             size_hint=(None, None),
-            width=220,
-            height=40
+            width=dp(220),
+            height=dp(40)
         )
 
         #
@@ -293,7 +295,7 @@ class KiGFooterBar(KiGWidget):
         self.lbl_exit.valign = "middle"
 
         self.lbl_exit.text_size = (
-            self.RIGHT_WIDTH,
+            dp(self.RIGHT_WIDTH),
             None
         )
 

@@ -26,6 +26,8 @@ from kivy.graphics import (
 )
 from kivy.uix.boxlayout import BoxLayout
 
+from kivy.metrics import dp
+
 import theme
 
 from widgets.kig_label import KiGLabel
@@ -57,14 +59,14 @@ class PaymentPanel(SlidePanel, BoxLayout):
 
         self.orientation = "vertical"
 
-        self.padding = self.PADDING
-        self.spacing = self.SPACING
+        self.padding = dp(self.PADDING)
+        self.spacing = dp(self.SPACING)
 
         #
         # Standardmäßig geschlossen
         #
 
-        self.init_slide(self.PANEL_WIDTH)
+        self.init_slide(dp(self.PANEL_WIDTH))
 
         with self.canvas.before:
 
@@ -85,7 +87,7 @@ class PaymentPanel(SlidePanel, BoxLayout):
 
         self.header = BoxLayout(
             size_hint=(1, None),
-            height=self.HEADER_HEIGHT
+            height=dp(self.HEADER_HEIGHT)
         )
 
         self.lbl_title = KiGLabel()

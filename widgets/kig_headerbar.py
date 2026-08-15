@@ -52,6 +52,8 @@ from widgets.kig_divider import (
     KiGDividerHorizontal
 )
 
+from kivy.metrics import dp
+
 import theme
 
 
@@ -78,6 +80,9 @@ class KiGHeaderBar(KiGWidget):
     # =====================================================
 
     HEADER_HEIGHT = theme.HEADER_HEIGHT
+
+    # Breite des Veranstaltungsbereichs in der Mitte (Querformat).
+    EVENT_AREA_WIDTH = 500
 
     LOGO_SIZE = 120
 
@@ -122,7 +127,7 @@ class KiGHeaderBar(KiGWidget):
         #
 
         self.size_hint_y = None
-        self.height = self.HEADER_HEIGHT
+        self.height = dp(self.HEADER_HEIGHT)
 
         #
         # Home-Callback
@@ -166,17 +171,17 @@ class KiGHeaderBar(KiGWidget):
 
             orientation="horizontal",
 
-            spacing=self.CONTENT_SPACING,
+            spacing=dp(self.CONTENT_SPACING),
 
             padding=(
 
-                self.PADDING_LEFT,
+                dp(self.PADDING_LEFT),
 
-                self.PADDING_TOP,
+                dp(self.PADDING_TOP),
 
-                self.PADDING_RIGHT,
+                dp(self.PADDING_RIGHT),
 
-                self.PADDING_BOTTOM
+                dp(self.PADDING_BOTTOM)
 
             )
 
@@ -192,7 +197,7 @@ class KiGHeaderBar(KiGWidget):
             anchor_x="center",
             anchor_y="center",
             size_hint=(None, 1),
-            width=self.LOGO_AREA_WIDTH
+            width=dp(self.LOGO_AREA_WIDTH)
         )
 
         #
@@ -219,7 +224,7 @@ class KiGHeaderBar(KiGWidget):
 
             size_hint=(None, 1),
 
-            width=self.STATUS_AREA_WIDTH
+            width=dp(self.STATUS_AREA_WIDTH)
 
         )
 
@@ -271,7 +276,7 @@ class KiGHeaderBar(KiGWidget):
         self.logo = KiGLogoButton()
 
         self.logo.set_logo_size(
-            self.LOGO_SIZE
+            dp(self.LOGO_SIZE)
         )
 
         #
@@ -307,9 +312,9 @@ class KiGHeaderBar(KiGWidget):
 
             size_hint=(1, None) if theme.is_portrait() else (None, None),
 
-            width=500,
+            width=dp(self.EVENT_AREA_WIDTH),
 
-            height=58
+            height=dp(58)
 
         )
 
@@ -393,7 +398,7 @@ class KiGHeaderBar(KiGWidget):
 
             size_hint=(1, None),
 
-            height=70
+            height=dp(70)
 
         )
 
@@ -414,7 +419,7 @@ class KiGHeaderBar(KiGWidget):
         )
 
         self.lbl_datetime.size_hint_y = None
-        self.lbl_datetime.height = 22
+        self.lbl_datetime.height = dp(22)
 
         self.lbl_datetime.halign = "right"
         self.lbl_datetime.valign = "middle"

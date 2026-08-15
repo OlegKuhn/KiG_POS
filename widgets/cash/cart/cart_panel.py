@@ -55,8 +55,8 @@ class CartPanel(RoundedPanel):
 
         self.orientation = "vertical"
 
-        self.padding = self.PADDING
-        self.spacing = self.SPACING
+        self.padding = dp(self.PADDING)
+        self.spacing = dp(self.SPACING)
 
         # -------------------------------------------------
         # Auswahl
@@ -72,8 +72,8 @@ class CartPanel(RoundedPanel):
         self.header = BoxLayout(
             orientation="horizontal",
             size_hint=(1, None),
-            height=self.HEADER_HEIGHT,
-            spacing=theme.ROW_SPACING
+            height=dp(self.HEADER_HEIGHT),
+            spacing=dp(theme.ROW_SPACING)
         )
 
         self.lbl_title = KiGLabel()
@@ -119,8 +119,8 @@ class CartPanel(RoundedPanel):
         # NACH der Konstruktion schmaler setzen.
         for schaltflaeche in (self.btn_storno, self.btn_clear):
             schaltflaeche.size_hint = (None, None)
-            schaltflaeche.width = self.HEADER_BUTTON_WIDTH
-            schaltflaeche.height = theme.CATEGORY_TILE_HEIGHT
+            schaltflaeche.width = dp(self.HEADER_BUTTON_WIDTH)
+            schaltflaeche.height = dp(theme.CATEGORY_TILE_HEIGHT)
             schaltflaeche.lbl_title.set_font_size(15)
             self.header.add_widget(schaltflaeche)
 
@@ -246,7 +246,7 @@ class CartPanel(RoundedPanel):
         self.lbl_title.text = "Storno" if aktiv else "Warenkorb"
         self.lbl_title.set_color(theme.ERROR if aktiv else theme.PRIMARY_ORANGE)
 
-        self.lbl_storno_hint.height = 30 if aktiv else 0
+        self.lbl_storno_hint.height = dp(30) if aktiv else 0
         self.lbl_storno_hint.opacity = 1 if aktiv else 0
 
         # Hinweiszeile nur im Storno-Modus einhängen - sonst bliebe

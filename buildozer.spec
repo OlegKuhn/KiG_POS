@@ -59,7 +59,13 @@ version = 0.1.0
 # screens/userguide_screen.py). Alles andere - auch der Excel-Export,
 # denn openpyxl ist reines Python - funktioniert unveraendert. Auf dem
 # Windows-Rechner bleibt der PDF-Export ohnehin erhalten.
-requirements = python3,kivy==2.3.1,pillow,pyjnius,openpyxl,et-xmlfile
+# filetype gehoert zu Kivy: kivy/core/image/__init__.py importiert es
+# ungeschuetzt beim Start. Fehlt es, bricht die Anwendung auf dem
+# Telefon noch vor dem ersten Bild ab ("No module named 'filetype'").
+# Die uebrigen erklaerten Abhaengigkeiten von Kivy (docutils, pygments,
+# requests, Kivy-Garden) braucht nur, wer RstDocument, CodeInput oder
+# den Garden nutzt - das tut KiG POS nicht.
+requirements = python3,kivy==2.3.1,filetype,pillow,pyjnius,openpyxl,et-xmlfile
 
 # Das Telefon wird hochkant benutzt - die Oberflaeche baut sich auf
 # Android immer im Hochformat auf (siehe KiG_POS.py).

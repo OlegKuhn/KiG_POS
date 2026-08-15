@@ -32,7 +32,47 @@ Version:
 =========================================================
 """
 
+import os
 import traceback
+
+from pathlib import Path
+
+
+def _absturz_ordner():
+    """Ordner für den Fehlerbericht - notfalls ohne Kivy.
+
+    Der übliche Weg führt über storage.py. Der importiert allerdings
+    Kivy, und wenn genau daran der Start scheitert (so geschehen bei
+    einem fehlenden Kivy-Zusatzpaket), ist dieser Weg verbaut. Deshalb
+    hier zusätzlich ein Weg, der mit reinem Python auskommt:
+
+    python-for-android setzt ANDROID_PRIVATE auf den privaten
+    Ordner der App, also .../<paketname>/files. Daraus lässt sich der
+    öffentlich erreichbare Ordner ableiten, ohne den Paketnamen fest
+    einzutragen.
+    """
+
+    try:
+        import storage
+
+        return storage.export_dir("absturz")
+
+    except Exception:
+        pass
+
+    privat = os.environ.get("ANDROID_PRIVATE")
+
+    if privat:
+        paket = Path(privat).parent.name
+        ordner = (
+            Path("/sdcard/Android/data") / paket / "files" / "exports" / "absturz"
+        )
+    else:
+        ordner = Path(__file__).resolve().parent
+
+    ordner.mkdir(parents=True, exist_ok=True)
+
+    return ordner
 
 
 def _absturz_festhalten(meldung):
@@ -44,9 +84,7 @@ def _absturz_festhalten(meldung):
     try:
         from datetime import datetime
 
-        import storage
-
-        ziel = storage.export_dir("absturz") / "letzter_absturz.txt"
+        ziel = _absturz_ordner() / "letzter_absturz.txt"
 
         ziel.write_text(
             f"KiG POS - Absturz beim Start\n"
@@ -129,11 +167,13 @@ if __name__ == "__main__":
 
         # Auf dem Rechner steht die Meldung bereits in der Konsole -
         # ein zusätzliches Fenster wäre dort nur im Weg. Auf dem
-        # Telefon ist es die einzige Möglichkeit, den Grund zu sehen.
+        # Telefon ist es die bequemste Möglichkeit, den Grund zu sehen.
+        #
+        # Klappt auch das nicht (etwa weil Kivy selbst der Grund des
+        # Absturzes ist), bleibt die Datei von oben - und in jedem Fall
+        # das Systemprotokoll des Telefons ("adb logcat").
         try:
-            import storage
-
-            if storage.IS_ANDROID:
+            if os.environ.get("ANDROID_PRIVATE"):
                 _absturz_anzeigen(meldung, pfad)
 
         except Exception:

@@ -720,15 +720,18 @@ TOPICS = [
                     "Bereiche untereinander: Artikel oben, Warenkorb "
                     "unten. Das ist für hochkant montierte Bildschirme "
                     "und Tablets gedacht.\n\n"
-                    "Auf dem Telefon fehlt diese Auswahl: Dort läuft die "
-                    "App immer im Hochformat."
+                    "Beim allerersten Start wählt das Programm selbst, was "
+                    "zum Bildschirm passt - am Rechner Querformat, auf "
+                    "einem hochkanten Telefon Hochformat. Danach gilt, "
+                    "was hier eingestellt ist."
                 ),
             },
             {
                 "heading": "Was sich im Hochformat ändert",
                 "text": (
-                    "Das Fenster wird beim Umschalten automatisch "
-                    "schmaler und höher. Die Startseite zeigt zwei "
+                    "Am Rechner wird das Fenster beim Umschalten "
+                    "automatisch schmaler und höher; auf einem Gerät mit "
+                    "Drehsensor drehst du es einfach. Die Startseite zeigt zwei "
                     "Kacheln je Reihe statt drei, in der Artikelliste "
                     "steht jeder Artikel zweizeilig (oben Name und "
                     "Kategorie, darunter Preise, Bestand und die "

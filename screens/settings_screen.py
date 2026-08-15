@@ -28,7 +28,6 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.screenmanager import Screen
 
-import storage
 import theme
 
 from widgets.common.rounded_panel import RoundedPanel
@@ -119,19 +118,8 @@ class SettingsScreen(Screen):
         #
         # Bildschirmausrichtung
         #
-        # Auf Android entfällt die Wahl: Dort gibt das Gerät die
-        # Ausrichtung vor (die App läuft hochkant, siehe
-        # buildozer.spec), und ein Querformat-Aufbau hätte auf einem
-        # hochkanten Bildschirm keinen Platz.
-
-        if storage.IS_ANDROID:
-
-            panel.add_widget(BoxLayout())
-
-            root.add_widget(panel)
-            self.add_widget(root)
-
-            return
+        # Auf jedem Gerät vorhanden: Ein Tablet im Ständer ist quer
+        # ebenso sinnvoll wie ein Telefon hochkant.
 
         panel.add_widget(self._section_label("Bildschirmausrichtung"))
 
@@ -158,7 +146,9 @@ class SettingsScreen(Screen):
         hint = KiGLabel(text=(
             "Im Hochformat stehen zusammengehörige Bereiche untereinander "
             "statt nebeneinander - gedacht für hochkant montierte "
-            "Bildschirme. Das Fenster wird dabei passend angepasst."
+            "Bildschirme und Telefone. Am Rechner wird das Fenster dabei "
+            "passend angepasst, auf einem Gerät mit Drehsensor drehst du "
+            "es einfach."
         ))
         hint.set_font_size(14)
         hint.set_alignment("left")

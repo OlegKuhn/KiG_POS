@@ -59,6 +59,7 @@ version = 0.1.0
 # screens/userguide_screen.py). Alles andere - auch der Excel-Export,
 # denn openpyxl ist reines Python - funktioniert unveraendert. Auf dem
 # Windows-Rechner bleibt der PDF-Export ohnehin erhalten.
+#
 # filetype gehoert zu Kivy: kivy/core/image/__init__.py importiert es
 # ungeschuetzt beim Start. Fehlt es, bricht die Anwendung auf dem
 # Telefon noch vor dem ersten Bild ab ("No module named 'filetype'").
@@ -67,9 +68,12 @@ version = 0.1.0
 # den Garden nutzt - das tut KiG POS nicht.
 requirements = python3,kivy==2.3.1,filetype,pillow,pyjnius,openpyxl,et-xmlfile
 
-# Das Telefon wird hochkant benutzt - die Oberflaeche baut sich auf
-# Android immer im Hochformat auf (siehe KiG_POS.py).
-orientation = portrait
+# Das Geraet darf sich drehen. Welche Anordnung die Oberflaeche
+# waehlt, entscheidet die Einstellung in der App - genau wie auf dem
+# Windows-Rechner. Beim allerersten Start wird sie aus der Form des
+# Bildschirms abgeleitet (Telefon hochkant, Tablet quer, siehe
+# KiG_POS._ausrichtung_bestimmen).
+orientation = all
 
 # Statusleiste sichtbar lassen: Uhrzeit und Akkustand sind am
 # Veranstaltungsabend durchaus von Interesse.

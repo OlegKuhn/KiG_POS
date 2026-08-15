@@ -670,7 +670,7 @@ class DatabaseManager:
 
             for schluessel, standardwert in (
                 ("theme_mode", "light"),
-                ("screen_orientation", "landscape"),
+                ("screen_orientation", ""),
             ):
 
                 self.cursor.execute(
@@ -1517,7 +1517,11 @@ class DatabaseManager:
 
             ("theme_mode", "light", "string"),
 
-            ("screen_orientation", "landscape", "string")
+            # Leer = noch nicht gewaehlt. Beim ersten Start entscheidet
+            # dann die Form des Bildschirms (siehe
+            # KiG_POS._ausrichtung_bestimmen) - ein Telefon startet so
+            # hochkant, ein Rechner im Querformat.
+            ("screen_orientation", "", "string")
 
         ]
 

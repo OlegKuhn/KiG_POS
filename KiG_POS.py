@@ -96,6 +96,39 @@ def _portrait_window_height():
     ))
 
 
+def _ausrichtung_bestimmen(db):
+    """Liefert die Ausrichtung, mit der die Oberfläche aufgebaut wird.
+
+    Normalerweise die gespeicherte Einstellung. Beim allerersten Start
+    ist noch keine gewählt - dann entscheidet die Form des Bildschirms
+    und wird festgehalten:
+
+        Windows      1500 x 875   -> Querformat
+        Telefon      1080 x 2400  -> Hochformat
+        E-Ink-Tablet 1860 x 2480  -> Hochformat, in der Hand gedreht
+                                     dann Querformat
+
+    Ab da gilt, was in den Einstellungen steht - auf jedem Gerät
+    gleichermaßen. Deshalb wird hier auch nicht nach Android
+    unterschieden: Die Anwendung soll überall dieselbe sein.
+    """
+
+    gespeichert = db.get_setting("screen_orientation")
+
+    if gespeichert in (theme.ORIENTATION_LANDSCAPE, theme.ORIENTATION_PORTRAIT):
+        return gespeichert
+
+    abgeleitet = (
+        theme.ORIENTATION_PORTRAIT
+        if Window.height > Window.width
+        else theme.ORIENTATION_LANDSCAPE
+    )
+
+    db.set_setting("screen_orientation", abgeleitet)
+
+    return abgeleitet
+
+
 def apply_window_orientation(orientation):
     """Setzt Fenstergröße und Mindestmaße passend zur Ausrichtung.
 
@@ -137,10 +170,10 @@ def apply_window_orientation(orientation):
 
 if IS_ANDROID:
 
-    # Android liefert ein hochkantes Vollbild - die Oberfläche wird
-    # deshalb von Anfang an im Hochformat aufgebaut (siehe
-    # buildozer.spec: orientation = portrait).
-    theme.set_orientation(theme.ORIENTATION_PORTRAIT)
+    # Auf Android gibt das Gerät die Fenstergröße vor; die Ausrichtung
+    # der Oberfläche wird in build() aus der Einstellung bestimmt
+    # (siehe _ausrichtung_bestimmen).
+    pass
 
 elif config.WINDOW_MODE == "window":
 
@@ -186,17 +219,8 @@ class KiGPOS(App):
 
             # Ausrichtung ebenfalls VOR dem Aufbau setzen - die Screens
             # fragen sie beim Bauen ab (siehe theme.is_portrait).
-            #
-            # Auf Android bleibt es beim Hochformat: Die gespeicherte
-            # Einstellung stammt womöglich vom Windows-Rechner, und ein
-            # Querformat-Aufbau hätte auf einem hochkanten Telefon
-            # keinen Platz.
-            if not IS_ANDROID:
-                theme.set_orientation(
-                    db.get_setting("screen_orientation")
-                    or theme.ORIENTATION_LANDSCAPE
-                )
-                apply_window_orientation(theme.get_orientation())
+            theme.set_orientation(_ausrichtung_bestimmen(db))
+            apply_window_orientation(theme.get_orientation())
 
         except Exception as error:
             traceback.print_exc()

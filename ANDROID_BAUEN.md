@@ -145,7 +145,7 @@ normal.
 | Sicherungen | daneben im Ordner `backups` | ebenso, privat |
 | Excel / CSV | Projektordner `exports\` | `Android/data/de.kigev.kigpos/files/exports/` |
 | PDF-Export des Handbuchs | vorhanden | nicht verfügbar (siehe unten) |
-| Ausrichtung | umschaltbar in den Einstellungen | fest im Hochformat |
+| Ausrichtung | umschaltbar in den Einstellungen | ebenso; beim ersten Start passend zum Bildschirm vorbelegt |
 | Zurück-Taste | – | zur Startseite, von dort Rückfrage vor dem Beenden |
 | Bildschirm | – | bleibt an, solange die App läuft |
 

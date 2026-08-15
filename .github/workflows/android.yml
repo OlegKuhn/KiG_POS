@@ -16,6 +16,10 @@ on:
   push:
     branches:
       - main
+    # Reine Textänderungen brauchen keine neue APK - das spart bei
+    # jeder Dokumentationsänderung zehn Minuten Rechenzeit.
+    paths-ignore:
+      - "**.md"
 
 jobs:
 

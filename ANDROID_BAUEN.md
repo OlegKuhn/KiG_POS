@@ -161,6 +161,40 @@ Dateimanager oder am PC über das USB-Kabel unter
 
 ---
 
+## Nach der Installation: kurze Probe
+
+Auf dem Telefon laesst sich einiges erst wirklich pruefen. Diese Runde
+dauert fuenf Minuten und deckt die typischen Stolperstellen ab:
+
+1. **Startseite** - sechs Kacheln, zwei je Reihe, nichts abgeschnitten
+2. **Artikel** - eine Kategorie und zwei Getraenke anlegen; die
+   Bildschirmtastatur des Telefons darf die Eingabefelder nicht
+   verdecken
+3. **Kasse** - Artikel antippen, Menge aendern, bezahlen
+4. **Zuruecktaste/Wischgeste** - fuehrt zur Startseite, dort kommt die
+   Ruckfrage vor dem Beenden
+5. **Statistik** - "Excel exportieren", danach die Datei unter
+   `Android/data/de.kigev.kigpos/files/exports/excel/` suchen
+6. **Einstellungen** - dunkler Modus, danach die Kasse erneut oeffnen
+
+---
+
+## Wichtig: die Daten liegen nur auf dem Telefon
+
+Datenbank und Sicherungen liegen im **privaten App-Ordner**. Der ist vor
+anderen Apps geschuetzt - wird aber beim **Deinstallieren restlos
+geloescht**. Ein Zurueckholen gibt es dann nicht.
+
+Fuer den Vereinsbetrieb heisst das: Nach jeder Veranstaltung in der
+Statistik **"Excel exportieren"** druecken. Diese Datei landet im
+Ordner `Android/data/...` auf dem gemeinsamen Speicher, ueberlebt eine
+Deinstallation und laesst sich per USB-Kabel auf den Rechner ziehen.
+
+Windows-Rechner und Telefon fuehren getrennte Datenbestaende - ein
+Abgleich zwischen beiden findet nicht statt.
+
+---
+
 ## Falls der Bau abbricht
 
 **Protokoll holen:** Beim fehlgeschlagenen Lauf liegt unter

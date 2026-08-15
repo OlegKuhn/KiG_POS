@@ -46,11 +46,20 @@ source.exclude_patterns = *.db, *.db-shm, *.db-wal, *.xlsm, *.bas, *.log
 
 version = 0.1.0
 
-# reportlab (PDF-Export des Handbuchs) ist die einzige Abhaengigkeit,
-# die beim Bauen zicken kann. Die Anwendung startet auch ohne sie -
-# der Export-Knopf im Handbuch sperrt sich dann selbst (siehe
-# screens/userguide_screen.py). Notfalls hier streichen.
-requirements = python3,kivy==2.3.1,pillow,pyjnius,openpyxl,et-xmlfile,reportlab
+# reportlab fehlt hier bewusst.
+#
+# Das Rezept von python-for-android holt einen reportlab-Stand von
+# 2019, dessen C-Erweiterung noch direkt in PyFrameObject hineingreift
+# ("error: incomplete definition of type 'struct _frame'"). Seit
+# Python 3.11 ist diese Struktur undurchsichtig - das laesst sich von
+# aussen nicht reparieren.
+#
+# Folge: Auf dem Telefon ist der PDF-Export des Handbuchs nicht
+# verfuegbar; der Knopf sperrt sich dort selbst (siehe
+# screens/userguide_screen.py). Alles andere - auch der Excel-Export,
+# denn openpyxl ist reines Python - funktioniert unveraendert. Auf dem
+# Windows-Rechner bleibt der PDF-Export ohnehin erhalten.
+requirements = python3,kivy==2.3.1,pillow,pyjnius,openpyxl,et-xmlfile
 
 # Das Telefon wird hochkant benutzt - die Oberflaeche baut sich auf
 # Android immer im Hochformat auf (siehe KiG_POS.py).

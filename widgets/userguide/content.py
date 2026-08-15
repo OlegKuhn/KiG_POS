@@ -111,7 +111,11 @@ TOPICS = [
                     "Anleitung dazu. Über \"Als PDF exportieren\" oben "
                     "rechts speicherst du das komplette Handbuch mit "
                     "allen Screenshots als PDF-Datei - praktisch zum "
-                    "Ausdrucken oder Weitergeben an neue Helfer."
+                    "Ausdrucken oder Weitergeben an neue Helfer.\n\n"
+                    "Den PDF-Export gibt es nur in der Windows-Fassung; "
+                    "auf dem Telefon ist der Knopf gesperrt. Das "
+                    "Handbuch selbst kannst du dort natürlich trotzdem "
+                    "lesen."
                 ),
                 "image": "start/02_handbuch.png",
             },

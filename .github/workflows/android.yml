@@ -44,11 +44,15 @@ jobs:
           path: |
             ~/.buildozer
             .buildozer
-          # BEWUSST ohne restore-keys: Ändert sich die Werkzeugkette in
-          # buildozer.spec, muss von vorn gebaut werden. Sonst käme das
-          # alte python-for-android samt altem NDK aus dem Speicher
-          # zurück und die Änderung liefe ins Leere.
-          key: buildozer-${{ hashFiles('buildozer.spec') }}
+          # Die Zahl hinter "buildozer-" ist ein Generationszähler:
+          # Er trennt die Speicherstände sauber, seit die Werkzeugkette
+          # in buildozer.spec festgenagelt ist. Ohne ihn käme über die
+          # unscharfen restore-keys womöglich ein Stand von davor
+          # zurück (python-for-android vom Zweig master samt NDK r28c).
+          #
+          # Bei einem Werkzeugwechsel: Zahl erhöhen statt raten.
+          key: buildozer-2-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-2-
 
       # Der Bau übersetzt Python selbst mit - dafür braucht er die
       # Entwicklungspakete der Bibliotheken, gegen die Python linkt

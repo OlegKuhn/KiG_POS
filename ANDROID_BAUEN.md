@@ -143,7 +143,8 @@ normal.
 |---|---|---|
 | Datenbank | `AppData\Roaming\kigpos\kig.db` | privater App-Ordner, **startet leer** |
 | Sicherungen | daneben im Ordner `backups` | ebenso, privat |
-| PDF / Excel / CSV | Projektordner `exports\` | `Android/data/de.kigev.kigpos/files/exports/` |
+| Excel / CSV | Projektordner `exports\` | `Android/data/de.kigev.kigpos/files/exports/` |
+| PDF-Export des Handbuchs | vorhanden | nicht verfügbar (siehe unten) |
 | Ausrichtung | umschaltbar in den Einstellungen | fest im Hochformat |
 | Zurück-Taste | – | zur Startseite, von dort Rückfrage vor dem Beenden |
 | Bildschirm | – | bleibt an, solange die App läuft |
@@ -162,14 +163,19 @@ Dateimanager oder am PC über das USB-Kabel unter
 
 ## Falls der Bau abbricht
 
-**`reportlab` schlägt fehl** — die wahrscheinlichste Stelle. Diese
-Bibliothek wird nur für den PDF-Export des Handbuchs gebraucht. In
-`buildozer.spec` in der Zeile `requirements` das `,reportlab` streichen
-und neu bauen: Die App läuft vollständig weiter, nur der Export-Knopf im
-Handbuch sperrt sich dann selbst.
+**Protokoll holen:** Beim fehlgeschlagenen Lauf liegt unter
+**Artifacts** das `Bauprotokoll` - darin steht die Ursache. Der Ablauf
+sichert es auch dann, wenn der Bau scheitert.
 
-**Andere Fehler** — meist hilft ein sauberer Neuanfang:
+**Bereits erledigt** (steht hier als Gedächtnisstütze, falls die Fehler
+wiederkommen):
 
-```bash
-buildozer android clean
-```
+| Fehler im Protokoll | Ursache | Behoben durch |
+|---|---|---|
+| `LT_SYS_SYMBOL_USCORE` beim Rezept libffi | autoreconf fand die libtool-Makros nicht | `libltdl-dev`, `m4`, `ACLOCAL_PATH` im Ablauf |
+| Python 3.14 wird gebaut, Kivy passt nicht | Buildozer nahm python-for-android vom Zweig `master` | `p4a.branch = v2024.01.21` + `android.ndk = 25b` |
+| `incomplete definition of type 'struct _frame'` | Das p4a-Rezept lädt reportlab von 2019, unvereinbar mit Python 3.11 | reportlab aus `requirements` entfernt |
+
+**Neue Fehler:** Meist hilft ein sauberer Neuanfang - im Ablauf die
+Zahl im Cache-Schlüssel (`buildozer-2-`) erhöhen und pushen. Dann wird
+alles neu gebaut statt aus dem Zwischenspeicher geholt.

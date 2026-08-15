@@ -85,7 +85,23 @@ jobs:
           ACLOCAL_PATH: /usr/share/aclocal
         run: |
           set -o pipefail
-          buildozer android debug 2>&1 | tee bauprotokoll.txt
+
+          # Zwei Anläufe.
+          #
+          # Die Rezepte holen ihre Quellen von fremden Servern -
+          # freetype etwa von savannah.gnu.org, das schon einmal mit
+          # "502 Bad Gateway" ausgefallen ist und den ganzen Bau
+          # mitgerissen hat. Der zweite Anlauf macht dort weiter, wo
+          # es hakte: Bereits Gebautes überspringt python-for-android,
+          # ein echter Fehler schlägt also weiterhin schnell durch.
+          if buildozer android debug 2>&1 | tee bauprotokoll.txt; then
+            exit 0
+          fi
+
+          echo "=== Erster Anlauf gescheitert - zweiter Versuch ===" \
+            | tee -a bauprotokoll.txt
+
+          buildozer android debug 2>&1 | tee -a bauprotokoll.txt
 
       # Auch (und gerade) wenn der Bau scheitert: Protokoll sichern.
       - name: Bauprotokoll bereitstellen

@@ -26,7 +26,6 @@ from kivy.uix.popup import Popup
 import theme
 
 from widgets.common.rounded_input import RoundedInput
-from widgets.keyboard.keyboard_manager import KeyboardManager
 
 
 class CategoryDialog(Popup):
@@ -180,7 +179,6 @@ class CategoryDialog(Popup):
         self.name_input = RoundedInput(
             hint_text="Kategoriename",
 
-            kig_keyboard_mode="text",
 
             size_hint_y=None,
 
@@ -382,14 +380,6 @@ class CategoryDialog(Popup):
             return
 
         # -------------------------------------------------
-        # Tastatur schließen
-        # -------------------------------------------------
-
-        if KeyboardManager.visible():
-
-            KeyboardManager.hide()
-
-        # -------------------------------------------------
         # Callback
         # -------------------------------------------------
 
@@ -420,14 +410,6 @@ class CategoryDialog(Popup):
         """
 
         # -------------------------------------------------
-        # Tastatur schließen
-        # -------------------------------------------------
-
-        if KeyboardManager.visible():
-
-            KeyboardManager.hide()
-
-        # -------------------------------------------------
         # Dialog schließen
         # -------------------------------------------------
 
@@ -444,14 +426,6 @@ class CategoryDialog(Popup):
         """
         Löscht die aktuell bearbeitete Kategorie.
         """
-
-        # -------------------------------------------------
-        # Tastatur schließen
-        # -------------------------------------------------
-
-        if KeyboardManager.visible():
-
-            KeyboardManager.hide()
 
         # -------------------------------------------------
         # Callback
@@ -481,17 +455,8 @@ class CategoryDialog(Popup):
         """
         Sicherheitsmechanismus:
 
-        Wenn das Popup auf irgendeinem anderen Weg
-        geschlossen wird, darf die Bildschirmtastatur
-        nicht offen bleiben.
+        Das Eingabefeld gibt beim Schließen den Fokus ab - sonst
+        bliebe die Tastatur des Systems offen stehen.
         """
 
-        if KeyboardManager.visible():
-
-            keyboard = KeyboardManager.keyboard()
-
-            # Nur schließen, wenn diese Tastatur tatsächlich
-            # zu diesem Dialog gehört.
-            if keyboard.target is self.name_input:
-
-                KeyboardManager.hide()
+        self.name_input.focus = False

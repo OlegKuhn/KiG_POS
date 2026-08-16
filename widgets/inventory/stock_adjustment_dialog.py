@@ -174,7 +174,6 @@ class StockAdjustmentDialog(Popup):
         self.txt_stock = RoundedInput(
             text=current_stock,
             multiline=False,
-            kig_keyboard_mode="text",
             size_hint_y=None,
             height=dp(60)
         )
@@ -205,7 +204,6 @@ class StockAdjustmentDialog(Popup):
 
         self.txt_reason = RoundedInput(
             multiline=False,
-            kig_keyboard_mode="text",
             size_hint_y=None,
             height=dp(60)
         )
@@ -229,7 +227,6 @@ class StockAdjustmentDialog(Popup):
 
         self.txt_user = RoundedInput(
             multiline=False,
-            kig_keyboard_mode="text",
             size_hint_y=None,
             height=dp(60)
         )
@@ -328,13 +325,13 @@ class StockAdjustmentDialog(Popup):
             )
 
         self.txt_bottle_count = RoundedInput(
-            hint_text="Anzahl Flaschen", multiline=False, kig_keyboard_mode="text",
+            hint_text="Anzahl Flaschen", multiline=False,
             size_hint_x=0.4,
         )
         row.add_widget(self.txt_bottle_count)
 
         self.txt_bottle_size = RoundedInput(
-            hint_text="ml je Flasche", text=size_text, multiline=False, kig_keyboard_mode="text",
+            hint_text="ml je Flasche", text=size_text, multiline=False,
             size_hint_x=0.4,
         )
         row.add_widget(self.txt_bottle_size)

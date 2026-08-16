@@ -403,18 +403,12 @@ FOOTER_HEIGHT = 60
 
 
 # ----------------------------------------------------
-# Content
+# Startseite
 # ----------------------------------------------------
-
-CONTENT_MAX_WIDTH = 1100
-
-
-# ----------------------------------------------------
-# Home
-# ----------------------------------------------------
-
-HOME_TILE_WIDTH = 260
-HOME_TILE_HEIGHT = 180
+#
+# Die Kachelgröße steht in widgets/kig_tile.py (KiGTile.WIDTH /
+# HEIGHT) - dort, wo die Kachel sie auch verwendet. Hier stand sie
+# früher ein zweites Mal, ohne dass jemand sie las.
 
 
 # ----------------------------------------------------
@@ -424,23 +418,22 @@ HOME_TILE_HEIGHT = 180
 CATEGORY_TILE_WIDTH = 160
 CATEGORY_TILE_HEIGHT = 60
 
-ARTICLE_TILE_WIDTH = 210
-ARTICLE_TILE_HEIGHT = 150
+# Flach gehalten: Auf einer Artikelkachel stehen nur Name, Bestand
+# und Preis. Höhere Kacheln kosten nur Reihen, ohne mehr zu zeigen.
+# Die Breite ist so bemessen, dass neben der Kategorienliste noch
+# drei Kacheln nebeneinander passen (siehe left_panel.py).
+ARTICLE_TILE_WIDTH = 175
+ARTICLE_TILE_HEIGHT = 120
 
-# Hochformat: schmaler und flacher. Bei rund 745 px nutzbarer Breite
-# passen so vier Kacheln nebeneinander statt drei, und eine ganze
-# Reihe bleibt sichtbar, obwohl sich der Artikelbereich die Höhe mit
-# dem Warenkorb darunter teilt.
+# Hochformat: nochmals flacher, weil sich der Artikelbereich die Höhe
+# mit dem Warenkorb darunter teilt.
 PORTRAIT_ARTICLE_TILE_WIDTH = 175
-PORTRAIT_ARTICLE_TILE_HEIGHT = 115
-
-ACTION_BUTTON_SIZE = 50
+PORTRAIT_ARTICLE_TILE_HEIGHT = 100
 
 # ----------------------------------------------------
 # Warenkorb
 # ----------------------------------------------------
 
-CART_ACTION_TILE_WIDTH = 160
 CART_ACTION_TILE_HEIGHT = CATEGORY_TILE_HEIGHT
 
 # -------------------------------------------------
@@ -460,6 +453,5 @@ TILE_PRESS_DURATION = 0.08
 # ==========================================================
 
 NUMPAD_BUTTON_SIZE = 90
-NUMPAD_DISPLAY_HEIGHT = 70
 NUMPAD_PANEL_WIDTH = 350
 NUMPAD_RADIUS = 8

@@ -23,7 +23,6 @@ class CashArticlePanel(RoundedPanel):
             self,
             article_callback=None,
             category_callback=None,
-            text_keyboard_callback=None,
             **kwargs
     ):
 
@@ -57,10 +56,8 @@ class CashArticlePanel(RoundedPanel):
 
         self.search_input = RoundedInput(
             hint_text="Artikel suchen...", multiline=False,
-            kig_keyboard_mode="text",
             size_hint_x=None, width=dp(240),
         )
-        self.search_input.text_keyboard_callback = text_keyboard_callback
         self.search_input.bind(text=lambda *_args: self._apply_filter())
         kopf.add_widget(self.search_input)
 

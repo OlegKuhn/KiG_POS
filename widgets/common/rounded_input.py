@@ -4,8 +4,6 @@ from kivy.properties import BooleanProperty, ObjectProperty
 
 import theme
 
-from widgets.keyboard.keyboard_manager import KeyboardManager
-
 
 class RoundedInput(TextInput):
     """
@@ -13,23 +11,15 @@ class RoundedInput(TextInput):
     für Touchbedienung.
 
     kig_keyboard_mode:
-        "text"  -> eigene QWERTZ-Tastatur
-        "none"  -> keine eigene Tastatur
+        "numpad" -> öffnet den Nummernblock der Anwendung
+        alles andere -> Tastatur des Systems
 
-    Wichtig:
-        Die Bildschirmtastatur wird ausschließlich
-        durch einen echten Touch auf dieses Feld geöffnet.
-
-        Ein programmatisch gesetzter Fokus öffnet
-        die Tastatur NICHT.
+    Eine eigene Buchstabentastatur gibt es nicht mehr: Windows und
+    Android bringen beide eine mit, und auf dem Telefon erschienen
+    sonst zwei Tastaturen übereinander.
     """
 
     numpad_callback = ObjectProperty(
-        None,
-        allownone=True
-    )
-
-    text_keyboard_callback = ObjectProperty(
         None,
         allownone=True
     )
@@ -207,33 +197,15 @@ class RoundedInput(TextInput):
         result = super().on_touch_down(touch)
 
         # -------------------------------------------------
-        # Texttastatur
+        # Nummernblock
         # -------------------------------------------------
+        #
+        # Für Buchstaben gibt es nichts zu tun: Die Tastatur des
+        # Systems öffnet sich von selbst, sobald das Feld den Fokus
+        # bekommt.
 
-        if self.kig_keyboard_mode == "text":
+        if self.kig_keyboard_mode == "numpad":
 
-            # Falls der übergeordnete Screen ein Numpad
-            # geöffnet hat, dieses zuerst schließen.
-            if callable(self.text_keyboard_callback):
-                self.text_keyboard_callback(
-                    self
-                )
-
-            # Danach QWERTZ-Tastatur öffnen.
-            KeyboardManager.show(
-                self
-            )
-
-        # -------------------------------------------------
-        # Numpad
-        # -------------------------------------------------
-
-        elif self.kig_keyboard_mode == "numpad":
-
-            # Eventuell geöffnete QWERTZ-Tastatur schließen.
-            KeyboardManager.hide()
-
-            # Danach Numpad öffnen.
             if callable(self.numpad_callback):
                 self.numpad_callback(
                     self

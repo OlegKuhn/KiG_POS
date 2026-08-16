@@ -98,9 +98,9 @@ TOPICS = [
                     "Das Programm ist für Touchbedienung ausgelegt: alle "
                     "Schaltflächen sind bewusst großflächig. Längere "
                     "Listen lassen sich mit dem Finger senkrecht "
-                    "scrollen. Für Eingaben erscheint je nach Feld "
-                    "entweder ein Zahlenfeld (Preise, Mengen) oder eine "
-                    "Bildschirmtastatur (Namen, Texte) - ein externes "
+                    "scrollen. Für Preise und Mengen erscheint das "
+                    "Zahlenfeld des Programms; für Namen und Texte die "
+                    "Bildschirmtastatur des Geräts - ein externes "
                     "Keyboard ist also nicht nötig."
                 ),
             },
@@ -134,10 +134,12 @@ TOPICS = [
                 "heading": "Überblick",
                 "text": (
                     "Der Kassen-Screen ist in drei Bereiche geteilt: "
-                    "oben links die Kategorien, darunter die Artikel als "
-                    "Kacheln, rechts der Warenkorb mit der Summe. So "
-                    "lässt sich ein Verkauf mit wenigen Berührungen "
-                    "abschließen."
+                    "links die Kategorien als Liste, in der Mitte die "
+                    "Artikel als Kacheln, rechts der Warenkorb mit der "
+                    "Summe - genauso aufgebaut wie die "
+                    "Artikelverwaltung. So lässt sich ein Verkauf mit "
+                    "wenigen Berührungen abschließen. Im Hochformat "
+                    "stehen die drei Bereiche untereinander."
                 ),
                 "image": "kasse/01_uebersicht.png",
             },

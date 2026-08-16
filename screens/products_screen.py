@@ -50,7 +50,6 @@ from widgets.products.bottle_size_popup import BottleSizePopup
 from widgets.common.confirm_popup import ConfirmPopup
 from widgets.common.numpad.numpad_panel import NumpadPanel
 from widgets.inventory.stock_adjustment_dialog import StockAdjustmentDialog
-from widgets.keyboard.keyboard_manager import KeyboardManager
 
 
 class ProductsScreen(Screen):
@@ -122,7 +121,6 @@ class ProductsScreen(Screen):
             on_back=self.back_to_list,
             on_save=self.save_stammdaten,
             on_numpad=self.open_price_numpad,
-            on_text_keyboard=self.open_text_keyboard,
             on_adjust_stock=self.open_stock_adjustment,
             on_order_amount_button=self.open_dashboard_order_numpad,
             on_receive_order=self.receive_order,
@@ -549,7 +547,6 @@ class ProductsScreen(Screen):
 
         self.current_price_input = None
         self.numpad_panel.close()
-        KeyboardManager.hide()
 
         if is_new_article:
             # Neuanlage: zurück zur Liste, da Bestand/Bestellmenge/Rezept
@@ -650,14 +647,6 @@ class ProductsScreen(Screen):
     # =====================================================
     # Numpad (Preisfelder)
     # =====================================================
-
-    def open_text_keyboard(self, input_widget):
-
-        if input_widget.disabled or input_widget.locked:
-            return
-
-        self.current_price_input = None
-        self.numpad_panel.close()
 
     def open_price_numpad(self, input_widget):
 

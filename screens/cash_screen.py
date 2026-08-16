@@ -99,8 +99,7 @@ class CashScreen(Screen):
             categories=categories,
             size_hint=(1, 1),
             article_callback=self.article_selected,
-            category_articles_callback=self.get_category_articles,
-            text_keyboard_callback=self.open_text_keyboard
+            category_articles_callback=self.get_category_articles
         )
 
         # =====================================================
@@ -237,7 +236,7 @@ class CashScreen(Screen):
             self.cancel_storno()
 
         self.refresh_categories()
-        self.left_panel.category_panel_widget.clear_selection()
+        self.left_panel.clear_selection()
 
         # Beim Betreten immer mit freiem Blick auf alle Artikel starten -
         # ein Suchbegriff vom letzten Mal wuerde sonst verwirren.
@@ -478,15 +477,6 @@ class CashScreen(Screen):
                 changed_by="Kasse",
                 changed_at=self.database.timestamp(),
             )
-
-    # =====================================================
-
-    def open_text_keyboard(self, input_widget):
-        """Wird vom Suchfeld gerufen, bevor die Bildschirmtastatur
-        aufgeht: ein eventuell offenes Numpad muss weichen, sonst
-        lägen zwei Eingabehilfen übereinander."""
-
-        self.numpad_panel.close()
 
     # -----------------------------------------------------
 
@@ -884,10 +874,8 @@ class CashScreen(Screen):
     def refresh_article_stock_display(self):
         """Aktualisiert die sichtbaren Kacheln mit den neuen Beständen."""
 
-        active_tile = self.left_panel.category_panel_widget.active_tile
-        category = active_tile.data if active_tile is not None else None
         self.left_panel.article_panel_widget.set_articles(
-            self.get_category_articles(category)
+            self.get_category_articles(self.left_panel.selected_category)
         )
 
     def get_category_articles(self, category):

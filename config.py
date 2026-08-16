@@ -16,12 +16,12 @@ Inhalt:
 - Projektinformationen
 - Versionsverwaltung
 - Fensterkonfiguration
-- Farben
-- Schriftgrößen
-- Größen
 - Ordnerpfade
 - Dateipfade
-- Splashscreen
+- Mengeneinheiten und Formate
+
+Farben, Schriftgrößen und Abmessungen stehen ausschließlich in
+theme.py.
 
 WICHTIG:
 Diese Datei enthält bewusst KEINE Programm-Logik.
@@ -137,15 +137,11 @@ EXPORT_DIR = BASE_DIR / "exports"
 
 LOG_DIR = BASE_DIR / "logs"
 
-TEST_DIR = BASE_DIR / "tests"
-
 # ==========================================================
 # Unterordner
 # ==========================================================
 
 ICON_DIR = ASSETS_DIR / "icons"
-
-ARTICLE_IMAGE_DIR = ASSETS_DIR / "artikelbilder"
 
 USERGUIDE_IMAGE_DIR = ASSETS_DIR / "userguide"
 
@@ -194,80 +190,12 @@ ICON_USE = ICON_DIR / "use.png"
 ICON_SETTINGS = ICON_DIR / "settings.png"
 
 # ==========================================================
-# Farben
+# Hinweis zu Farben, Größen und Schriftgrößen
 # ==========================================================
-
-BACKGROUND = "#F5F5F5"
-
-CARD = "#FFFFFF"
-
-HEADER = "#202124"
-
-TEXT = "#202124"
-
-TEXT_LIGHT = "#FFFFFF"
-
-PRIMARY = "#1976D2"
-
-SECONDARY = "#607D8B"
-
-SUCCESS = "#2E7D32"
-
-WARNING = "#F57C00"
-
-ERROR = "#C62828"
-
-# Kategorien
-
-COLOR_ALKOHOLFREI = "#1976D2"
-
-COLOR_ALKOHOL = "#F57C00"
-
-COLOR_COCKTAIL = "#D32F2F"
-
-COLOR_ESSEN = "#43A047"
-
-COLOR_SONSTIGES = "#7B1FA2"
-
-# ==========================================================
-# Größen
-# ==========================================================
-
-HEADER_HEIGHT = 100
-
-LOGO_WIDTH = 180
-
-LOGO_HEIGHT = 90
-
-BUTTON_WIDTH = 220
-
-BUTTON_HEIGHT = 110
-
-BUTTON_RADIUS = 18
-
-CARD_RADIUS = 18
-
-PADDING = 12
-
-SPACING = 10
-
-# ==========================================================
-# Schriftgrößen
-# ==========================================================
-
-FONT_TITLE = 30
-
-FONT_SUBTITLE = 22
-
-FONT_BUTTON = 22
-
-FONT_NORMAL = 20
-
-FONT_SMALL = 16
-
-FONT_CLOCK = 22
-
-FONT_TOTAL = 28
+#
+# Die standen früher auch hier - und damit ein zweites Mal neben
+# theme.py, das sie tatsächlich verwendet. Zwei Quellen für
+# dieselbe Zahl sind eine Fehlerquelle; maßgeblich ist theme.py.
 
 # ==========================================================
 # Datenbank

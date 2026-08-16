@@ -65,7 +65,6 @@ class StammdatenCard(RoundedPanel):
             self,
             on_save,
             on_numpad,
-            on_text_keyboard,
             **kwargs
     ):
         super().__init__(
@@ -120,7 +119,7 @@ class StammdatenCard(RoundedPanel):
         # -------------------------------------------------
 
         self.name_input = self._input(
-            hint_text="Artikelname", keyboard="text", on_keyboard=on_text_keyboard,
+            hint_text="Artikelname",
         )
         self.name_row = self._add_row("Name", self.name_input)
 
@@ -174,7 +173,7 @@ class StammdatenCard(RoundedPanel):
         self._set_row_visible(self.shot_switch_row, False)
 
         self.shot_name_input = self._input(
-            hint_text="z. B. Jack Daniels", keyboard="text", on_keyboard=on_text_keyboard,
+            hint_text="z. B. Jack Daniels",
         )
         self.shot_name_row = self._add_row(
             "Name an der Kasse", self.shot_name_input, indented=True
@@ -214,18 +213,19 @@ class StammdatenCard(RoundedPanel):
     # Zeilenaufbau
     # =====================================================
 
-    def _input(self, hint_text, keyboard, on_keyboard):
+    def _input(self, hint_text, keyboard=None, on_keyboard=None):
+        """Eingabefeld. keyboard="numpad" öffnet den Nummernblock der
+        Anwendung; ohne Angabe erscheint die Tastatur des Systems."""
 
         field = RoundedInput(
-            hint_text=hint_text, multiline=False, kig_keyboard_mode=keyboard,
+            hint_text=hint_text, multiline=False,
+            kig_keyboard_mode=keyboard or "text",
         )
         field.foreground_color = theme.TEXT_PRIMARY
         field.hint_text_color = theme.TEXT_SECONDARY
 
         if keyboard == "numpad":
             field.numpad_callback = on_keyboard
-        else:
-            field.text_keyboard_callback = on_keyboard
 
         return field
 

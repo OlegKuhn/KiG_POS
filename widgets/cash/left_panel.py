@@ -3,22 +3,40 @@ from kivy.uix.boxlayout import BoxLayout
 
 import theme
 
-from widgets.cash.category_panel import CashCategoryPanel
 from widgets.cash.article_panel import CashArticlePanel
+from widgets.products.category_panel import CategoryPanel
 
 
 class CashLeftPanel(BoxLayout):
+    """Kategorien und Artikel der Kasse.
 
-    # Feste Höhe der Kategorienkarte im Hochformat. Sie muss eine
-    # ganze Kachelreihe fassen; weitere Reihen scrollen.
-    PORTRAIT_CATEGORY_HEIGHT = 130
+    Aufgebaut wie die Artikelübersicht: links die Kategorien als
+    Liste, rechts daneben die Artikel. Die frühere Kachelreihe über
+    den Artikeln ist damit verschwunden - eine Liste zeigt bei vielen
+    Kategorien mehr auf einen Blick und braucht weniger Höhe, die den
+    Artikeln zugutekommt.
+
+    Die Kategorienliste ist dieselbe wie in der Artikelverwaltung
+    (widgets/products/category_panel.py), nur ohne deren
+    Schaltflächen "Neu" und "Bearbeiten": An der Kasse wird
+    ausgewählt, nicht verwaltet.
+    """
+
+    # Anteil der Kategorienliste an der Breite (Querformat).
+    CATEGORY_WIDTH_SHARE = 0.28
+
+    # Im Hochformat eine feste Höhe statt eines Anteils: Der
+    # Artikelbereich teilt sich die Höhe mit dem Warenkorb, ein Anteil
+    # davon ließe der Liste nicht einmal genug für ihre eigene
+    # Überschrift. Gerechnet: Innenabstand (2x16) + Überschrift (60) +
+    # Abstand (12) + eine Kategorienzeile (64) = 168.
+    PORTRAIT_CATEGORY_HEIGHT = 175
 
     def __init__(
             self,
             categories=None,
             article_callback=None,
             category_articles_callback=None,
-            text_keyboard_callback=None,
             **kwargs
     ):
 
@@ -27,62 +45,92 @@ class CashLeftPanel(BoxLayout):
         self.article_callback = article_callback
         self.category_articles_callback = category_articles_callback
 
-        self.orientation = "vertical"
-        self.spacing = dp(theme.SCREEN_SPACING)
-
-        # =====================================================
-        # Kategorien (eigene weiße Karte, siehe category_panel.py)
-        # =====================================================
-        #
-        # Im Hochformat teilt sich dieser Bereich die Höhe mit dem
-        # Warenkorb darunter. Ein anteiliger Wert (0.24) ließe der
-        # Kategorienkarte dann zu wenig für eine ganze Kachelreihe -
-        # sie bekommt deshalb eine feste Höhe für genau eine Reihe;
-        # weitere Reihen scrollen wie gewohnt.
+        self._selected_card = None
 
         hochformat = theme.is_portrait()
 
-        self.category_panel_widget = CashCategoryPanel(
-            categories=categories or [],
-            callback=self.category_selected,
-            size_hint_y=None if hochformat else 0.24,
+        # Querformat: Kategorien links neben den Artikeln.
+        # Hochformat: darüber - nebeneinander bliebe für die
+        # Artikelkacheln zu wenig Breite.
+        self.orientation = "vertical" if hochformat else "horizontal"
+        self.spacing = dp(theme.SCREEN_SPACING)
+
+        # =====================================================
+        # Kategorien
+        # =====================================================
+
+        self.category_panel_widget = CategoryPanel(
+            on_new=None,
+            on_edit=None,
+            show_actions=False,
         )
 
         if hochformat:
+            self.category_panel_widget.size_hint = (1, None)
             self.category_panel_widget.height = dp(self.PORTRAIT_CATEGORY_HEIGHT)
+        else:
+            self.category_panel_widget.size_hint = (self.CATEGORY_WIDTH_SHARE, 1)
 
         # =====================================================
-        # Artikel (eigene weiße Karte, siehe article_panel.py)
+        # Artikel
         # =====================================================
 
         self.article_panel_widget = CashArticlePanel(
             article_callback=self.article_callback,
             category_callback=self.category_articles_callback,
-            text_keyboard_callback=text_keyboard_callback,
-            size_hint_y=1 if hochformat else 0.76,
         )
 
-        # =====================================================
-        # Panels hinzufügen
-        # =====================================================
+        if hochformat:
+            self.article_panel_widget.size_hint = (1, 1)
+        else:
+            self.article_panel_widget.size_hint = (1 - self.CATEGORY_WIDTH_SHARE, 1)
 
-        self.add_widget(
-            self.category_panel_widget
-        )
+        self.add_widget(self.category_panel_widget)
+        self.add_widget(self.article_panel_widget)
 
-        self.add_widget(
-            self.article_panel_widget
-        )
+        self.set_categories(categories or [])
 
     # =====================================================
     # Kategorie gewählt
     # =====================================================
 
-    def category_selected(self, category):
+    def category_selected(self, card, category):
+        """Ein zweiter Tipp auf dieselbe Kategorie hebt den Filter
+        wieder auf und zeigt alle Artikel."""
 
-        self.article_panel_widget.show_category(
-            category
-        )
+        if self._selected_card is card:
+            card.unselect()
+            self._selected_card = None
+            self.article_panel_widget.show_category(None)
+            return
+
+        if self._selected_card is not None:
+            self._selected_card.unselect()
+
+        self._selected_card = card
+        card.select()
+
+        self.article_panel_widget.show_category(category)
+
+    # =====================================================
+    # Auswahl
+    # =====================================================
+
+    @property
+    def selected_category(self):
+        """Die gewählte Kategorie - oder None für "alle"."""
+
+        if self._selected_card is None:
+            return None
+
+        return self._selected_card.category
+
+    def clear_selection(self):
+
+        if self._selected_card is not None:
+            self._selected_card.unselect()
+
+        self._selected_card = None
 
     # =====================================================
     # Kategorien aktualisieren
@@ -90,6 +138,9 @@ class CashLeftPanel(BoxLayout):
 
     def set_categories(self, categories):
 
+        self.clear_selection()
+
         self.category_panel_widget.set_categories(
-            categories
+            categories,
+            self.category_selected
         )

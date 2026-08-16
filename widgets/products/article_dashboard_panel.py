@@ -28,7 +28,6 @@ class ArticleDashboardPanel(BoxLayout):
             on_back,
             on_save,
             on_numpad,
-            on_text_keyboard,
             on_adjust_stock,
             on_order_amount_button,
             on_receive_order,
@@ -75,8 +74,7 @@ class ArticleDashboardPanel(BoxLayout):
         self.add_widget(self.cards_layout)
 
         self.stammdaten_card = StammdatenCard(
-            on_save=on_save, on_numpad=on_numpad, on_text_keyboard=on_text_keyboard,
-        )
+            on_save=on_save, on_numpad=on_numpad,         )
 
         self.bestand_card = BestandCard(on_adjust=on_adjust_stock)
 
@@ -92,8 +90,7 @@ class ArticleDashboardPanel(BoxLayout):
             add_confirm_callback=on_recipe_add_confirm,
             add_free_text_amount_callback=on_recipe_add_free_text_amount,
             add_free_text_confirm_callback=on_recipe_add_free_text_confirm,
-            on_text_keyboard=on_text_keyboard,
-        )
+                    )
 
     # =====================================================
     # Anzeige

@@ -420,14 +420,17 @@ CATEGORY_TILE_HEIGHT = 60
 
 # Flach gehalten: Auf einer Artikelkachel stehen nur Name, Bestand
 # und Preis. Höhere Kacheln kosten nur Reihen, ohne mehr zu zeigen.
-# Die Breite ist so bemessen, dass neben der Kategorienliste noch
-# drei Kacheln nebeneinander passen (siehe left_panel.py).
-ARTICLE_TILE_WIDTH = 175
+#
+# Die Breite ist so bemessen, dass neben der Kategorienliste drei
+# Kacheln nebeneinander passen - auch im kleinstmöglichen Fenster
+# (1500 x 875 Bildpunkte): Dort bleiben dem Raster 539 dp, drei
+# Kacheln brauchen 3 x 165 + 2 x 12 = 519 dp.
+ARTICLE_TILE_WIDTH = 165
 ARTICLE_TILE_HEIGHT = 120
 
-# Hochformat: nochmals flacher, weil sich der Artikelbereich die Höhe
-# mit dem Warenkorb darunter teilt.
-PORTRAIT_ARTICLE_TILE_WIDTH = 175
+# Hochformat: gleiche Breite, aber flacher - dort teilt sich der
+# Artikelbereich die Höhe mit dem Warenkorb darunter.
+PORTRAIT_ARTICLE_TILE_WIDTH = 165
 PORTRAIT_ARTICLE_TILE_HEIGHT = 100
 
 # ----------------------------------------------------

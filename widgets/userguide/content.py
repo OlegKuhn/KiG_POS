@@ -134,12 +134,14 @@ TOPICS = [
                 "heading": "Überblick",
                 "text": (
                     "Der Kassen-Screen ist in drei Bereiche geteilt: "
-                    "links die Kategorien als Liste, in der Mitte die "
+                    "links die Kategorien als Liste, daneben die "
                     "Artikel als Kacheln, rechts der Warenkorb mit der "
                     "Summe - genauso aufgebaut wie die "
                     "Artikelverwaltung. So lässt sich ein Verkauf mit "
-                    "wenigen Berührungen abschließen. Im Hochformat "
-                    "stehen die drei Bereiche untereinander."
+                    "wenigen Berührungen abschließen.\n\n"
+                    "Kategorien und Artikel stehen immer nebeneinander, "
+                    "auch im Hochformat; dort rückt nur der Warenkorb "
+                    "nach unten."
                 ),
                 "image": "kasse/01_uebersicht.png",
             },

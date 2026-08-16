@@ -123,30 +123,36 @@ class StammdatenCard(RoundedPanel):
         )
         self.name_row = self._add_row("Name", self.name_input)
 
-        # Einheit bewusst direkt nach dem Namen: bei "Flasche" hängt
-        # alles Weitere (Kategorie/Typ/Preis/Verkauf) automatisch daran.
+        # Reihenfolge: Name, Einheit, Artikeltyp, Kategorie,
+        # Einkaufspreis, Verkaufspreis.
+        #
+        # Sie folgt dem Weg, den man beim Anlegen ohnehin geht: erst
+        # was es ist, dann wohin es gehört, dann was es kostet. Die
+        # Einheit steht dabei bewusst weit vorne - bei "Flasche" hängt
+        # alles Weitere automatisch daran.
+
         self.unit_spinner = RoundedSpinner(
             text=config.ARTICLE_UNITS[0], values=config.ARTICLE_UNITS,
         )
         self.unit_row = self._add_row("Einheit", self.unit_spinner)
 
-        self.price_input = self._input(
-            hint_text="0,00", keyboard="numpad", on_keyboard=on_numpad,
+        self.article_type_spinner = RoundedSpinner(
+            text="Einzelartikel", values=tuple(self.ARTICLE_TYPE_LABELS.values()),
         )
-        self.price_row = self._add_row("Verkaufspreis", self.price_input)
+        self.article_type_row = self._add_row("Artikeltyp", self.article_type_spinner)
+
+        self.category_spinner = RoundedSpinner(text="bitte wählen")
+        self.category_row = self._add_row("Kategorie", self.category_spinner)
 
         self.purchase_price_input = self._input(
             hint_text="0,00", keyboard="numpad", on_keyboard=on_numpad,
         )
         self.purchase_price_row = self._add_row("Einkaufspreis", self.purchase_price_input)
 
-        self.category_spinner = RoundedSpinner(text="bitte wählen")
-        self.category_row = self._add_row("Kategorie", self.category_spinner)
-
-        self.article_type_spinner = RoundedSpinner(
-            text="Einzelartikel", values=tuple(self.ARTICLE_TYPE_LABELS.values()),
+        self.price_input = self._input(
+            hint_text="0,00", keyboard="numpad", on_keyboard=on_numpad,
         )
-        self.article_type_row = self._add_row("Artikeltyp", self.article_type_spinner)
+        self.price_row = self._add_row("Verkaufspreis", self.price_input)
 
         self.cash_visible_switch = Switch(active=True)
         self.cash_visible_row = self._add_row(

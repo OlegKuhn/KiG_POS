@@ -27,6 +27,16 @@ class ArticleListPanel(RoundedPanel):
     # ausgeschriebenen Beschriftungen.
     SHORT_LABEL_WIDTH = 380
 
+    # Breite der Schaltflächen, solange sie neben der Überschrift
+    # stehen. Ohne feste Breite teilten sie sich die Zeile hälftig mit
+    # der Überschrift - und der längste Text ("Einkaufsliste
+    # exportieren") liefe über seinen Knopf hinaus.
+    BUTTON_WIDTHS = {
+        "sort_button": 130,
+        "export_button": 200,
+        "new_button": 160,
+    }
+
     LANGE_BESCHRIFTUNGEN = {
         "sort_button": "Sortierung",
         "export_button": "Einkaufsliste exportieren",
@@ -207,6 +217,30 @@ class ArticleListPanel(RoundedPanel):
 
         for name, text in beschriftungen.items():
             getattr(self, name).text = text
+
+        # Neben der Überschrift behalten die Schaltflächen ihre Breite,
+        # in der eigenen Zeile teilen sie sich den Platz.
+        if eine_zeile:
+
+            gesamt = 0
+
+            for name, breite in self.BUTTON_WIDTHS.items():
+                knopf = getattr(self, name)
+                knopf.size_hint_x = None
+                knopf.width = dp(breite)
+                gesamt += dp(breite)
+
+            self.header_buttons.size_hint_x = None
+            self.header_buttons.width = (
+                gesamt + dp(theme.ROW_SPACING) * (len(self.BUTTON_WIDTHS) - 1)
+            )
+
+        else:
+
+            for name in self.BUTTON_WIDTHS:
+                getattr(self, name).size_hint_x = 1
+
+            self.header_buttons.size_hint_x = 1
 
     def set_export_status(self, text):
         self.export_status.text = text

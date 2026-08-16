@@ -25,6 +25,7 @@ from datetime import datetime, timedelta
 from kivy.graphics import Color, Rectangle
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
@@ -150,15 +151,36 @@ class CashScreen(Screen):
         # Layout
         # =====================================================
 
-        # Die drei einklappbaren Panels hängen nur dann im Layout, wenn
-        # sie auch geöffnet sind - sonst würde der Abstand zwischen
-        # Artikelbereich und Warenkorb aus VIER Lücken bestehen (eine je
-        # Panel), obwohl die Panels selbst 0 breit sind. Sie melden ihren
-        # Zustand über "disabled", das sie beim Schließen erst NACH der
-        # Animation setzen - das Panel bleibt also sichtbar, solange es
-        # zuklappt, und verschwindet erst danach aus dem Layout.
-        for panel in (self.edit_panel, self.payment_panel, self.numpad_panel):
-            panel.bind(disabled=lambda *_args: self._render_layout())
+        # Die drei einklappbaren Panels liegen ÜBER der Oberfläche,
+        # nicht als eigene Spalte darin. Beim Aufgehen rückt deshalb
+        # nichts zusammen: Kategorien, Artikel und Warenkorb behalten
+        # ihren Platz, das Panel legt sich darüber.
+        self.root_layout = FloatLayout()
+
+        self.layout.size_hint = (1, 1)
+        self.root_layout.add_widget(self.layout)
+
+        # Rückwärts hinzufügen: Kivy zeichnet später hinzugefügte
+        # Widgets oben. So liegt der Nummernblock über dem
+        # Bearbeiten-Panel und nicht darunter.
+        for panel in reversed(self.overlay_panels):
+
+            panel.init_slide(panel.slide_width, overlay=True)
+
+            self.root_layout.add_widget(panel)
+
+            # Beim Öffnen und während der Breitenanimation neu setzen -
+            # das Panel wächst nach links aus seinem rechten Rand
+            # heraus.
+            panel.bind(
+                disabled=lambda *_args: self._position_panels(),
+                width=lambda *_args: self._position_panels(),
+            )
+
+        self.layout.bind(
+            pos=lambda *_args: self._position_panels(),
+            size=lambda *_args: self._position_panels(),
+        )
 
         if self.hochformat:
             self.layout.bind(height=lambda *_args: self._update_cart_height())
@@ -166,7 +188,61 @@ class CashScreen(Screen):
 
         self._render_layout()
 
-        self.add_widget(self.layout)
+        self.add_widget(self.root_layout)
+
+    # =====================================================
+    # Überlagernde Panels
+    # =====================================================
+
+    @property
+    def overlay_panels(self):
+        """Die einklappbaren Panels - vorne das, was gewinnt, wenn
+        mehrere offen sind (der Nummernblock liegt über dem
+        Bearbeiten-Panel: Er ist das, worauf gerade getippt wird)."""
+
+        return (self.numpad_panel, self.payment_panel, self.edit_panel)
+
+    def _position_panels(self, *_args):
+        """Legt die offenen Panels an ihren Platz über der Oberfläche.
+
+        Querformat: rechtsbündig am Warenkorb, über dem Artikelbereich.
+        Hochformat: deckungsgleich mit dem Artikelbereich - der
+        Warenkorb darunter bleibt sichtbar und bedienbar.
+        """
+
+        rand = dp(theme.SCREEN_PADDING)
+        abstand = dp(theme.SCREEN_SPACING)
+
+        if self.hochformat:
+
+            # Hochformat: über den ganzen Inhaltsbereich. Nur über den
+            # Artikelbereich zu legen, wäre zu wenig - der Inhalt des
+            # Bearbeiten-Panels (Menge, Preis, vier Schaltflächen)
+            # braucht mehr Höhe, als dort zur Verfügung steht.
+            for panel in self.overlay_panels:
+                panel.width = self.layout.width - 2 * rand
+                panel.height = self.layout.height - 2 * rand
+                panel.pos = (self.layout.x + rand, self.layout.y + rand)
+
+            return
+
+        # Querformat: von rechts nach links aufreihen, beginnend am
+        # Warenkorb. Sind Nummernblock UND Bearbeiten-Panel offen,
+        # stehen sie wie bisher nebeneinander - nur dass jetzt nichts
+        # dafür zusammenrücken muss.
+        rechter_rand = self.right_panel.x - abstand
+
+        for panel in self.overlay_panels:
+
+            panel.height = self.layout.height - 2 * rand
+            panel.y = self.layout.y + rand
+
+            panel.right = rechter_rand
+
+            # Geschlossene Panels sind 0 breit und verschieben den
+            # Rand deshalb nicht.
+            if panel.width > 0:
+                rechter_rand -= panel.width + abstand
 
     def _update_cart_height(self):
         """Bestimmt die Höhe des Warenkorbs im Hochformat.
@@ -190,38 +266,15 @@ class CashScreen(Screen):
         )
 
     def _render_layout(self):
+        """Der Grundaufbau ändert sich nie - die einklappbaren Panels
+        liegen darüber (siehe _position_panels)."""
 
         self.layout.clear_widgets()
 
-        if self.hochformat:
-            self._render_layout_hochformat()
-            return
-
-        self.layout.add_widget(self.left_panel)
-
-        for panel in (self.edit_panel, self.payment_panel, self.numpad_panel):
-            if not panel.disabled:
-                self.layout.add_widget(panel)
-
-        self.layout.add_widget(self.right_panel)
-
-    def _render_layout_hochformat(self):
-        """Anordnung im Hochformat: Artikel oben, Warenkorb unten.
-
-        Für ein zusätzliches Panel daneben fehlt hier die Breite - ein
-        geöffnetes Panel übernimmt deshalb den ganzen Inhaltsbereich.
-        Ist der Nummernblock über dem Bearbeiten-Panel geöffnet, gewinnt
-        der Nummernblock: Er ist das, worauf gerade getippt wird.
-        """
-
-        for panel in (self.numpad_panel, self.payment_panel, self.edit_panel):
-
-            if not panel.disabled:
-                self.layout.add_widget(panel)
-                return
-
         self.layout.add_widget(self.left_panel)
         self.layout.add_widget(self.right_panel)
+
+        self._position_panels()
 
     # =====================================================
     # Screen wird geöffnet

@@ -224,7 +224,14 @@ TOPICS = [
                     "Plus/Minus anpassen, den Preis für diesen einen "
                     "Verkauf abändern (z. B. Sonderpreis), die Position "
                     "duplizieren oder löschen. \"Übernehmen\" schließt "
-                    "die Bearbeitung ab, \"Abbrechen\" verwirft sie."
+                    "die Bearbeitung ab, \"Abbrechen\" verwirft sie.\n\n"
+                    "Das Panel legt sich dabei über die Oberfläche, "
+                    "rechts neben dem Warenkorb: Kategorien, Artikel und "
+                    "Warenkorb behalten ihren Platz und rücken nicht "
+                    "zusammen. Dasselbe gilt für \"Bezahlen\" und den "
+                    "Nummernblock - sind Bearbeiten-Panel und "
+                    "Nummernblock gleichzeitig offen, stehen sie "
+                    "nebeneinander."
                 ),
                 "image": "kasse/05_position_bearbeiten.png",
             },

@@ -190,7 +190,10 @@ TOPICS = [
                     "den Warenkorb. Tippst du denselben Artikel erneut "
                     "an, erhöht sich einfach dessen Menge. Rechts siehst "
                     "du jede Position mit Menge, Einzelpreis und "
-                    "Zeilensumme sowie unten die Gesamtsumme."
+                    "Zeilensumme sowie unten die Gesamtsumme.\n\n"
+                    "Am rechten Rand jeder Position stehen die Tasten "
+                    "\"-\" und \"+\". Damit änderst du die Menge direkt, "
+                    "ohne den Umweg über \"Bearbeiten\"."
                 ),
                 "image": "kasse/03_warenkorb.png",
             },

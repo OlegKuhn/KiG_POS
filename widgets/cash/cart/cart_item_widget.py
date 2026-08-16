@@ -33,13 +33,25 @@ class CartItemWidget(ButtonBehavior, BoxLayout):
         allownone=True
     )
 
-    HEIGHT = 60
+    # Höhe einer Position. Bemessen nach den Mengentasten: Sie sollen
+    # quadratisch sein (QUANTITY_BUTTON_WIDTH), und der Innenabstand
+    # kommt oben und unten dazu.
+    HEIGHT = 64
 
     PADDING = theme.TILE_PADDING
     SPACING = theme.SPACE_XS
 
     TITLE_SIZE = 18
     DETAIL_SIZE = 15
+
+    # Mengentasten
+    #
+    # Sie gehen über die ganze Höhe der Position und sind fingerbreit:
+    # 48 dp sind rund 8 mm und damit das Maß, unter dem Treffer auf
+    # einem Tablet zur Glückssache werden. Vorher teilten sie sich die
+    # untere Zeile mit den Beträgen und waren keine 3 mm hoch.
+    QUANTITY_BUTTON_WIDTH = 48
+    QUANTITY_BUTTON_FONT = 28
 
     RADIUS = 10
 
@@ -57,13 +69,15 @@ class CartItemWidget(ButtonBehavior, BoxLayout):
         self.callback = callback
         self.quantity_callback = quantity_callback
 
-        self.orientation = "vertical"
+        # Waagerecht geteilt: links die Angaben zur Position, rechts
+        # die beiden Mengentasten über die volle Höhe.
+        self.orientation = "horizontal"
 
         self.size_hint = (1, None)
         self.height = dp(self.HEIGHT)
 
-        self.padding = self.PADDING
-        self.spacing = self.SPACING
+        self.padding = dp(self.PADDING)
+        self.spacing = dp(self.SPACING)
 
         self.always_release = True
 
@@ -93,6 +107,17 @@ class CartItemWidget(ButtonBehavior, BoxLayout):
             pos=self._update_canvas,
             size=self._update_canvas
         )
+
+        # =====================================================
+        # Angaben zur Position
+        # =====================================================
+
+        self.text_column = BoxLayout(
+            orientation="vertical",
+            spacing=dp(self.SPACING),
+        )
+
+        self.add_widget(self.text_column)
 
         # =====================================================
         # Titel
@@ -130,7 +155,7 @@ class CartItemWidget(ButtonBehavior, BoxLayout):
             setattr(instance, "text_size", value)
         )
 
-        self.add_widget(
+        self.text_column.add_widget(
             self.lbl_title
         )
 
@@ -173,21 +198,6 @@ class CartItemWidget(ButtonBehavior, BoxLayout):
         )
 
         # =====================================================
-        # Menge direkt ändern
-        # =====================================================
-        #
-        # Ohne diese beiden Tasten muss man denselben Artikel mehrfach
-        # antippen oder den Umweg über "Bearbeiten" gehen - bei Andrang
-        # zu langsam. Die Tasten liegen VOR dem Gesamtpreis, damit die
-        # Beträge am rechten Rand untereinander bündig bleiben.
-
-        self.btn_minus = self._quantity_button("-", -1)
-        self.bottom.add_widget(self.btn_minus)
-
-        self.btn_plus = self._quantity_button("+", +1)
-        self.bottom.add_widget(self.btn_plus)
-
-        # =====================================================
         # Gesamtpreis
         # =====================================================
 
@@ -220,8 +230,38 @@ class CartItemWidget(ButtonBehavior, BoxLayout):
             self.lbl_total
         )
 
-        self.add_widget(
+        self.text_column.add_widget(
             self.bottom
+        )
+
+        # =====================================================
+        # Menge direkt ändern
+        # =====================================================
+        #
+        # Ohne diese beiden Tasten muss man denselben Artikel mehrfach
+        # antippen oder den Umweg über "Bearbeiten" gehen - bei Andrang
+        # zu langsam.
+        #
+        # Sie stehen in einer eigenen Spalte am rechten Rand und
+        # nehmen die volle Höhe der Position ein. Die Beträge bleiben
+        # dabei untereinander bündig, weil diese Spalte in jeder Zeile
+        # gleich breit ist.
+
+        self.buttons = BoxLayout(
+            orientation="horizontal",
+            size_hint=(None, 1),
+            width=2 * dp(self.QUANTITY_BUTTON_WIDTH) + dp(self.SPACING),
+            spacing=dp(self.SPACING),
+        )
+
+        self.btn_minus = self._quantity_button("-", -1)
+        self.buttons.add_widget(self.btn_minus)
+
+        self.btn_plus = self._quantity_button("+", +1)
+        self.buttons.add_widget(self.btn_plus)
+
+        self.add_widget(
+            self.buttons
         )
 
     # =====================================================
@@ -232,10 +272,10 @@ class CartItemWidget(ButtonBehavior, BoxLayout):
 
         button = Button(
             text=beschriftung,
-            size_hint=(None, 1), width=36,
+            size_hint=(1, 1),
             background_normal="", background_down="",
             background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
-            font_size="20sp", bold=True,
+            font_size=f"{self.QUANTITY_BUTTON_FONT}sp", bold=True,
         )
         button.bind(
             on_release=lambda *_args: self._change_quantity(veraenderung)

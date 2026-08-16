@@ -18,7 +18,7 @@ import traceback
 
 from kivy.app import App
 from kivy.core.window import Window
-from kivy.metrics import dp, Metrics
+from kivy.metrics import dp, sp, Metrics
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
@@ -61,18 +61,70 @@ def _bildpunkt_faktor():
     unsichtbar. Sichtbar bleiben nur die Rahmen: Kacheln ohne Text,
     und zwar in der ganzen Anwendung.
 
-    Getroffen hat es allein das Hochformat, weil nur dort die
-    Fensterhöhe aus der Bildschirmauflösung umgerechnet wird (siehe
+    Getroffen hat es allein das Hochformat unter Windows, weil nur dort
+    die Fensterhöhe aus der Bildschirmauflösung umgerechnet wird (siehe
     _portrait_window_height) - und damit als Erstes nach density
     gefragt wird.
 
     fontscale wird deshalb zuerst gelesen. Das kostet nichts, legt
     kein Fenster an und füllt den Zwischenspeicher vollständig.
+
+    NUR für den Rechner. Auf Android holt sich Kivy die Werte über
+    einen ganz anderen Weg (Java statt Fenstertreiber), und der liefert
+    beim direkten Nachfragen die Dichte 0. Danach sind dp() und sp()
+    ebenfalls 0, und die Anwendung beendet sich beim ersten Schalter
+    mit "float division by zero". Deshalb wird dort nichts angestoßen -
+    siehe _umrechnung_sicherstellen, das ohne Metrics auskommt.
     """
 
     _ = Metrics.fontscale
 
     return Metrics.density
+
+
+def _umrechnung_sicherstellen():
+    """Stellt sicher, dass dp() und sp() brauchbare Werte liefern.
+
+    Fragt bewusst NICHT bei Metrics nach, sondern rechnet einfach:
+    Der erste Aufruf von dp() füllt Kivys Zwischenspeicher von selbst
+    und auf dem Weg, der zur Plattform passt. Kommt dabei etwas
+    Unbrauchbares heraus - auf dem E-Ink-Tablet war die Dichte 0 -,
+    wird es hier geradegerückt.
+
+    Ohne diese Prüfung ist jede Größe im Programm 0: Die Oberfläche
+    baut sich unsichtbar auf und stürzt beim ersten Schalter ab.
+    """
+
+    if dp(10) > 0 and sp(10) > 0:
+        return
+
+    print("Warnung: dp/sp liefern unbrauchbare Werte - "
+          f"dp(10)={dp(10)}, sp(10)={sp(10)}. Wird korrigiert.")
+
+    # sp hängt zusätzlich an fontscale; 1.0 ist der Normalfall
+    # (abweichend nur, wenn im System größere Schrift eingestellt ist).
+    if sp(10) <= 0:
+        Metrics.fontscale = 1.0
+
+    if dp(10) <= 0:
+
+        # Aus der Bildschirmauflösung ergibt sich der Faktor direkt.
+        # Android rechnet gegen 160 dpi (1 dp = 1/160 Zoll), die
+        # Rechner-Plattformen gegen 96 dpi - so hält es Kivy selbst.
+        bezug = 160.0 if IS_ANDROID else 96.0
+
+        dichte = 0.0
+
+        try:
+            aufloesung = float(Metrics.dpi)
+            if aufloesung > 0:
+                dichte = aufloesung / bezug
+        except Exception:
+            pass
+
+        Metrics.density = dichte if dichte > 0 else 1.0
+
+    print(f"Korrigiert: dp(10)={dp(10)}, sp(10)={sp(10)}")
 
 
 def _screen_height():
@@ -231,10 +283,14 @@ class KiGPOS(App):
 
     def build(self):
 
-        # Kivys Umrechnung von "sp" und "dp" vollständig anstoßen,
-        # bevor die erste Beschriftung entsteht - sonst kann die
-        # Schrift unsichtbar werden (siehe _bildpunkt_faktor).
-        _bildpunkt_faktor()
+        # Kivys Umrechnung von "sp" und "dp" in Ordnung bringen, bevor
+        # die erste Beschriftung entsteht: auf dem Rechner anstoßen
+        # (sonst wird die Schrift unsichtbar, siehe _bildpunkt_faktor),
+        # überall nachrechnen (siehe _umrechnung_sicherstellen).
+        if not IS_ANDROID:
+            _bildpunkt_faktor()
+
+        _umrechnung_sicherstellen()
 
         # Gespeicherten Farbmodus VOR dem Aufbau der Oberfläche
         # anwenden, damit bereits die erste Bildschirmzeichnung im

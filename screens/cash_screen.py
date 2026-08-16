@@ -160,20 +160,17 @@ class CashScreen(Screen):
         self.layout.size_hint = (1, 1)
         self.root_layout.add_widget(self.layout)
 
-        # Rückwärts hinzufügen: Kivy zeichnet später hinzugefügte
-        # Widgets oben. So liegt der Nummernblock über dem
-        # Bearbeiten-Panel und nicht darunter.
-        for panel in reversed(self.overlay_panels):
+        for panel in self.overlay_panels:
 
             panel.init_slide(panel.slide_width, overlay=True)
 
-            self.root_layout.add_widget(panel)
-
-            # Beim Öffnen und während der Breitenanimation neu setzen -
-            # das Panel wächst nach links aus seinem rechten Rand
-            # heraus.
+            # "disabled" meldet, dass ein Panel zu ist - dann kommt es
+            # aus der Oberfläche heraus (siehe _render_overlays). Die
+            # Breite ändert sich während der Animation; das Panel
+            # wächst nach links aus seinem rechten Rand heraus und muss
+            # dabei laufend neu gesetzt werden.
             panel.bind(
-                disabled=lambda *_args: self._position_panels(),
+                disabled=lambda *_args: self._render_overlays(),
                 width=lambda *_args: self._position_panels(),
             )
 
@@ -202,6 +199,37 @@ class CashScreen(Screen):
 
         return (self.numpad_panel, self.payment_panel, self.edit_panel)
 
+    def _render_overlays(self, *_args):
+        """Hängt die offenen Panels über die Oberfläche - und nimmt die
+        geschlossenen wieder heraus.
+
+        Ein geschlossenes Panel bleibt bewusst NICHT unsichtbar liegen.
+        Kivy lässt ein abgeschaltetes Widget jede Berührung
+        verschlucken, die auf seine Fläche fällt (widget.py:
+        "if self.disabled and self.collide_point ..."), und zwar auch
+        dann, wenn nur noch einzelne Kinder dort stehen: Ein Panel auf
+        Größe 0 zu setzen genügt nicht, denn seine Kinder behalten ihre
+        Maße und erben das "disabled". Genau das hat die Kasse im
+        Hochformat lahmgelegt - die Oberfläche sah normal aus, aber der
+        Mengenwähler des geschlossenen Bearbeiten-Panels lag unsichtbar
+        über den Kategorien.
+
+        Was nicht im Baum hängt, kann nichts verschlucken.
+        """
+
+        for panel in self.overlay_panels:
+            if panel.parent is not None:
+                self.root_layout.remove_widget(panel)
+
+        # Rückwärts hinzufügen: Kivy zeichnet später hinzugefügte
+        # Widgets oben. So liegt der Nummernblock über dem
+        # Bearbeiten-Panel und nicht darunter.
+        for panel in reversed(self.overlay_panels):
+            if not panel.disabled:
+                self.root_layout.add_widget(panel)
+
+        self._position_panels()
+
     def _position_panels(self, *_args):
         """Legt die offenen Panels an ihren Platz über der Oberfläche.
 
@@ -213,13 +241,17 @@ class CashScreen(Screen):
         rand = dp(theme.SCREEN_PADDING)
         abstand = dp(theme.SCREEN_SPACING)
 
+        # Geschlossene Panels hängen nicht in der Oberfläche und haben
+        # dort auch keinen Platz zu beanspruchen.
+        offene = [p for p in self.overlay_panels if p.parent is not None]
+
         if self.hochformat:
 
             # Hochformat: über den ganzen Inhaltsbereich. Nur über den
             # Artikelbereich zu legen, wäre zu wenig - der Inhalt des
             # Bearbeiten-Panels (Menge, Preis, vier Schaltflächen)
             # braucht mehr Höhe, als dort zur Verfügung steht.
-            for panel in self.overlay_panels:
+            for panel in offene:
                 panel.width = self.layout.width - 2 * rand
                 panel.height = self.layout.height - 2 * rand
                 panel.pos = (self.layout.x + rand, self.layout.y + rand)
@@ -232,15 +264,15 @@ class CashScreen(Screen):
         # dafür zusammenrücken muss.
         rechter_rand = self.right_panel.x - abstand
 
-        for panel in self.overlay_panels:
+        for panel in offene:
 
             panel.height = self.layout.height - 2 * rand
             panel.y = self.layout.y + rand
 
             panel.right = rechter_rand
 
-            # Geschlossene Panels sind 0 breit und verschieben den
-            # Rand deshalb nicht.
+            # Ein zuklappendes Panel ist noch nicht abgeschaltet, aber
+            # schon schmal - der Rand rückt entsprechend mit.
             if panel.width > 0:
                 rechter_rand -= panel.width + abstand
 

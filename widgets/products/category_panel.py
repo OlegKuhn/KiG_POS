@@ -43,8 +43,21 @@ class CategoryPanel(RoundedPanel):
             on_new,
             on_edit,
             show_actions=True,
+            als_liste=None,
             **kwargs
     ):
+        """als_liste bestimmt den Aufbau der Karte:
+
+            True    schmale Spalte, Kategorien untereinander
+            False   flaches Band, Kategorien nebeneinander
+            None    nach Ausrichtung (Hochformat = Band)
+
+        Maßgeblich ist die Form der Karte, nicht die des Bildschirms:
+        An der Kasse steht sie auch im Hochformat als Spalte neben den
+        Artikeln (siehe widgets/cash/left_panel.py) und braucht dort
+        eine Liste - drei Kacheln nebeneinander wären in einer 150 dp
+        schmalen Spalte nicht mehr zu lesen.
+        """
 
         super().__init__(**kwargs)
 
@@ -60,12 +73,19 @@ class CategoryPanel(RoundedPanel):
         # Überschrift
         # -------------------------------------------------
         #
-        # Im Hochformat steht die Karte quer über dem Artikelbereich
-        # und ist entsprechend flach. Überschrift und Schaltflächen
+        # Als flaches Band (Hochformat der Artikelverwaltung) steht die
+        # Karte quer über dem Inhalt. Überschrift und Schaltflächen
         # teilen sich dort eine Zeile - untereinander bliebe für die
         # Kategorien selbst nichts mehr übrig.
 
-        self.hochformat = theme.is_portrait()
+        if als_liste is None:
+            als_liste = not theme.is_portrait()
+
+        self.als_liste = als_liste
+
+        # Der bisherige Name für "flaches Band" - hing früher allein an
+        # der Ausrichtung.
+        self.hochformat = not als_liste
 
         title = KiGLabel(
             text="Kategorien"

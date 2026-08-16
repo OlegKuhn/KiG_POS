@@ -57,6 +57,11 @@ class CashLeftPanel(BoxLayout):
             on_new=None,
             on_edit=None,
             show_actions=False,
+
+            # Auch im Hochformat eine Liste: Die Karte steht hier in
+            # beiden Ausrichtungen als schmale Spalte neben den
+            # Artikeln, nicht als flaches Band darüber.
+            als_liste=True,
         )
 
         # Feste Breite statt Anteil, damit die Untergrenze greifen

@@ -49,6 +49,32 @@ IS_ANDROID = platform == "android"
 # Fensterkonfiguration
 # =========================================================
 
+def _bildpunkt_faktor():
+    """Liefert Metrics.density - und lässt Kivys Umrechnung heil.
+
+    Kivy hält dpi, density und fontscale in einem internen
+    Zwischenspeicher und trägt beim Nachfragen nur den Teil ein, nach
+    dem gefragt wurde. Wer als Erstes nach density fragt, bekommt dpi
+    und density gesetzt; fontscale bleibt auf seinem Startwert -1
+    stehen. Jede Größenangabe in "sp" wird von da an mit -1
+    multipliziert - die Schrift bekommt eine negative Größe und ist
+    unsichtbar. Sichtbar bleiben nur die Rahmen: Kacheln ohne Text,
+    und zwar in der ganzen Anwendung.
+
+    Getroffen hat es allein das Hochformat, weil nur dort die
+    Fensterhöhe aus der Bildschirmauflösung umgerechnet wird (siehe
+    _portrait_window_height) - und damit als Erstes nach density
+    gefragt wird.
+
+    fontscale wird deshalb zuerst gelesen. Das kostet nichts, legt
+    kein Fenster an und füllt den Zwischenspeicher vollständig.
+    """
+
+    _ = Metrics.fontscale
+
+    return Metrics.density
+
+
 def _screen_height():
     """Höhe des Bildschirms in Pixeln (0 = unbekannt).
 
@@ -84,7 +110,7 @@ def _portrait_window_height():
     # das zwei verschiedene Zahlen. Ohne diese Umrechnung wäre das
     # Fenster ein Viertel höher als gedacht.
     verfuegbar = (
-        (bildschirm - config.PORTRAIT_SCREEN_MARGIN) / Metrics.density
+        (bildschirm - config.PORTRAIT_SCREEN_MARGIN) / _bildpunkt_faktor()
     )
 
     return int(max(
@@ -204,6 +230,11 @@ class KiGPOS(App):
     title = config.APP_NAME
 
     def build(self):
+
+        # Kivys Umrechnung von "sp" und "dp" vollständig anstoßen,
+        # bevor die erste Beschriftung entsteht - sonst kann die
+        # Schrift unsichtbar werden (siehe _bildpunkt_faktor).
+        _bildpunkt_faktor()
 
         # Gespeicherten Farbmodus VOR dem Aufbau der Oberfläche
         # anwenden, damit bereits die erste Bildschirmzeichnung im

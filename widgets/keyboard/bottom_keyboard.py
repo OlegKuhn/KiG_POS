@@ -48,7 +48,7 @@ class BottomKeyboard(RoundedPanel):
     KeyboardLayout erzeugt.
     """
 
-    HEIGHT = dp(360)
+    HEIGHT = 360
 
     # =====================================================
     # Initialisierung
@@ -89,7 +89,7 @@ class BottomKeyboard(RoundedPanel):
         self.size_hint = (None, None)
 
         self.width = Window.width
-        self.height = self.HEIGHT
+        self.height = dp(self.HEIGHT)
 
         self.x = 0
         self.y = 0

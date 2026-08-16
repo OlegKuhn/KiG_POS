@@ -16,6 +16,29 @@ from widgets.products.article_list_row import ArticleListRow
 class ArticleListPanel(RoundedPanel):
     """Zeigt alle Artikel (gefiltert nach Kategorie) als Liste."""
 
+    HEADER_ROW_HEIGHT = 42
+
+    # Breite, die Überschrift und Schaltflächen nebeneinander
+    # brauchen. Darunter wandern die Schaltflächen in eine eigene
+    # Zeile.
+    HEADER_MIN_WIDTH = 620
+
+    # Darunter reicht selbst die eigene Zeile nicht mehr für die
+    # ausgeschriebenen Beschriftungen.
+    SHORT_LABEL_WIDTH = 380
+
+    LANGE_BESCHRIFTUNGEN = {
+        "sort_button": "Sortierung",
+        "export_button": "Einkaufsliste exportieren",
+        "new_button": "+ Neuer Artikel",
+    }
+
+    KURZE_BESCHRIFTUNGEN = {
+        "sort_button": "Sortieren",
+        "export_button": "Export",
+        "new_button": "+ Neu",
+    }
+
     def __init__(
             self,
             new_callback,
@@ -49,43 +72,59 @@ class ArticleListPanel(RoundedPanel):
         # Kopfzeile
         # -------------------------------------------------
 
-        header = BoxLayout(size_hint_y=None, height=dp(42), spacing=dp(theme.ROW_SPACING))
+        # Die Kopfzeile passt sich der Breite an (siehe
+        # _update_header): Auf einem Telefon brauchen Überschrift und
+        # drei Schaltflächen nebeneinander mehr Platz, als überhaupt da
+        # ist - dort rücken die Schaltflächen unter die Überschrift und
+        # tragen kürzere Beschriftungen.
+
+        self.header = BoxLayout(
+            size_hint_y=None, height=dp(self.HEADER_ROW_HEIGHT),
+            spacing=dp(theme.ROW_SPACING),
+        )
 
         self.title_label = KiGLabel(text="Artikel")
         self.title_label.set_font_size(26)
         self.title_label.set_bold(True)
         self.title_label.set_alignment("left")
         self.title_label.set_color(theme.PRIMARY_ORANGE)
-        header.add_widget(self.title_label)
+        self.header.add_widget(self.title_label)
 
-        sort_button = Button(
-            text="Sortierung", size_hint_x=None, width=dp(130),
+        self.header_buttons = BoxLayout(spacing=dp(theme.ROW_SPACING))
+
+        self.sort_button = Button(
+            text="Sortierung",
             background_normal="", background_down="",
             background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
             font_size="14sp", bold=True,
         )
-        sort_button.bind(on_release=lambda *_args: self.sort_callback())
-        header.add_widget(sort_button)
+        self.sort_button.bind(on_release=lambda *_args: self.sort_callback())
+        self.header_buttons.add_widget(self.sort_button)
 
-        export_button = Button(
-            text="Einkaufsliste exportieren", size_hint_x=None, width=dp(200),
+        self.export_button = Button(
+            text="Einkaufsliste exportieren",
             background_normal="", background_down="",
             background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
             font_size="14sp", bold=True,
         )
-        export_button.bind(on_release=lambda *_args: self.export_callback())
-        header.add_widget(export_button)
+        self.export_button.bind(on_release=lambda *_args: self.export_callback())
+        self.header_buttons.add_widget(self.export_button)
 
-        new_button = Button(
-            text="+ Neuer Artikel", size_hint_x=None, width=dp(160),
+        self.new_button = Button(
+            text="+ Neuer Artikel",
             background_normal="", background_down="",
             background_color=theme.PRIMARY_ORANGE, color=theme.TEXT_WHITE,
             font_size="14sp", bold=True,
         )
-        new_button.bind(on_release=lambda *_args: self.new_callback())
-        header.add_widget(new_button)
+        self.new_button.bind(on_release=lambda *_args: self.new_callback())
+        self.header_buttons.add_widget(self.new_button)
 
-        self.add_widget(header)
+        self.header.add_widget(self.header_buttons)
+
+        self.add_widget(self.header)
+
+        self.bind(width=self._update_header)
+        self._update_header()
 
         self.export_status = Label(
             text="", color=theme.TEXT_SECONDARY, font_size="12sp", size_hint_y=None,
@@ -137,6 +176,37 @@ class ArticleListPanel(RoundedPanel):
 
     def set_title(self, text):
         self.title_label.text = text
+
+    def _update_header(self, *_args):
+        """Ordnet die Kopfzeile nach verfügbarer Breite.
+
+        Drei Schaltflächen neben der Überschrift brauchen rund 620 dp.
+        Auf einem Telefon sind das mehr Bildpunkte, als der Bildschirm
+        breit ist - dort rücken sie in eine eigene Zeile, und wird es
+        noch enger, tragen sie kürzere Beschriftungen.
+        """
+
+        innen = self.width - dp(theme.CARD_PADDING) * 2
+
+        eine_zeile = innen >= dp(self.HEADER_MIN_WIDTH)
+
+        self.header.orientation = "horizontal" if eine_zeile else "vertical"
+
+        zeilenhoehe = dp(self.HEADER_ROW_HEIGHT)
+
+        self.header.height = (
+            zeilenhoehe if eine_zeile
+            else zeilenhoehe * 2 + dp(theme.ROW_SPACING)
+        )
+
+        beschriftungen = (
+            self.LANGE_BESCHRIFTUNGEN
+            if innen >= dp(self.SHORT_LABEL_WIDTH)
+            else self.KURZE_BESCHRIFTUNGEN
+        )
+
+        for name, text in beschriftungen.items():
+            getattr(self, name).text = text
 
     def set_export_status(self, text):
         self.export_status.text = text

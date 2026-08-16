@@ -19,8 +19,10 @@ import theme
 
 class RecipeTooltip(Popup):
 
-    MIN_HEIGHT = dp(160)
-    MAX_HEIGHT = dp(480)
+    # Entwurfsgroessen; die Umrechnung in Bildpunkte passiert bei der
+    # Verwendung, nicht hier (siehe adaptive_grid.py).
+    MIN_HEIGHT = 160
+    MAX_HEIGHT = 480
 
     def __init__(self, article_name, ingredient_lines, **kwargs):
         super().__init__(**kwargs)
@@ -71,7 +73,7 @@ class RecipeTooltip(Popup):
         # ScrollView oben den Rest ab, statt dass etwas überläuft.
         line_count = max(1, len(ingredient_lines))
         estimated = dp(90) + line_count * dp(30)
-        self.height = min(self.MAX_HEIGHT, max(self.MIN_HEIGHT, estimated))
+        self.height = min(dp(self.MAX_HEIGHT), max(dp(self.MIN_HEIGHT), estimated))
 
     @staticmethod
     def _line(text):

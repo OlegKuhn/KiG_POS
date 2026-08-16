@@ -38,7 +38,7 @@ source.include_exts = py,png,jpg,jpeg,ttf,otf,json,txt,md
 #   logs      - Protokolldateien
 #   vorlagen  - die Excel-Arbeitsmappe, auf dem Telefon nutzlos
 #   bin/.buildozer - Ergebnisse frueherer Baulaeufe
-source.exclude_dirs = database, exports, logs, vorlagen, tests, bin, .buildozer, .venv, venv, .git, .github, .idea, __pycache__
+source.exclude_dirs = database, exports, logs, vorlagen, tests, werkzeuge, bin, .buildozer, .venv, venv, .git, .github, .idea, __pycache__
 
 # Zur Sicherheit auch ueber die Dateiendung: eine Datenbank wandert
 # unter keinen Umstaenden mit ins Paket.

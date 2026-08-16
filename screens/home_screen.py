@@ -27,6 +27,7 @@ from kivy.metrics import dp
 from kivy.uix.screenmanager import Screen
 from kivy.uix.anchorlayout import AnchorLayout
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.scrollview import ScrollView
 
 
 from widgets.home.home_tile import HomeTile
@@ -55,15 +56,26 @@ class HomeScreen(Screen):
         # Hauptlayout
         #
 
+        # Scrollbar: Passen nur ein oder zwei Kacheln nebeneinander,
+        # wird das Raster höher als der Bildschirm - auf einem Telefon
+        # ragten die untersten Kacheln sonst einfach hinaus.
+        self.scroll = ScrollView(do_scroll_x=False, bar_width=dp(8))
+
         self.root_layout = AnchorLayout(
 
             anchor_x="center",
 
-            anchor_y="center"
+            anchor_y="center",
+
+            size_hint_y=None
+        )
+
+        self.scroll.add_widget(
+            self.root_layout
         )
 
         self.add_widget(
-            self.root_layout
+            self.scroll
         )
 
         #
@@ -242,6 +254,12 @@ class HomeScreen(Screen):
             minimum_size=self.grid.setter("size")
         )
 
+        # Der Ankerbereich ist so hoch wie das Raster - mindestens aber
+        # so hoch wie das Sichtfenster. Passt alles, bleiben die Kacheln
+        # dadurch mittig; passt es nicht, entsteht Scrollhöhe.
+        self.grid.bind(height=self._update_scroll_height)
+        self.scroll.bind(height=self._update_scroll_height)
+
         # =====================================================
         # Navigation
         # =====================================================
@@ -273,6 +291,10 @@ class HomeScreen(Screen):
     # =====================================================
     # Spaltenzahl
     # =====================================================
+
+    def _update_scroll_height(self, *_args):
+
+        self.root_layout.height = max(self.grid.height, self.scroll.height)
 
     def _update_columns(self, *_args):
         """Passt an, wie viele Kacheln nebeneinander stehen.

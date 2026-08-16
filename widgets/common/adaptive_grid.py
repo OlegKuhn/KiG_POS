@@ -20,7 +20,7 @@ class KiGAdaptiveGrid(GridLayout):
             self,
             tile_width,
             tile_height,
-            spacing=dp(theme.TILE_SPACING),
+            spacing=None,
             padding=0,
             fixed_cols=None,
             **kwargs
@@ -30,6 +30,12 @@ class KiGAdaptiveGrid(GridLayout):
         # -------------------------------------------------
         # Einstellungen
         # -------------------------------------------------
+
+        # dp() erst hier, nicht im Standardargument: Dort wuerde es
+        # beim Import einmalig ausgerechnet - und damit die
+        # Bildschirmdichte einfrieren, die zu diesem Zeitpunkt gilt.
+        if spacing is None:
+            spacing = dp(theme.TILE_SPACING)
 
         self.tile_width = tile_width
         self.tile_height = tile_height

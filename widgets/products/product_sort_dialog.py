@@ -4,7 +4,7 @@ from kivy.graphics import Color, Rectangle, RoundedRectangle, Triangle
 from kivy.metrics import dp
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.popup import Popup
+from widgets.common.kig_popup import KiGPopup
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.widget import Widget
 
@@ -59,7 +59,7 @@ class ArrowButton(ButtonBehavior, Widget):
             self.callback()
 
 
-class ProductSortDialog(Popup):
+class ProductSortDialog(KiGPopup):
     """Touchfreundliche Reihenfolgeverwaltung mit Auf-/Ab-Pfeilen."""
 
     def __init__(self, **kwargs):

@@ -12,10 +12,10 @@ import theme
 
 from widgets.common.numpad.numpad_panel import NumpadPanel
 from widgets.kig_label import KiGLabel
-from kivy.uix.popup import Popup
+from widgets.common.kig_popup import KiGPopup
 
 
-class BottleSizePopup(Popup):
+class BottleSizePopup(KiGPopup):
 
     def __init__(self, article_name, bottle_count, default_size_ml, on_confirm, **kwargs):
         super().__init__(**kwargs)

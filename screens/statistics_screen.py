@@ -9,7 +9,6 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
-from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.screenmanager import Screen
 from kivy.uix.spinner import Spinner
@@ -19,9 +18,11 @@ import config
 import storage
 import theme
 from database import DatabaseManager
+from widgets.common.kig_popup import KiGPopup
 from widgets.common.date_picker_popup import DatePickerPopup
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.kig_label import KiGLabel
+from widgets.statistics.category_pie import CategoryPiePanel
 
 
 class SaleRow(ButtonBehavior, BoxLayout):
@@ -108,6 +109,9 @@ class BarGraphic(Widget):
 
 class StatisticsScreen(Screen):
     """Tabellarische Umsatz- und Gewinnübersicht je Verkaufsposition."""
+
+    # Höhe einer Kennzahlenzeile (Einnahmen, Ausgaben, Gewinn)
+    TOTAL_ROW_HEIGHT = 34
 
     def __init__(self, revenue_changed_callback=None, **kwargs):
         super().__init__(**kwargs)
@@ -209,27 +213,112 @@ class StatisticsScreen(Screen):
         return panel
 
     def _build_summary_panel(self):
-        # Hochformat: Die beiden Auswertungskarten stehen unter der
-        # Tabelle nebeneinander - untereinander bliebe von beiden nur
-        # noch ein Streifen übrig.
+        """Die rechte Spalte: oben die Zahlen des Zeitraums, unten die
+        Rangliste der Artikel.
+
+        Beide Karten zeigen ausschließlich den links eingestellten
+        Zeitraum (und das gewählte Event) - Filter und Auswertung
+        gehören zusammen, sonst stünden Tabelle und Diagramm für
+        verschiedene Zeiträume nebeneinander.
+
+        Hochformat: Die beiden Karten stehen unter der Tabelle
+        nebeneinander - untereinander bliebe von beiden nur noch ein
+        Streifen übrig.
+        """
+
         panel = BoxLayout(
             orientation="horizontal" if self.hochformat else "vertical",
             spacing=dp(theme.SCREEN_SPACING),
             size_hint=(1, 0.38) if self.hochformat else (0.36, 1),
         )
 
-        chart_panel = RoundedPanel(
+        panel.add_widget(self._build_totals_panel())
+        panel.add_widget(self._build_top_panel())
+
+        return panel
+
+    def _build_totals_panel(self):
+        """Gesamteinnahmen, Gesamtausgaben, Gewinn - und darunter, wie
+        sich die Einnahmen auf die Kategorien verteilen."""
+
+        panel = RoundedPanel(
             orientation="vertical",
             padding=dp(theme.CARD_PADDING),
             spacing=dp(theme.CARD_SPACING),
-            size_hint=(0.5, 1) if self.hochformat else (1, 0.43),
+            size_hint=(0.5, 1) if self.hochformat else (1, 0.58),
         )
-        chart_panel.add_widget(self._title("Top 5 Positionen"))
+
+        panel.add_widget(self._title("Gesamtverkaufszahlen"))
+
+        self.total_labels = {}
+
+        kennzahlen = BoxLayout(
+            orientation="vertical",
+            size_hint_y=None,
+            height=dp(3 * self.TOTAL_ROW_HEIGHT),
+        )
+
+        for schluessel, beschriftung, farbe in (
+            ("revenue", "Einnahmen", theme.TEXT_PRIMARY),
+            ("expenses", "Ausgaben", theme.TEXT_PRIMARY),
+            ("profit", "Gewinn", theme.PRIMARY_ORANGE),
+        ):
+            kennzahlen.add_widget(self._total_row(schluessel, beschriftung, farbe))
+
+        panel.add_widget(kennzahlen)
+
+        self.period_label = Label(
+            text="", color=theme.TEXT_SECONDARY, font_size="13sp",
+            size_hint_y=None, height=dp(22),
+            halign="left", valign="middle",
+        )
+        self.period_label.bind(
+            size=lambda instance, value: setattr(instance, "text_size", value)
+        )
+        panel.add_widget(self.period_label)
+
+        self.category_pie = CategoryPiePanel()
+        panel.add_widget(self.category_pie)
+
+        return panel
+
+    def _total_row(self, schluessel, beschriftung, farbe):
+
+        zeile = BoxLayout(size_hint_y=None, height=dp(self.TOTAL_ROW_HEIGHT))
+
+        zeile.add_widget(Label(
+            text=beschriftung, color=theme.TEXT_SECONDARY, font_size="15sp",
+            halign="left", valign="middle", size_hint_x=0.5,
+            text_size=(None, dp(self.TOTAL_ROW_HEIGHT)),
+        ))
+
+        wert = Label(
+            text=self.money(0), color=farbe, font_size="19sp", bold=True,
+            halign="right", valign="middle", size_hint_x=0.5,
+            text_size=(None, dp(self.TOTAL_ROW_HEIGHT)),
+        )
+
+        self.total_labels[schluessel] = wert
+        zeile.add_widget(wert)
+
+        return zeile
+
+    def _build_top_panel(self):
+        """Balkendiagramm der meistverkauften Artikel."""
+
+        panel = RoundedPanel(
+            orientation="vertical",
+            padding=dp(theme.CARD_PADDING),
+            spacing=dp(theme.CARD_SPACING),
+            size_hint=(0.5, 1) if self.hochformat else (1, 0.42),
+        )
+
+        panel.add_widget(self._title("Top-Artikel"))
 
         # Fünf Zeilen zu 34 dp plus Abstand brauchen mehr Platz, als die
         # Karte je nach Fenstergröße hergibt - ohne ScrollView zeichneten
-        # die untersten Zeilen bisher über den Kartenrand hinaus
-        # (dieselbe Lösung wie bei der Tabelle darunter).
+        # die untersten Zeilen über den Kartenrand hinaus (dieselbe
+        # Lösung wie bei der Tabelle links).
         self.top_rows = BoxLayout(
             orientation="vertical",
             spacing=dp(theme.CARD_SPACING),
@@ -239,29 +328,8 @@ class StatisticsScreen(Screen):
 
         top_scroll = ScrollView(do_scroll_x=False)
         top_scroll.add_widget(self.top_rows)
-        chart_panel.add_widget(top_scroll)
-        panel.add_widget(chart_panel)
+        panel.add_widget(top_scroll)
 
-        revenue_panel = RoundedPanel(
-            orientation="vertical",
-            padding=dp(theme.CARD_PADDING),
-            spacing=dp(theme.CARD_SPACING),
-            size_hint=(0.5, 1) if self.hochformat else (1, 0.57),
-        )
-        revenue_panel.add_widget(self._title("Gesamtverkaufszahlen"))
-        table_header = BoxLayout(size_hint_y=None, height=dp(30))
-        for text, width in (("Artikel", 0.62), ("Einnahmen", 0.38)):
-            table_header.add_widget(Label(
-                text=text, bold=True, color=theme.TEXT_PRIMARY, font_size="14sp",
-                halign="left", valign="middle", text_size=(None, dp(30)), size_hint_x=width,
-            ))
-        revenue_panel.add_widget(table_header)
-        self.revenue_rows = BoxLayout(orientation="vertical", spacing=dp(theme.SPACE_XS), size_hint_y=None)
-        self.revenue_rows.bind(minimum_height=self.revenue_rows.setter("height"))
-        revenue_scroll = ScrollView(do_scroll_x=False)
-        revenue_scroll.add_widget(self.revenue_rows)
-        revenue_panel.add_widget(revenue_scroll)
-        panel.add_widget(revenue_panel)
         return panel
 
     @staticmethod
@@ -401,8 +469,8 @@ class StatisticsScreen(Screen):
             for row in rows:
                 self.sales_rows.add_widget(SaleRow(row, self._row_selected))
 
-        self._refresh_top_three(date_from, date_to, event_id)
-        self._refresh_revenue_table(date_from, date_to, event_id)
+        self._refresh_totals(date_from, date_to, event_id)
+        self._refresh_top_articles(date_from, date_to, event_id)
 
     def _row_selected(self, row, selected):
         row_key = row.sale["row_key"]
@@ -411,7 +479,50 @@ class StatisticsScreen(Screen):
         else:
             self.selected_rows.pop(row_key, None)
 
-    def _refresh_top_three(self, date_from, date_to, event_id):
+    def _refresh_totals(self, date_from, date_to, event_id):
+        """Kennzahlen und Kreisdiagramm - beide für denselben Zeitraum
+        wie die Tabelle links."""
+
+        kennzahlen = self.db.get_period_totals(date_from, date_to, event_id)
+
+        for schluessel, label in self.total_labels.items():
+            label.text = self.money(kennzahlen[schluessel])
+
+        self.period_label.text = self._period_text(kennzahlen)
+
+        self.category_pie.set_data(
+            self.db.get_category_revenues(date_from, date_to, event_id)
+        )
+
+    def _period_text(self, kennzahlen):
+        """Eine Zeile, die sagt, worauf sich die Zahlen beziehen.
+
+        Ohne sie ließe sich am Diagramm nicht ablesen, ob gerade ein
+        Zeitraum eingegrenzt ist oder alles gezeigt wird.
+        """
+
+        date_from, date_to = self._period()
+
+        if date_from and date_to:
+            zeitraum = f"{self.format_date(date_from)} - {self.format_date(date_to)}"
+        elif date_from:
+            zeitraum = f"ab {self.format_date(date_from)}"
+        elif date_to:
+            zeitraum = f"bis {self.format_date(date_to)}"
+        else:
+            zeitraum = "gesamter Zeitraum"
+
+        if self.event_filter.text != "Alle Events":
+            zeitraum = f"{self.event_filter.text} | {zeitraum}"
+
+        bons = kennzahlen["receipts"]
+
+        return (
+            f"{zeitraum} | {kennzahlen['quantity']} Einheiten auf "
+            f"{bons} {'Bon' if bons == 1 else 'Bons'}"
+        )
+
+    def _refresh_top_articles(self, date_from, date_to, event_id):
         self.top_rows.clear_widgets()
         top_articles = self.db.get_top_selling_articles(date_from, date_to, event_id)
         if not top_articles:
@@ -420,36 +531,23 @@ class StatisticsScreen(Screen):
 
         maximum = top_articles[0][1]
         for index, (name, quantity) in enumerate(top_articles, start=1):
-            row = BoxLayout(size_hint_y=None, height=dp(34), spacing=dp(theme.ROW_SPACING))
+            # Rechts etwas Luft: Dort liegt der Rollbalken der Liste,
+            # und die Menge stand sonst halb darunter.
+            row = BoxLayout(
+                size_hint_y=None, height=dp(34), spacing=dp(theme.ROW_SPACING),
+                padding=[0, 0, dp(12), 0],
+            )
             row.add_widget(Label(
                 text=f"{index}. {name}", color=theme.TEXT_PRIMARY, font_size="14sp",
                 halign="left", valign="middle", text_size=(dp(105), dp(34)), size_hint_x=None, width=dp(105),
+                shorten=True, shorten_from="right",
             ))
             row.add_widget(BarGraphic(ratio=quantity / maximum if maximum else 0))
             row.add_widget(Label(
                 text=str(quantity), color=theme.TEXT_PRIMARY, font_size="14sp",
-                size_hint_x=None, width=dp(30), halign="right", valign="middle", text_size=(dp(30), dp(34)),
+                size_hint_x=None, width=dp(36), halign="right", valign="middle", text_size=(dp(36), dp(34)),
             ))
             self.top_rows.add_widget(row)
-
-    def _refresh_revenue_table(self, date_from, date_to, event_id):
-        self.revenue_rows.clear_widgets()
-        revenues = self.db.get_article_revenues(date_from, date_to, event_id)
-        if not revenues:
-            self.revenue_rows.add_widget(self._empty_label("Noch keine Einnahmen."))
-            return
-
-        for name, revenue in revenues:
-            row = BoxLayout(size_hint_y=None, height=dp(34))
-            row.add_widget(Label(
-                text=name, color=theme.TEXT_PRIMARY, font_size="14sp", size_hint_x=0.62,
-                halign="left", valign="middle", text_size=(None, dp(34)),
-            ))
-            row.add_widget(Label(
-                text=self.money(revenue), color=theme.TEXT_PRIMARY, font_size="14sp", size_hint_x=0.38,
-                halign="right", valign="middle", text_size=(None, dp(34)),
-            ))
-            self.revenue_rows.add_widget(row)
 
     @staticmethod
     def _empty_label(text):
@@ -622,7 +720,7 @@ class StatisticsScreen(Screen):
         )
         content.add_widget(Label(text=message, color=theme.TEXT_PRIMARY, font_size="16sp"))
         buttons = BoxLayout(size_hint_y=None, height=dp(48), spacing=dp(theme.ROW_SPACING))
-        popup = Popup(title="Verkaufsdaten", content=content, size_hint=(0.45, None), height=dp(190), auto_dismiss=False)
+        popup = KiGPopup(title="Verkaufsdaten", content=content, size_hint=(0.45, None), height=dp(190), auto_dismiss=False)
         cancel = self._button("Abbrechen", popup.dismiss)
         buttons.add_widget(cancel)
         if callback:

@@ -11,13 +11,13 @@ from kivy.graphics import Color, Rectangle
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
-from kivy.uix.popup import Popup
+from widgets.common.kig_popup import KiGPopup
 from kivy.uix.scrollview import ScrollView
 
 import theme
 
 
-class RecipeTooltip(Popup):
+class RecipeTooltip(KiGPopup):
 
     # Entwurfsgroessen; die Umrechnung in Bildpunkte passiert bei der
     # Verwendung, nicht hier (siehe adaptive_grid.py).

@@ -21,14 +21,14 @@ from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
-from kivy.uix.popup import Popup
+from widgets.common.kig_popup import KiGPopup
 
 import theme
 
 from widgets.common.rounded_input import RoundedInput
 
 
-class CategoryDialog(Popup):
+class CategoryDialog(KiGPopup):
     """
     Dialog zum Anlegen oder Bearbeiten einer Kategorie.
 

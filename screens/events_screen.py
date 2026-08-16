@@ -9,7 +9,6 @@ from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
-from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.screenmanager import Screen
 from kivy.uix.spinner import Spinner
@@ -17,6 +16,8 @@ from kivy.uix.widget import Widget
 
 import theme
 from database import DatabaseManager
+from widgets.common.confirm_popup import ConfirmPopup
+from widgets.common.kig_popup import KiGPopup
 from widgets.common.rounded_input import RoundedInput
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.kig_label import KiGLabel
@@ -247,7 +248,7 @@ class EventsScreen(Screen):
         controls.add_widget(self._button("Schließen", lambda: self.day_popup.dismiss(), height=dp(54)))
         content.add_widget(controls)
 
-        self.day_popup = Popup(
+        self.day_popup = KiGPopup(
             title=f"{selected_day.day}. {MONTH_NAMES[selected_day.month - 1]} {selected_day.year}",
             content=content,
             size_hint=(0.72, 0.72),
@@ -286,7 +287,7 @@ class EventsScreen(Screen):
         update_hint(type_spinner, type_spinner.text)
 
         buttons = BoxLayout(size_hint_y=None, height=dp(58), spacing=dp(theme.ROW_SPACING))
-        editor_popup = Popup(
+        editor_popup = KiGPopup(
             title="Eintrag bearbeiten" if entry else "Neuen Eintrag anlegen",
             content=content,
             size_hint=(0.62, None),
@@ -332,6 +333,77 @@ class EventsScreen(Screen):
         self.refresh_calendar()
 
     def delete_entry(self, popup, entry_id):
-        if self.db.delete_event(entry_id):
-            popup.dismiss()
+        """Löscht einen Kalender-Eintrag.
+
+        Hängen bereits Verkäufe am Eintrag, weigert sich die Datenbank
+        (ein Verkauf darf nicht auf ein Event zeigen, das es nicht mehr
+        gibt). Bisher geschah in diesem Fall gar nichts - der Knopf
+        sah kaputt aus, obwohl er funktionierte. Jetzt wird der Grund
+        genannt und nachgefragt, ob die Verkäufe vom Event gelöst
+        werden sollen: Sie bleiben dann mit allen Beträgen in der
+        Statistik, nur die Zuordnung entfällt.
+        """
+
+        verkaeufe = self.db.count_sales_for_event(entry_id)
+
+        if verkaeufe == 0:
+
+            if self.db.delete_event(entry_id):
+                popup.dismiss()
+                self.refresh_calendar()
+            else:
+                self.hinweis(
+                    "Der Eintrag konnte nicht gelöscht werden. "
+                    "Bitte die Anwendung neu starten und es erneut "
+                    "versuchen."
+                )
+
+            return
+
+        popup.dismiss()
+
+        ConfirmPopup(
+            title="Eintrag löschen",
+            message=(
+                f"Zu diesem Eintrag sind bereits {verkaeufe} "
+                f"{'Verkauf' if verkaeufe == 1 else 'Verkäufe'} erfasst.\n\n"
+                "Die Umsätze bleiben in der Statistik erhalten, verlieren "
+                "aber die Zuordnung zu diesem Eintrag.\n\n"
+                "Trotzdem löschen?"
+            ),
+            confirm_text="Trotzdem löschen",
+            on_confirm=lambda: self._delete_entry_confirmed(entry_id),
+        ).open()
+
+    def _delete_entry_confirmed(self, entry_id):
+
+        if self.db.delete_event(entry_id, detach_sales=True):
             self.refresh_calendar()
+        else:
+            self.hinweis("Der Eintrag konnte nicht gelöscht werden.")
+
+    def hinweis(self, text):
+        """Kurze Meldung, wenn etwas nicht geklappt hat - besser als
+        eine Schaltfläche, die stumm bleibt."""
+
+        content = BoxLayout(
+            orientation="vertical",
+            padding=dp(theme.CARD_PADDING),
+            spacing=dp(theme.CARD_SPACING),
+        )
+
+        label = KiGLabel(text=text)
+        label.set_font_size(16)
+        label.set_alignment("center")
+        content.add_widget(label)
+
+        popup = KiGPopup(
+            title="Kalender", content=content,
+            size_hint=(0.55, None), height=dp(220),
+        )
+
+        content.add_widget(self._button(
+            "Schließen", popup.dismiss, height=dp(52)
+        ))
+
+        popup.open()

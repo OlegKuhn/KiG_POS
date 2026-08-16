@@ -25,12 +25,12 @@ from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
-from kivy.uix.popup import Popup
+from widgets.common.kig_popup import KiGPopup
 
 import theme
 
 
-class ConfirmPopup(Popup):
+class ConfirmPopup(KiGPopup):
 
     def __init__(
             self,

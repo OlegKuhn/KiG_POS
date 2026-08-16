@@ -685,20 +685,36 @@ TOPICS = [
                 ),
             },
             {
-                "heading": "Top 5 Positionen",
+                "heading": "Gesamtverkaufszahlen",
                 "text": (
-                    "Oben rechts zeigt das Balkendiagramm die fünf "
-                    "meistverkauften Artikel nach Menge im aktuell "
-                    "gewählten Filter - praktisch, um auf einen Blick die "
-                    "Verkaufsschlager zu erkennen."
+                    "Oben rechts stehen die Zahlen des gewählten "
+                    "Ausschnitts: Einnahmen, Ausgaben und der Gewinn "
+                    "als Differenz. Die Zeile darunter nennt Zeitraum, "
+                    "Event und den Umfang - so ist immer klar, worauf "
+                    "sich die Beträge beziehen.\n\n"
+                    "Das Kreisdiagramm zeigt, wie sich die Einnahmen auf "
+                    "die Kategorien verteilen, in den Farben, die du den "
+                    "Kategorien gegeben hast. Die Legende nennt Anteil "
+                    "und Betrag."
                 ),
             },
             {
-                "heading": "Gesamtverkaufszahlen",
+                "heading": "Top-Artikel",
                 "text": (
-                    "Unten rechts listet die Tabelle die Einnahmen je "
-                    "Artikel für den aktuell gewählten Filter - ideal für "
-                    "die Abrechnung nach einer Veranstaltung."
+                    "Unten rechts zeigt das Balkendiagramm die "
+                    "meistverkauften Artikel nach Menge - praktisch, um "
+                    "auf einen Blick die Verkaufsschlager zu erkennen."
+                ),
+            },
+            {
+                "heading": "Alles folgt dem Filter",
+                "text": (
+                    "Kennzahlen, Kreisdiagramm und Balkendiagramm zeigen "
+                    "immer denselben Ausschnitt wie die Tabelle links. "
+                    "Grenzt du den Zeitraum ein oder wählst ein Event, "
+                    "rechnet die ganze rechte Spalte mit - für die "
+                    "Abrechnung nach einer Veranstaltung genügt es also, "
+                    "oben das Event auszuwählen."
                 ),
             },
         ],

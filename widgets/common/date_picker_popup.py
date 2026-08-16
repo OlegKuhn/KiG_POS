@@ -8,7 +8,7 @@ from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
-from kivy.uix.popup import Popup
+from widgets.common.kig_popup import KiGPopup
 from kivy.uix.widget import Widget
 
 import theme
@@ -50,7 +50,7 @@ class _DayButton(Button):
         self.background.size = self.size
 
 
-class DatePickerPopup(Popup):
+class DatePickerPopup(KiGPopup):
     """Kalender-Popup zur Auswahl eines einzelnen Datums.
 
     Verwendung:

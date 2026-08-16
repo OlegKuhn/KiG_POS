@@ -25,7 +25,7 @@ from kivy.graphics import Color, Rectangle
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
-from kivy.uix.popup import Popup
+from widgets.common.kig_popup import KiGPopup
 from kivy.uix.scrollview import ScrollView
 
 import config
@@ -36,7 +36,7 @@ from widgets.common.rounded_input import RoundedInput
 from widgets.common.kig_action_tile import KiGActionTile
 
 
-class StockAdjustmentDialog(Popup):
+class StockAdjustmentDialog(KiGPopup):
 
     def __init__(
             self,

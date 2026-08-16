@@ -30,7 +30,6 @@ from datetime import datetime
 from kivy.graphics import Color, Rectangle
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.popup import Popup
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 
@@ -47,6 +46,7 @@ from widgets.products.article_list_panel import ArticleListPanel
 from widgets.products.article_dashboard_panel import ArticleDashboardPanel
 from widgets.products.product_sort_dialog import ProductSortDialog
 from widgets.products.bottle_size_popup import BottleSizePopup
+from widgets.common.kig_popup import KiGPopup
 from widgets.common.confirm_popup import ConfirmPopup
 from widgets.common.numpad.numpad_panel import NumpadPanel
 from widgets.inventory.stock_adjustment_dialog import StockAdjustmentDialog
@@ -1112,7 +1112,7 @@ class ProductsScreen(Screen):
         content.bind(pos=update_background, size=update_background)
         content.add_widget(Label(text=text, color=theme.TEXT_PRIMARY))
 
-        Popup(
+        KiGPopup(
             title=title, content=content, size_hint=(0.7, None), height=dp(180), auto_dismiss=True,
         ).open()
 

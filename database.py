@@ -2783,13 +2783,44 @@ class DatabaseManager:
 
         return self.cursor.fetchall()
 
-    def delete_event(self, event_id):
-        """Löscht einen Kalender-Eintrag, sofern er nicht in Verkäufen referenziert wird."""
+    def count_sales_for_event(self, event_id):
+        """Anzahl der Verkäufe, die diesem Kalender-Eintrag zugeordnet sind.
+
+        Wird vor dem Löschen gebraucht: Solange Verkäufe am Eintrag
+        hängen, lässt die Datenbank ihn nicht einfach verschwinden
+        (siehe delete_event).
+        """
+
+        self.cursor.execute(
+            "SELECT COUNT(*) FROM sales WHERE event_id = ?",
+            (event_id,)
+        )
+
+        return self.cursor.fetchone()[0]
+
+    def delete_event(self, event_id, detach_sales=False):
+        """Löscht einen Kalender-Eintrag.
+
+        Hängen Verkäufe daran, verweigert die Datenbank das Löschen -
+        ein Verkauf darf nicht auf ein Event zeigen, das es nicht mehr
+        gibt. Mit detach_sales=True werden die Verkäufe zuerst vom
+        Event gelöst: Sie bleiben mit allen Beträgen in der Statistik
+        stehen, nur die Zuordnung zum Event entfällt. Das ist die
+        einzige Möglichkeit, ein bereits bespieltes Event loszuwerden,
+        ohne Umsätze zu verlieren.
+        """
 
         try:
+            if detach_sales:
+                self.cursor.execute(
+                    "UPDATE sales SET event_id = NULL WHERE event_id = ?",
+                    (event_id,)
+                )
+
             self.cursor.execute("DELETE FROM events WHERE id = ?", (event_id,))
             self.commit()
             return self.cursor.rowcount == 1
+
         except sqlite3.IntegrityError:
             self.connection.rollback()
             return False
@@ -3081,6 +3112,58 @@ class DatabaseManager:
         return sorted(
             totals.items(), key=lambda item: (-item[1], item[0])
         )
+
+    def get_category_revenues(self, date_from=None, date_to=None, event_id=None):
+        """Liefert die Einnahmen pro Kategorie, absteigend nach Umsatz.
+
+        Je Kategorie ein Tupel (Name, Einnahmen, Farbe). Die Farbe ist
+        die in der Kategorienverwaltung hinterlegte - so zeigt das
+        Kreisdiagramm dieselben Farben, die der Verein seinen
+        Kategorien gegeben hat.
+        """
+
+        self.cursor.execute("SELECT name, color FROM categories")
+        farben = {row["name"]: row["color"] for row in self.cursor.fetchall()}
+
+        rows = self.get_statistic_sale_items(date_from, date_to, event_id)
+
+        totals = {}
+
+        for row in rows:
+            name = row["category_name"]
+            totals[name] = (
+                totals.get(name, 0) + row["quantity"] * row["unit_price"]
+            )
+
+        sortiert = sorted(totals.items(), key=lambda item: (-item[1], item[0]))
+
+        return [(name, betrag, farben.get(name)) for name, betrag in sortiert]
+
+    def get_period_totals(self, date_from=None, date_to=None, event_id=None):
+        """Kennzahlen des gewählten Zeitraums.
+
+            revenue    Einnahmen (verkaufte Menge x Verkaufspreis)
+            expenses   Ausgaben (verkaufte Menge x Einkaufspreis)
+            profit     Einnahmen abzüglich Ausgaben
+            quantity   Anzahl verkaufter Einheiten
+            receipts   Anzahl der Bons
+
+        Stornos stehen mit negativer Menge in denselben Tabellen und
+        ziehen die Beträge damit von selbst wieder ab.
+        """
+
+        rows = self.get_statistic_sale_items(date_from, date_to, event_id)
+
+        einnahmen = sum(row["quantity"] * row["unit_price"] for row in rows)
+        ausgaben = sum(row["quantity"] * row["purchase_price"] for row in rows)
+
+        return {
+            "revenue": einnahmen,
+            "expenses": ausgaben,
+            "profit": einnahmen - ausgaben,
+            "quantity": sum(row["quantity"] for row in rows),
+            "receipts": len({row["sale_id"] for row in rows}),
+        }
 
     def delete_sale_item(self, sale_item_id):
         """Löscht eine Verkaufsposition und bereinigt den zugehörigen Bon."""

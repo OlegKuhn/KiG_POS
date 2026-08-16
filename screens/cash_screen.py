@@ -27,7 +27,6 @@ from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
-from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
 
 import theme
@@ -43,6 +42,7 @@ from widgets.cash.left_panel import CashLeftPanel
 from widgets.cash.cart.cart_panel import CartPanel
 from widgets.cash.cart.recipe_tooltip import RecipeTooltip
 from widgets.cash.edit.edit_panel import EditPanel
+from widgets.common.kig_popup import KiGPopup
 from widgets.common.confirm_popup import ConfirmPopup
 from widgets.common.numpad.numpad_panel import NumpadPanel
 from widgets.cash.payment.payment_panel import PaymentPanel
@@ -386,7 +386,7 @@ class CashScreen(Screen):
         label.bind(size=lambda i, v: setattr(i, "text_size", v))
         content.add_widget(label)
 
-        Popup(
+        KiGPopup(
             title=title, content=content, size_hint=(0.6, None),
             height=dp(220), auto_dismiss=True,
         ).open()

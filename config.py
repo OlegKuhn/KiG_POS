@@ -183,6 +183,8 @@ ICON_STATISTICS = ICON_DIR / "statistics.png"
 
 ICON_EVENTS = ICON_DIR / "events.png"
 
+ICON_CASHBOOK = ICON_DIR / "cashbook.png"
+
 ICON_ARTICLES = ICON_DIR / "articles.png"
 
 ICON_USE = ICON_DIR / "use.png"
@@ -252,6 +254,7 @@ LANGUAGE = "de"
 SCREEN_HOME = "home"
 SCREEN_CASH = "cash"
 SCREEN_EVENTS = "events"
+SCREEN_CASHBOOK = "cashbook"
 SCREEN_PRODUCTS = "products"
 SCREEN_STATISTICS = "statistics"
 SCREEN_USE = "use"

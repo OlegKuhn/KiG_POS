@@ -620,6 +620,88 @@ TOPICS = [
     },
 
     # =====================================================
+    # Kassenbuch
+    # =====================================================
+
+    {
+        "id": "cashbook",
+        "title": "Kassenbuch",
+        "steps": [
+            {
+                "heading": "Wozu das Kassenbuch",
+                "text": (
+                    "Die Statistik beantwortet, was verkauft wurde. Das "
+                    "Kassenbuch beantwortet eine andere Frage: Was liegt "
+                    "tatsächlich in der Kasse? Dort landen auch "
+                    "Wechselgeld, Einlagen und Entnahmen - Beträge, die "
+                    "nie über die Kasse gebucht werden.\n\n"
+                    "Je Tag eine Zeile: Womit die Kasse begonnen hat, "
+                    "was hinein- und was herausgegangen ist, womit sie "
+                    "geschlossen wurde."
+                ),
+                "image": "kassenbuch/01_uebersicht.png",
+            },
+            {
+                "heading": "Zeitraum wählen",
+                "text": (
+                    "Links wählst du oben das Jahr und darunter den "
+                    "Monat. Die Tabelle zeigt immer genau diesen Monat. "
+                    "Angeboten werden alle Jahre, in denen etwas erfasst "
+                    "ist, dazu das laufende - beim allerersten Eintrag "
+                    "steht also schon ein Jahr zur Auswahl."
+                ),
+            },
+            {
+                "heading": "Die Tabelle lesen",
+                "text": (
+                    "Datum, Startbestand, Einnahmen, Ausgaben, "
+                    "Endbestand, Kommentar und Prüfer. Unter der Tabelle "
+                    "stehen die Summen des Monats und der zuletzt "
+                    "erfasste Kassenstand."
+                ),
+            },
+            {
+                "heading": "Wenn die Rechnung nicht aufgeht",
+                "text": (
+                    "Startbestand plus Einnahmen minus Ausgaben muss den "
+                    "Endbestand ergeben. Stimmt das nicht, steht in der "
+                    "Spalte \"Kommentar\" ein rotes \"Prüfen\" - dein "
+                    "eigener Kommentar tritt dann zurück, damit der "
+                    "Hinweis nicht untergeht. Stimmt alles, steht dort "
+                    "einfach dein Kommentar oder gar nichts."
+                ),
+            },
+            {
+                "heading": "Eine Zeile erfassen",
+                "text": (
+                    "Rechts trägst du eine Zeile ein: Datum über den "
+                    "Kalender, die vier Beträge über den Nummernblock, "
+                    "Kommentar und Prüfer über die Tastatur. "
+                    "\"Speichern\" legt die Zeile an.\n\n"
+                    "Zwei Hilfen nimmt dir das Programm ab: Der "
+                    "Startbestand wird mit dem Endbestand des letzten "
+                    "Eintrags davor vorbelegt - in der Kasse liegt am "
+                    "Morgen das, was am Abend zuvor drin lag. Und der "
+                    "Endbestand rechnet sich beim Tippen mit, solange du "
+                    "ihn nicht selbst überschreibst. Weicht das Gezählte "
+                    "ab, trägst du einfach den echten Betrag ein - dann "
+                    "erscheint der Hinweis \"Prüfen\"."
+                ),
+            },
+            {
+                "heading": "Zeile ändern oder löschen",
+                "text": (
+                    "Ein Tipp auf eine Zeile lädt sie ins Eingabefeld, "
+                    "ein zweiter hebt die Auswahl wieder auf. Nach dem "
+                    "Ändern speicherst du erneut; \"Löschen\" entfernt "
+                    "die Zeile nach einer Rückfrage. Über \"Neu\" "
+                    "beginnst du eine leere Zeile."
+                ),
+            },
+        ],
+    },
+
+    # =====================================================
     # Statistik
     # =====================================================
 

@@ -112,6 +112,7 @@ SCREENS = (
     config.SCREEN_PRODUCTS,
     config.SCREEN_STATISTICS,
     config.SCREEN_EVENTS,
+    config.SCREEN_CASHBOOK,
     config.SCREEN_SETTINGS,
     config.SCREEN_USE,
 )

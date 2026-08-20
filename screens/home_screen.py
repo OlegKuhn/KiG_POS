@@ -165,6 +165,24 @@ class HomeScreen(Screen):
         )
 
         #
+        # Kassenbuch
+        #
+
+        self.tile_cashbook = HomeTile()
+
+        self.tile_cashbook.set_icon(
+            str(config.ICON_CASHBOOK)
+        )
+
+        self.tile_cashbook.set_title(
+            "KASSENBUCH"
+        )
+
+        self.tile_cashbook.set_subtitle(
+            "Kassenbestand festhalten"
+        )
+
+        #
         # Artikelverwaltung (Artikel, Einkauf, Inventar, Rezepte)
         #
 
@@ -235,6 +253,10 @@ class HomeScreen(Screen):
         )
 
         self.grid.add_widget(
+            self.tile_cashbook
+        )
+
+        self.grid.add_widget(
             self.tile_articles
         )
 
@@ -274,6 +296,10 @@ class HomeScreen(Screen):
 
         self.tile_events.set_callback(
             self.open_events
+        )
+
+        self.tile_cashbook.set_callback(
+            self.open_cashbook
         )
 
         self.tile_articles.set_callback(
@@ -338,6 +364,12 @@ class HomeScreen(Screen):
     def open_events(self):
 
         self.manager.current = config.SCREEN_EVENTS
+
+    # -----------------------------------------------------
+
+    def open_cashbook(self):
+
+        self.manager.current = config.SCREEN_CASHBOOK
 
     # -----------------------------------------------------
 

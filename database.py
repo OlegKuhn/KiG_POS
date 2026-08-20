@@ -302,6 +302,8 @@ class DatabaseManager:
 
         self._create_settings_table()
 
+        self._create_cash_book_table()
+
         self.commit()
 
         self.logger.info("Alle Tabellen erfolgreich erstellt.")
@@ -1363,6 +1365,43 @@ class DatabaseManager:
     #################################################################
     # Tabelle Veranstaltungen
     #################################################################
+
+    def _create_cash_book_table(self):
+        """Kassenbuch: je Zeile ein Tag mit Kassenstand und Bewegungen.
+
+        Bewusst getrennt von den Verkäufen: Das Kassenbuch hält fest,
+        was tatsächlich in der Kasse liegt - einschließlich Einlagen,
+        Entnahmen und allem, was nicht über die Kasse gebucht wurde.
+        Die Verkaufsstatistik beantwortet eine andere Frage.
+        """
+
+        self.cursor.execute("""
+
+        CREATE TABLE IF NOT EXISTS cash_book_entries(
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            entry_date TEXT NOT NULL,
+
+            opening_balance REAL NOT NULL DEFAULT 0,
+
+            income REAL NOT NULL DEFAULT 0,
+
+            expenses REAL NOT NULL DEFAULT 0,
+
+            closing_balance REAL NOT NULL DEFAULT 0,
+
+            comment TEXT,
+
+            auditor TEXT,
+
+            created_at TEXT,
+
+            updated_at TEXT
+
+        )
+
+        """)
 
     def _create_events_table(self):
 
@@ -3081,6 +3120,199 @@ class DatabaseManager:
         """, (name, entry_type, staff_names, self.timestamp(), event_id))
         self.commit()
         return self.cursor.rowcount == 1
+
+    #################################################################
+    # Kassenbuch
+    #################################################################
+    #
+    # Eine Zeile je Tag: Womit die Kasse begonnen hat, was hinein- und
+    # herausgegangen ist, womit sie geschlossen wurde. Ob das
+    # zusammenpasst, rechnet die Anwendung nach - siehe
+    # cash_book_entry_is_valid.
+
+    # Rundungsspielraum beim Nachrechnen. Beträge werden in Cent
+    # eingegeben, ein halber Cent Toleranz fängt lediglich
+    # Fließkomma-Ungenauigkeiten ab.
+    CASH_BOOK_TOLERANCE = 0.005
+
+    @staticmethod
+    def cash_book_entry_is_valid(entry):
+        """Prüft, ob Startbestand + Einnahmen - Ausgaben den
+        Endbestand ergibt."""
+
+        erwartet = (
+            (entry["opening_balance"] or 0)
+            + (entry["income"] or 0)
+            - (entry["expenses"] or 0)
+        )
+
+        abweichung = abs(erwartet - (entry["closing_balance"] or 0))
+
+        return abweichung <= DatabaseManager.CASH_BOOK_TOLERANCE
+
+    def get_cash_book_entries(self, year=None, month=None):
+        """Kassenbuchzeilen, nach Datum aufsteigend.
+
+        year/month grenzen auf einen Monat ein; ohne Angabe kommt
+        alles.
+        """
+
+        query = "SELECT * FROM cash_book_entries WHERE 1 = 1"
+        parameters = []
+
+        if year:
+            query += " AND substr(entry_date, 1, 4) = ?"
+            parameters.append(f"{int(year):04d}")
+
+        if month:
+            query += " AND substr(entry_date, 6, 2) = ?"
+            parameters.append(f"{int(month):02d}")
+
+        query += " ORDER BY entry_date, id"
+
+        self.cursor.execute(query, parameters)
+
+        return self.cursor.fetchall()
+
+    def get_cash_book_years(self):
+        """Jahre, in denen es Kassenbucheinträge gibt - absteigend.
+
+        Das laufende Jahr ist immer dabei, auch wenn noch nichts
+        erfasst wurde: Sonst stünde beim ersten Eintrag kein Jahr zur
+        Auswahl.
+        """
+
+        self.cursor.execute("""
+            SELECT DISTINCT substr(entry_date, 1, 4) AS jahr
+            FROM cash_book_entries
+            ORDER BY jahr DESC
+        """)
+
+        jahre = {int(row["jahr"]) for row in self.cursor.fetchall() if row["jahr"]}
+
+        jahre.add(datetime.now().year)
+
+        return sorted(jahre, reverse=True)
+
+    def get_cash_book_entry(self, entry_id):
+
+        self.cursor.execute(
+            "SELECT * FROM cash_book_entries WHERE id = ?", (entry_id,)
+        )
+
+        return self.cursor.fetchone()
+
+    def get_previous_closing_balance(self, entry_date):
+        """Endbestand des letzten Eintrags VOR diesem Datum.
+
+        Damit lässt sich der Startbestand vorbelegen: In der Kasse
+        liegt am Morgen das, was am Abend zuvor drin lag. Gibt es
+        keinen Vorgänger, kommt None zurück.
+        """
+
+        self.cursor.execute("""
+            SELECT closing_balance
+            FROM cash_book_entries
+            WHERE entry_date < ?
+            ORDER BY entry_date DESC, id DESC
+            LIMIT 1
+        """, (entry_date,))
+
+        row = self.cursor.fetchone()
+
+        return None if row is None else row["closing_balance"]
+
+    def add_cash_book_entry(
+            self,
+            entry_date,
+            opening_balance=0.0,
+            income=0.0,
+            expenses=0.0,
+            closing_balance=0.0,
+            comment="",
+            auditor="",
+    ):
+        """Legt eine Kassenbuchzeile an und liefert deren id."""
+
+        if not entry_date:
+            return None
+
+        now = self.timestamp()
+
+        self.cursor.execute("""
+            INSERT INTO cash_book_entries(
+                entry_date, opening_balance, income, expenses,
+                closing_balance, comment, auditor, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            entry_date, opening_balance, income, expenses,
+            closing_balance, comment or "", auditor or "", now, now,
+        ))
+
+        self.commit()
+
+        return self.cursor.lastrowid
+
+    def update_cash_book_entry(
+            self,
+            entry_id,
+            entry_date,
+            opening_balance=0.0,
+            income=0.0,
+            expenses=0.0,
+            closing_balance=0.0,
+            comment="",
+            auditor="",
+    ):
+
+        if not entry_date:
+            return False
+
+        self.cursor.execute("""
+            UPDATE cash_book_entries
+            SET entry_date = ?, opening_balance = ?, income = ?,
+                expenses = ?, closing_balance = ?, comment = ?,
+                auditor = ?, updated_at = ?
+            WHERE id = ?
+        """, (
+            entry_date, opening_balance, income, expenses,
+            closing_balance, comment or "", auditor or "",
+            self.timestamp(), entry_id,
+        ))
+
+        self.commit()
+
+        return self.cursor.rowcount == 1
+
+    def delete_cash_book_entry(self, entry_id):
+
+        self.cursor.execute(
+            "DELETE FROM cash_book_entries WHERE id = ?", (entry_id,)
+        )
+
+        self.commit()
+
+        return self.cursor.rowcount == 1
+
+    def get_cash_book_totals(self, year=None, month=None):
+        """Summen eines Monats: Einnahmen, Ausgaben, Anzahl Zeilen und
+        wie viele davon nicht aufgehen."""
+
+        eintraege = self.get_cash_book_entries(year, month)
+
+        return {
+            "income": sum(e["income"] or 0 for e in eintraege),
+            "expenses": sum(e["expenses"] or 0 for e in eintraege),
+            "entries": len(eintraege),
+            "invalid": sum(
+                0 if self.cash_book_entry_is_valid(e) else 1
+                for e in eintraege
+            ),
+            "closing_balance": (
+                eintraege[-1]["closing_balance"] if eintraege else 0
+            ),
+        }
 
     #################################################################
     # Nächste Bonnummer

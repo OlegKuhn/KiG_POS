@@ -1,0 +1,908 @@
+"""
+=========================================================
+KiG POS
+=========================================================
+
+Datei:
+    screens/cash_book_screen.py
+
+Beschreibung:
+    Kassenbuch: Was liegt tatsächlich in der Kasse?
+
+    Je Tag eine Zeile - Startbestand, Einnahmen, Ausgaben,
+    Endbestand, dazu ein Kommentar und der Name dessen, der
+    nachgezählt hat.
+
+    Bewusst getrennt von der Statistik: Die beantwortet, was
+    verkauft wurde. Hier geht es um den Kassenbestand, in den
+    auch Einlagen, Entnahmen und Wechselgeld einfließen.
+
+    Aufbau (Querformat):
+
+        links    Jahr, darunter Monat
+        Mitte    Übersichtstabelle des gewählten Monats
+        rechts   Eingabefeld für eine Zeile
+
+    Geht die Rechnung einer Zeile nicht auf, steht in der
+    Spalte "Kommentar" ein rotes "Prüfen" - siehe
+    database.py:cash_book_entry_is_valid.
+
+Version:
+    1.0.0
+=========================================================
+"""
+
+from datetime import date, datetime
+
+from kivy.clock import Clock
+from kivy.graphics import Color, RoundedRectangle
+from kivy.metrics import dp
+from kivy.uix.behaviors import ButtonBehavior
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.label import Label
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.screenmanager import Screen
+
+import config
+import theme
+
+from database import DatabaseManager
+from widgets.common.confirm_popup import ConfirmPopup
+from widgets.common.date_picker_popup import DatePickerPopup
+from widgets.common.rounded_input import RoundedInput
+from widgets.common.rounded_panel import RoundedPanel
+from widgets.kig_label import KiGLabel
+
+
+MONTH_NAMES = (
+    "Januar", "Februar", "März", "April", "Mai", "Juni",
+    "Juli", "August", "September", "Oktober", "November", "Dezember"
+)
+
+
+# Spaltenaufteilung der Tabelle. Kopfzeile und Datenzeilen benutzen
+# dieselbe Liste - nur gemeinsam ändern, sonst stehen Überschrift und
+# Wert nicht mehr übereinander.
+COLUMNS = (
+    ("Datum", 0.14),
+    ("Startbestand", 0.15),
+    ("Einnahmen", 0.14),
+    ("Ausgaben", 0.14),
+    ("Endbestand", 0.15),
+    ("Kommentar", 0.16),
+    ("Prüfer", 0.12),
+)
+
+
+class CashBookRow(ButtonBehavior, BoxLayout):
+    """Eine Zeile der Übersicht. Ein Tipp lädt sie zum Bearbeiten."""
+
+    HEIGHT = 44
+
+    def __init__(self, entry, valid, selected_callback, **kwargs):
+
+        super().__init__(
+            orientation="horizontal", size_hint_y=None,
+            height=dp(self.HEIGHT), **kwargs
+        )
+
+        self.entry = entry
+        self.valid = valid
+        self.selected_callback = selected_callback
+        self.selected = False
+
+        with self.canvas.before:
+            self._color = Color(*theme.CARD)
+            self._background = RoundedRectangle(
+                pos=self.pos, size=self.size, radius=[dp(6)]
+            )
+
+        self.bind(pos=self._refresh_canvas, size=self._refresh_canvas)
+
+        # Geht die Rechnung nicht auf, ersetzt "Prüfen" den Kommentar -
+        # ein Hinweis, der untergeht, ist keiner.
+        kommentar = "Prüfen" if not valid else (entry["comment"] or "")
+
+        werte = (
+            CashBookScreen.format_date(entry["entry_date"]),
+            CashBookScreen.money(entry["opening_balance"]),
+            CashBookScreen.money(entry["income"]),
+            CashBookScreen.money(entry["expenses"]),
+            CashBookScreen.money(entry["closing_balance"]),
+            kommentar,
+            entry["auditor"] or "",
+        )
+
+        for spalte, (wert, (_titel, breite)) in enumerate(zip(werte, COLUMNS)):
+
+            farbe = (
+                theme.ERROR
+                if (not valid and spalte == 5)
+                else theme.TEXT_PRIMARY
+            )
+
+            label = Label(
+                text=str(wert), color=farbe, font_size="13sp",
+                bold=(not valid and spalte == 5),
+                halign="left", valign="middle",
+                text_size=(None, dp(self.HEIGHT)), size_hint_x=breite,
+                shorten=True, shorten_from="right",
+            )
+
+            self.add_widget(label)
+
+    def _refresh_canvas(self, *_args):
+        self._background.pos = self.pos
+        self._background.size = self.size
+
+    def on_release(self):
+        self.selected_callback(self)
+
+    def select(self):
+        self.selected = True
+        self._color.rgba = theme.PRIMARY_ORANGE_LIGHT
+
+    def unselect(self):
+        self.selected = False
+        self._color.rgba = theme.CARD
+
+
+class CashBookScreen(Screen):
+    """Kassenbuch mit Jahres- und Monatsauswahl."""
+
+    YEAR_BUTTON_HEIGHT = 48
+    MONTH_BUTTON_HEIGHT = 42
+    SELECTION_WIDTH = 190
+
+    def __init__(self, **kwargs):
+
+        super().__init__(**kwargs)
+
+        self.db = DatabaseManager()
+
+        heute = date.today()
+
+        self.selected_year = heute.year
+        self.selected_month = heute.month
+
+        self.selected_entry_id = None
+        self.selected_row = None
+
+        self.year_buttons = {}
+        self.month_buttons = {}
+
+        # Im Hochformat steht die Eingabe unter der Tabelle statt
+        # daneben - nebeneinander bliebe von beidem ein Streifen.
+        self.hochformat = theme.is_portrait()
+
+        root = BoxLayout(
+            orientation="vertical" if self.hochformat else "horizontal",
+            padding=dp(theme.SCREEN_PADDING),
+            spacing=dp(theme.SCREEN_SPACING),
+        )
+
+        root.add_widget(self._build_selection_panel())
+        root.add_widget(self._build_table_panel())
+        root.add_widget(self._build_form_panel())
+
+        self.add_widget(root)
+
+    # =====================================================
+    # Links: Jahr und Monat
+    # =====================================================
+
+    def _build_selection_panel(self):
+
+        panel = RoundedPanel(
+            orientation="vertical",
+            padding=dp(theme.CARD_PADDING),
+            spacing=dp(theme.CARD_SPACING),
+            size_hint=(1, 0.16) if self.hochformat else (None, 1),
+        )
+
+        if not self.hochformat:
+            panel.width = dp(self.SELECTION_WIDTH)
+
+        panel.add_widget(self._title("Zeitraum"))
+
+        # Im Hochformat nebeneinander: Dort ist Höhe knapp, Breite
+        # nicht.
+        inhalt = BoxLayout(
+            orientation="horizontal" if self.hochformat else "vertical",
+            spacing=dp(theme.CARD_SPACING),
+        )
+
+        self.year_box = BoxLayout(
+            orientation="vertical",
+            spacing=dp(theme.SPACE_XS),
+            size_hint_y=None,
+        )
+        self.year_box.bind(minimum_height=self.year_box.setter("height"))
+
+        # Die Jahre bekommen nur so viel Platz, wie sie brauchen (bis
+        # zu drei auf einen Blick) - der Rest gehoert den Monaten.
+        self.year_scroll = ScrollView(do_scroll_x=False, bar_width=dp(8))
+        self.year_scroll.add_widget(self.year_box)
+
+        if not self.hochformat:
+            self.year_scroll.size_hint_y = None
+
+        inhalt.add_widget(self.year_scroll)
+
+        self.month_box = BoxLayout(
+            orientation="vertical",
+            spacing=dp(theme.SPACE_XS),
+            size_hint_y=None,
+        )
+        self.month_box.bind(minimum_height=self.month_box.setter("height"))
+
+        self.month_scroll = ScrollView(do_scroll_x=False, bar_width=dp(8))
+        self.month_scroll.add_widget(self.month_box)
+        inhalt.add_widget(self.month_scroll)
+
+        panel.add_widget(inhalt)
+
+        return panel
+
+    def _build_year_buttons(self):
+
+        self.year_box.clear_widgets()
+        self.year_buttons = {}
+
+        for jahr in self.db.get_cash_book_years():
+
+            button = self._selection_button(
+                str(jahr), dp(self.YEAR_BUTTON_HEIGHT),
+                lambda jahr=jahr: self.select_year(jahr),
+            )
+
+            self.year_buttons[jahr] = button
+            self.year_box.add_widget(button)
+
+        if self.year_scroll.size_hint_y is None:
+
+            sichtbar = min(3, max(1, len(self.year_buttons)))
+
+            self.year_scroll.height = sichtbar * (
+                dp(self.YEAR_BUTTON_HEIGHT) + dp(theme.SPACE_XS)
+            )
+
+        self._highlight_selection()
+
+    def _build_month_buttons(self):
+
+        self.month_box.clear_widgets()
+        self.month_buttons = {}
+
+        for nummer, name in enumerate(MONTH_NAMES, start=1):
+
+            button = self._selection_button(
+                name, dp(self.MONTH_BUTTON_HEIGHT),
+                lambda nummer=nummer: self.select_month(nummer),
+            )
+
+            self.month_buttons[nummer] = button
+            self.month_box.add_widget(button)
+
+        self._highlight_selection()
+
+        # Ohne das startet die Liste im Januar - der laufende Monat
+        # waere ausgerechnet dann nicht zu sehen, wenn man ihn braucht.
+        Clock.schedule_once(lambda _dt: self._scroll_to_month(), 0)
+
+    def _scroll_to_month(self):
+
+        button = self.month_buttons.get(self.selected_month)
+
+        if button is not None and button.parent is not None:
+            self.month_scroll.scroll_to(button, padding=dp(20), animate=False)
+
+    def _selection_button(self, text, height, callback):
+
+        button = Button(
+            text=text, size_hint_y=None, height=height,
+            background_normal="", background_down="",
+            background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
+            font_size="15sp", bold=True,
+        )
+
+        button.bind(on_release=lambda *_args: callback())
+
+        return button
+
+    def _highlight_selection(self):
+        """Färbt die gewählte Jahres- und Monatsschaltfläche."""
+
+        for jahr, button in self.year_buttons.items():
+            gewaehlt = jahr == self.selected_year
+            button.background_color = (
+                theme.PRIMARY_ORANGE if gewaehlt else theme.SURFACE
+            )
+            button.color = theme.TEXT_WHITE if gewaehlt else theme.TEXT_PRIMARY
+
+        for monat, button in self.month_buttons.items():
+            gewaehlt = monat == self.selected_month
+            button.background_color = (
+                theme.PRIMARY_ORANGE if gewaehlt else theme.SURFACE
+            )
+            button.color = theme.TEXT_WHITE if gewaehlt else theme.TEXT_PRIMARY
+
+    def select_year(self, jahr):
+
+        self.selected_year = jahr
+        self._highlight_selection()
+        self.refresh()
+
+    def select_month(self, monat):
+
+        self.selected_month = monat
+        self._highlight_selection()
+        self.refresh()
+
+    # =====================================================
+    # Mitte: Übersichtstabelle
+    # =====================================================
+
+    def _build_table_panel(self):
+
+        panel = RoundedPanel(
+            orientation="vertical",
+            padding=dp(theme.CARD_PADDING),
+            spacing=dp(theme.CARD_SPACING),
+            size_hint=(1, 0.52) if self.hochformat else (1, 1),
+        )
+
+        self.table_title = self._title("Kassenbuch")
+        panel.add_widget(self.table_title)
+
+        header = BoxLayout(size_hint_y=None, height=dp(32), spacing=0)
+
+        for titel, breite in COLUMNS:
+            header.add_widget(Label(
+                text=titel, bold=True, color=theme.TEXT_PRIMARY,
+                font_size="13sp", halign="left", valign="middle",
+                text_size=(None, dp(32)), size_hint_x=breite,
+            ))
+
+        panel.add_widget(header)
+
+        self.rows_box = BoxLayout(
+            orientation="vertical",
+            spacing=dp(theme.SPACE_XS),
+            size_hint_y=None,
+        )
+        self.rows_box.bind(minimum_height=self.rows_box.setter("height"))
+
+        scroll = ScrollView(do_scroll_x=False)
+        scroll.add_widget(self.rows_box)
+        panel.add_widget(scroll)
+
+        self.summary_label = Label(
+            text="", color=theme.TEXT_SECONDARY, font_size="14sp",
+            size_hint_y=None, height=dp(46),
+            halign="left", valign="middle",
+        )
+        self.summary_label.bind(
+            size=lambda instance, value: setattr(instance, "text_size", value)
+        )
+        panel.add_widget(self.summary_label)
+
+        return panel
+
+    # =====================================================
+    # Rechts: Eingabe
+    # =====================================================
+
+    def _build_form_panel(self):
+
+        panel = RoundedPanel(
+            orientation="vertical",
+            padding=dp(theme.CARD_PADDING),
+            spacing=dp(theme.CARD_SPACING),
+            size_hint=(1, 0.32) if self.hochformat else (None, 1),
+        )
+
+        if not self.hochformat:
+            panel.width = dp(theme.CART_PANEL_WIDTH)
+
+        self.form_title = self._title("Neue Zeile")
+        panel.add_widget(self.form_title)
+
+        # Acht Zeilen zu je gut 50 dp passen auf einem Telefon nicht
+        # neben die Tabelle - und im Hochformat erst recht nicht
+        # darunter. Die Felder bekommen deshalb einen Rollbereich;
+        # Überschrift und Schaltflächen bleiben stehen, damit
+        # "Speichern" immer erreichbar ist.
+        self.form_fields = BoxLayout(
+            orientation="vertical",
+            spacing=dp(theme.CARD_SPACING),
+            size_hint_y=None,
+        )
+        self.form_fields.bind(
+            minimum_height=self.form_fields.setter("height")
+        )
+
+        form_scroll = ScrollView(do_scroll_x=False, bar_width=dp(8))
+        form_scroll.add_widget(self.form_fields)
+        panel.add_widget(form_scroll)
+
+        zeile, self.date_button = self._form_button(
+            "Datum", "", lambda: self.open_date_picker()
+        )
+        self.form_fields.add_widget(zeile)
+
+        self.amount_buttons = {}
+
+        for schluessel, beschriftung in (
+            ("opening_balance", "Startbestand"),
+            ("income", "Einnahmen"),
+            ("expenses", "Ausgaben"),
+            ("closing_balance", "Endbestand"),
+        ):
+            zeile, button = self._form_button(
+                beschriftung, self.money(0),
+                lambda schluessel=schluessel: self.open_amount_numpad(schluessel),
+            )
+            self.amount_buttons[schluessel] = button
+            self.form_fields.add_widget(zeile)
+
+        zeile, self.comment_input = self._form_input(
+            "Kommentar", "z. B. Stadtfest"
+        )
+        self.form_fields.add_widget(zeile)
+
+        zeile, self.auditor_input = self._form_input("Prüfer", "Name")
+        self.form_fields.add_widget(zeile)
+
+        # Zeigt beim Tippen mit, ob die Rechnung aufgeht - lieber
+        # gleich als erst in der Tabelle.
+        self.check_label = Label(
+            text="", color=theme.TEXT_SECONDARY, font_size="13sp",
+            size_hint_y=None, height=dp(34),
+            halign="left", valign="middle",
+        )
+        self.check_label.bind(
+            size=lambda instance, value: setattr(instance, "text_size", value)
+        )
+        self.form_fields.add_widget(self.check_label)
+
+        buttons = BoxLayout(
+            size_hint_y=None, height=dp(52), spacing=dp(theme.ROW_SPACING)
+        )
+        buttons.add_widget(self._action_button("Neu", self.new_entry))
+        buttons.add_widget(self._action_button("Löschen", self.delete_entry))
+        buttons.add_widget(self._action_button(
+            "Speichern", self.save_entry,
+            background=theme.PRIMARY_ORANGE, color=theme.TEXT_WHITE,
+        ))
+        panel.add_widget(buttons)
+
+        return panel
+
+    def _form_button(self, beschriftung, wert, callback):
+        """Beschriftung links, Wert als Schaltfläche rechts.
+
+        Liefert (Zeile, Schaltfläche): Die Zeile kommt ins Panel, die
+        Schaltfläche behält der Screen, um ihren Wert zu lesen und zu
+        setzen.
+        """
+
+        zeile = BoxLayout(
+            size_hint_y=None, height=dp(52), spacing=dp(theme.ROW_SPACING)
+        )
+
+        zeile.add_widget(Label(
+            text=beschriftung, color=theme.TEXT_SECONDARY, font_size="14sp",
+            halign="left", valign="middle", size_hint_x=0.42,
+            text_size=(None, dp(52)),
+        ))
+
+        button = Button(
+            text=wert, background_normal="", background_down="",
+            background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
+            font_size="16sp", bold=True, size_hint_x=0.58,
+        )
+        button.bind(on_release=lambda *_args: callback())
+
+        zeile.add_widget(button)
+
+        return zeile, button
+
+    def _form_input(self, beschriftung, hinweis):
+
+        zeile = BoxLayout(
+            size_hint_y=None, height=dp(52), spacing=dp(theme.ROW_SPACING)
+        )
+
+        zeile.add_widget(Label(
+            text=beschriftung, color=theme.TEXT_SECONDARY, font_size="14sp",
+            halign="left", valign="middle", size_hint_x=0.42,
+            text_size=(None, dp(52)),
+        ))
+
+        feld = RoundedInput(
+            hint_text=hinweis, multiline=False, size_hint_x=0.58,
+        )
+        feld.foreground_color = theme.TEXT_PRIMARY
+        feld.hint_text_color = theme.TEXT_SECONDARY
+
+        zeile.add_widget(feld)
+
+        return zeile, feld
+
+    @staticmethod
+    def _action_button(text, callback, background=None, color=None):
+
+        button = Button(
+            text=text, background_normal="", background_down="",
+            background_color=background or theme.SURFACE,
+            color=color or theme.TEXT_PRIMARY,
+            font_size="15sp", bold=True,
+        )
+        button.bind(on_release=lambda *_args: callback())
+
+        return button
+
+    @staticmethod
+    def _title(text):
+
+        label = KiGLabel(text=text)
+        label.set_font_size(24)
+        label.set_bold(True)
+        label.set_alignment("left")
+        label.set_color(theme.PRIMARY_ORANGE)
+        label.size_hint_y = None
+        label.height = dp(36)
+
+        return label
+
+    # =====================================================
+    # Formatierung
+    # =====================================================
+
+    @staticmethod
+    def money(value):
+        return f"{float(value or 0):.2f} €".replace(".", ",")
+
+    @staticmethod
+    def format_date(iso_date):
+        try:
+            return datetime.strptime(iso_date, "%Y-%m-%d").strftime("%d.%m.%Y")
+        except (TypeError, ValueError):
+            return str(iso_date or "-")
+
+    # =====================================================
+    # Screen wird geöffnet
+    # =====================================================
+
+    def on_pre_enter(self, *_args):
+
+        self._build_year_buttons()
+        self._build_month_buttons()
+
+        self.new_entry()
+        self.refresh()
+
+    # =====================================================
+    # Tabelle füllen
+    # =====================================================
+
+    def refresh(self):
+
+        self.rows_box.clear_widgets()
+        self.selected_row = None
+
+        eintraege = self.db.get_cash_book_entries(
+            self.selected_year, self.selected_month
+        )
+
+        self.table_title.text = (
+            f"Kassenbuch {MONTH_NAMES[self.selected_month - 1]} "
+            f"{self.selected_year}"
+        )
+
+        if not eintraege:
+
+            self.rows_box.add_widget(Label(
+                text="Für diesen Monat ist noch nichts erfasst.",
+                color=theme.TEXT_SECONDARY, font_size="14sp",
+                size_hint_y=None, height=dp(42),
+                halign="left", valign="middle", text_size=(None, dp(42)),
+            ))
+
+        else:
+
+            for eintrag in eintraege:
+
+                zeile = CashBookRow(
+                    entry=eintrag,
+                    valid=self.db.cash_book_entry_is_valid(eintrag),
+                    selected_callback=self.row_selected,
+                )
+
+                self.rows_box.add_widget(zeile)
+
+                if eintrag["id"] == self.selected_entry_id:
+                    zeile.select()
+                    self.selected_row = zeile
+
+        self._refresh_summary()
+
+    def _refresh_summary(self):
+
+        summen = self.db.get_cash_book_totals(
+            self.selected_year, self.selected_month
+        )
+
+        if not summen["entries"]:
+            self.summary_label.text = ""
+            return
+
+        text = (
+            f"{summen['entries']} Tage   ·   "
+            f"Einnahmen {self.money(summen['income'])}   ·   "
+            f"Ausgaben {self.money(summen['expenses'])}   ·   "
+            f"Kassenstand zuletzt {self.money(summen['closing_balance'])}"
+        )
+
+        if summen["invalid"]:
+            offen = summen["invalid"]
+            text += (
+                f"   ·   {offen} {'Zeile' if offen == 1 else 'Zeilen'} "
+                "zu prüfen"
+            )
+
+        self.summary_label.text = text
+
+        self.summary_label.color = (
+            theme.ERROR if summen["invalid"] else theme.TEXT_SECONDARY
+        )
+
+    # =====================================================
+    # Zeile gewählt
+    # =====================================================
+
+    def row_selected(self, row):
+        """Ein Tipp lädt die Zeile ins Eingabefeld, ein zweiter hebt
+        die Auswahl wieder auf."""
+
+        if self.selected_row is row:
+            row.unselect()
+            self.selected_row = None
+            self.new_entry()
+            return
+
+        if self.selected_row is not None:
+            self.selected_row.unselect()
+
+        row.select()
+        self.selected_row = row
+
+        self.load_entry(row.entry)
+
+    def load_entry(self, entry):
+
+        self.selected_entry_id = entry["id"]
+
+        self.form_title.text = "Zeile bearbeiten"
+
+        self.date_value = entry["entry_date"]
+        self.date_button.text = self.format_date(entry["entry_date"])
+
+        for schluessel, button in self.amount_buttons.items():
+            button.text = self.money(entry[schluessel])
+
+        self.comment_input.text = entry["comment"] or ""
+        self.auditor_input.text = entry["auditor"] or ""
+
+        self._refresh_check()
+
+    # =====================================================
+    # Eingabe
+    # =====================================================
+
+    def new_entry(self):
+        """Leert das Eingabefeld für eine neue Zeile.
+
+        Vorbelegt wird der heutige Tag (bzw. der Monatsanfang, wenn ein
+        anderer Monat gewählt ist) und als Startbestand der Endbestand
+        des letzten Eintrags davor - in der Kasse liegt am Morgen das,
+        was am Abend zuvor drin lag.
+        """
+
+        if self.selected_row is not None:
+            self.selected_row.unselect()
+            self.selected_row = None
+
+        self.selected_entry_id = None
+        self.form_title.text = "Neue Zeile"
+
+        heute = date.today()
+
+        if (heute.year, heute.month) == (self.selected_year, self.selected_month):
+            vorschlag = heute
+        else:
+            vorschlag = date(self.selected_year, self.selected_month, 1)
+
+        self.date_value = vorschlag.isoformat()
+        self.date_button.text = self.format_date(self.date_value)
+
+        vorheriger = self.db.get_previous_closing_balance(self.date_value)
+
+        for schluessel, button in self.amount_buttons.items():
+            button.text = self.money(0)
+
+        if vorheriger:
+            self.amount_buttons["opening_balance"].text = self.money(vorheriger)
+            self.amount_buttons["closing_balance"].text = self.money(vorheriger)
+
+        self.comment_input.text = ""
+        self.auditor_input.text = ""
+
+        self._refresh_check()
+
+    def open_date_picker(self):
+
+        DatePickerPopup(
+            title="Datum der Kassenbuchzeile",
+            initial_date=self.date_value,
+            on_select=self.date_picked,
+        ).open()
+
+    def date_picked(self, iso_date):
+
+        self.date_value = iso_date
+        self.date_button.text = self.format_date(iso_date)
+
+        # Zum Datum passt ein anderer Vorgänger - aber nur, solange
+        # eine neue Zeile erfasst wird.
+        if self.selected_entry_id is None:
+
+            vorheriger = self.db.get_previous_closing_balance(iso_date)
+
+            if vorheriger:
+                self.amount_buttons["opening_balance"].text = self.money(vorheriger)
+
+        self._refresh_check()
+
+    def open_amount_numpad(self, schluessel):
+
+        from widgets.common.numpad.numpad_popup import NumpadPopup
+
+        beschriftungen = {
+            "opening_balance": "Startbestand",
+            "income": "Einnahmen",
+            "expenses": "Ausgaben",
+            "closing_balance": "Endbestand",
+        }
+
+        NumpadPopup(
+            title=beschriftungen[schluessel],
+            value=int(round(self._amount(schluessel) * 100)),
+            mode="price",
+            on_confirm=lambda cent: self.amount_entered(schluessel, cent),
+        ).open()
+
+    def amount_entered(self, schluessel, cent):
+
+        self.amount_buttons[schluessel].text = self.money(cent / 100)
+
+        # Endbestand mitrechnen, solange er noch nicht von Hand
+        # angefasst wurde: Start + Einnahmen - Ausgaben ist der
+        # Normalfall, alles andere die Ausnahme.
+        if schluessel != "closing_balance":
+            self.amount_buttons["closing_balance"].text = self.money(
+                self._amount("opening_balance")
+                + self._amount("income")
+                - self._amount("expenses")
+            )
+
+        self._refresh_check()
+
+    def _amount(self, schluessel):
+        """Liest einen Betrag aus der Schaltfläche zurück."""
+
+        text = self.amount_buttons[schluessel].text
+
+        try:
+            return float(
+                text.replace(" €", "").replace(".", "").replace(",", ".")
+            )
+        except ValueError:
+            return 0.0
+
+    def _current_entry(self):
+
+        return {
+            "opening_balance": self._amount("opening_balance"),
+            "income": self._amount("income"),
+            "expenses": self._amount("expenses"),
+            "closing_balance": self._amount("closing_balance"),
+        }
+
+    def _refresh_check(self):
+
+        eintrag = self._current_entry()
+
+        erwartet = (
+            eintrag["opening_balance"] + eintrag["income"] - eintrag["expenses"]
+        )
+
+        if self.db.cash_book_entry_is_valid(eintrag):
+            self.check_label.text = "Rechnung geht auf."
+            self.check_label.color = theme.TEXT_SECONDARY
+            return
+
+        self.check_label.text = (
+            f"Prüfen: erwartet {self.money(erwartet)}, "
+            f"eingetragen {self.money(eintrag['closing_balance'])}"
+        )
+        self.check_label.color = theme.ERROR
+
+    # =====================================================
+    # Speichern und löschen
+    # =====================================================
+
+    def save_entry(self):
+
+        eintrag = self._current_entry()
+
+        if self.selected_entry_id is None:
+
+            neue_id = self.db.add_cash_book_entry(
+                entry_date=self.date_value,
+                comment=self.comment_input.text.strip(),
+                auditor=self.auditor_input.text.strip(),
+                **eintrag,
+            )
+
+            self.selected_entry_id = neue_id
+
+            # Die Zeile gibt es jetzt - ein weiteres "Speichern" ändert
+            # sie, statt eine zweite anzulegen. Das muss auch oben
+            # stehen, sonst verspricht die Überschrift etwas anderes,
+            # als der Knopf tut.
+            self.form_title.text = "Zeile bearbeiten"
+
+        else:
+
+            self.db.update_cash_book_entry(
+                entry_id=self.selected_entry_id,
+                entry_date=self.date_value,
+                comment=self.comment_input.text.strip(),
+                auditor=self.auditor_input.text.strip(),
+                **eintrag,
+            )
+
+        # Zum gespeicherten Datum springen, sonst verschwindet die
+        # Zeile scheinbar spurlos, wenn sie in einen anderen Monat
+        # gehört.
+        gespeichert = date.fromisoformat(self.date_value)
+        self.selected_year = gespeichert.year
+        self.selected_month = gespeichert.month
+
+        self._highlight_selection()
+        self.refresh()
+
+    def delete_entry(self):
+
+        if self.selected_entry_id is None:
+            return
+
+        ConfirmPopup(
+            title="Kassenbuch",
+            message=(
+                f"Zeile vom {self.format_date(self.date_value)} "
+                "wirklich löschen?"
+            ),
+            on_confirm=self._delete_entry_confirmed,
+        ).open()
+
+    def _delete_entry_confirmed(self):
+
+        self.db.delete_cash_book_entry(self.selected_entry_id)
+
+        self.selected_entry_id = None
+        self.new_entry()
+        self.refresh()

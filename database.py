@@ -304,6 +304,8 @@ class DatabaseManager:
 
         self._create_cash_book_table()
 
+        self._create_checklist_tables()
+
         self.commit()
 
         self.logger.info("Alle Tabellen erfolgreich erstellt.")
@@ -1398,6 +1400,62 @@ class DatabaseManager:
             created_at TEXT,
 
             updated_at TEXT
+
+        )
+
+        """)
+
+    def _create_checklist_tables(self):
+        """Checklisten und ihre Punkte.
+
+        Eine Checkliste je Anlass ("Stadtfest", "Vereinsheim
+        herrichten"), darin beliebig viele Punkte mit Haken, Frist,
+        Verantwortlichem, Ansprechpartner und freien Notizen.
+        """
+
+        self.cursor.execute("""
+
+        CREATE TABLE IF NOT EXISTS checklists(
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            name TEXT NOT NULL,
+
+            created_at TEXT,
+
+            updated_at TEXT
+
+        )
+
+        """)
+
+        self.cursor.execute("""
+
+        CREATE TABLE IF NOT EXISTS checklist_items(
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            checklist_id INTEGER NOT NULL,
+
+            position INTEGER NOT NULL DEFAULT 0,
+
+            task TEXT NOT NULL DEFAULT '',
+
+            done INTEGER NOT NULL DEFAULT 0,
+
+            deadline TEXT,
+
+            responsible TEXT,
+
+            contact TEXT,
+
+            info TEXT,
+
+            created_at TEXT,
+
+            updated_at TEXT,
+
+            FOREIGN KEY(checklist_id) REFERENCES checklists(id)
 
         )
 
@@ -3394,6 +3452,203 @@ class DatabaseManager:
                 eintraege[-1]["closing_balance"] if eintraege else 0
             ),
         }
+
+    #################################################################
+    # Checklisten
+    #################################################################
+
+    def get_checklists(self):
+        """Alle Checklisten, neueste zuerst."""
+
+        self.cursor.execute(
+            "SELECT * FROM checklists ORDER BY created_at DESC, id DESC"
+        )
+
+        return self.cursor.fetchall()
+
+    def get_checklist(self, checklist_id):
+
+        self.cursor.execute(
+            "SELECT * FROM checklists WHERE id = ?", (checklist_id,)
+        )
+
+        return self.cursor.fetchone()
+
+    def add_checklist(self, name):
+        """Legt eine Checkliste an und liefert deren id."""
+
+        name = (name or "").strip()
+
+        if not name:
+            return None
+
+        now = self.timestamp()
+
+        self.cursor.execute(
+            "INSERT INTO checklists(name, created_at, updated_at) "
+            "VALUES (?, ?, ?)",
+            (name, now, now)
+        )
+
+        self.commit()
+
+        return self.cursor.lastrowid
+
+    def rename_checklist(self, checklist_id, name):
+
+        name = (name or "").strip()
+
+        if not name:
+            return False
+
+        self.cursor.execute(
+            "UPDATE checklists SET name = ?, updated_at = ? WHERE id = ?",
+            (name, self.timestamp(), checklist_id)
+        )
+
+        self.commit()
+
+        return self.cursor.rowcount == 1
+
+    def delete_checklist(self, checklist_id):
+        """Löscht eine Checkliste samt ihrer Punkte."""
+
+        self.cursor.execute(
+            "DELETE FROM checklist_items WHERE checklist_id = ?",
+            (checklist_id,)
+        )
+
+        self.cursor.execute(
+            "DELETE FROM checklists WHERE id = ?", (checklist_id,)
+        )
+
+        self.commit()
+
+        return self.cursor.rowcount == 1
+
+    # -----------------------------------------------------
+    # Punkte einer Checkliste
+    # -----------------------------------------------------
+
+    def get_checklist_items(self, checklist_id):
+        """Punkte in der Reihenfolge, in der sie angelegt wurden."""
+
+        self.cursor.execute(
+            "SELECT * FROM checklist_items WHERE checklist_id = ? "
+            "ORDER BY position, id",
+            (checklist_id,)
+        )
+
+        return self.cursor.fetchall()
+
+    def add_checklist_item(
+            self,
+            checklist_id,
+            task,
+            deadline=None,
+            responsible="",
+            contact="",
+            info="",
+    ):
+        """Hängt einen Punkt an die Checkliste an."""
+
+        task = (task or "").strip()
+
+        if not task:
+            return None
+
+        self.cursor.execute(
+            "SELECT COALESCE(MAX(position), 0) + 1 AS naechste "
+            "FROM checklist_items WHERE checklist_id = ?",
+            (checklist_id,)
+        )
+
+        position = self.cursor.fetchone()["naechste"]
+
+        now = self.timestamp()
+
+        self.cursor.execute("""
+            INSERT INTO checklist_items(
+                checklist_id, position, task, done, deadline,
+                responsible, contact, info, created_at, updated_at
+            )
+            VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?)
+        """, (
+            checklist_id, position, task, deadline,
+            responsible or "", contact or "", info or "", now, now,
+        ))
+
+        self.commit()
+
+        return self.cursor.lastrowid
+
+    def update_checklist_item(
+            self,
+            item_id,
+            task=None,
+            deadline=None,
+            responsible=None,
+            contact=None,
+            info=None,
+            done=None,
+    ):
+        """Ändert einzelne Felder eines Punktes.
+
+        Nur was übergeben wird, wird geschrieben - so lässt sich der
+        Haken setzen, ohne die Texte anzufassen, und umgekehrt.
+        """
+
+        felder = {
+            "task": task,
+            "deadline": deadline,
+            "responsible": responsible,
+            "contact": contact,
+            "info": info,
+            "done": None if done is None else int(bool(done)),
+        }
+
+        zu_setzen = {
+            name: wert for name, wert in felder.items() if wert is not None
+        }
+
+        if not zu_setzen:
+            return False
+
+        zuweisungen = ", ".join(f"{name} = ?" for name in zu_setzen)
+
+        self.cursor.execute(
+            f"UPDATE checklist_items SET {zuweisungen}, updated_at = ? "
+            "WHERE id = ?",
+            (*zu_setzen.values(), self.timestamp(), item_id)
+        )
+
+        self.commit()
+
+        return self.cursor.rowcount == 1
+
+    def delete_checklist_item(self, item_id):
+
+        self.cursor.execute(
+            "DELETE FROM checklist_items WHERE id = ?", (item_id,)
+        )
+
+        self.commit()
+
+        return self.cursor.rowcount == 1
+
+    def get_checklist_progress(self, checklist_id):
+        """(erledigt, gesamt) einer Checkliste."""
+
+        self.cursor.execute("""
+            SELECT COUNT(*) AS gesamt,
+                   COALESCE(SUM(done), 0) AS erledigt
+            FROM checklist_items
+            WHERE checklist_id = ?
+        """, (checklist_id,))
+
+        zeile = self.cursor.fetchone()
+
+        return zeile["erledigt"], zeile["gesamt"]
 
     #################################################################
     # Nächste Bonnummer

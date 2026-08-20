@@ -716,11 +716,79 @@ TOPICS = [
             {
                 "heading": "Zeile ändern oder löschen",
                 "text": (
-                    "Ein Tipp auf eine Zeile lädt sie ins Eingabefeld, "
-                    "ein zweiter hebt die Auswahl wieder auf. Nach dem "
-                    "Ändern speicherst du erneut; \"Löschen\" entfernt "
-                    "die Zeile nach einer Rückfrage. Über \"Neu\" "
-                    "beginnst du eine leere Zeile."
+                    "Ein Tipp auf eine Zeile lädt sie ins Eingabefeld. "
+                    "Nach dem Ändern speicherst du erneut; \"Löschen\" "
+                    "entfernt die Zeile nach einer Rückfrage.\n\n"
+                    "Ein zweiter Tipp auf dieselbe Zeile hebt die "
+                    "Auswahl wieder auf - dann steht rechts eine leere "
+                    "Zeile für den nächsten Tag bereit."
+                ),
+            },
+        ],
+    },
+
+    # =====================================================
+    # Checkliste
+    # =====================================================
+
+    {
+        "id": "checklist",
+        "title": "Checkliste",
+        "steps": [
+            {
+                "heading": "Wozu Checklisten",
+                "text": (
+                    "Vor einem Fest ist an vieles zu denken: "
+                    "Genehmigung, Kühlwagen, Wechselgeld, Helferplan. "
+                    "Hier legst du für jeden Anlass eine eigene Liste "
+                    "an und hakst ab, was erledigt ist.\n\n"
+                    "Links stehen die Listen, rechts die Aufgaben der "
+                    "gewählten Liste."
+                ),
+                "image": "checkliste/01_uebersicht.png",
+            },
+            {
+                "heading": "Listen anlegen und löschen",
+                "text": (
+                    "\"Neue Liste\" fragt nach einem Namen - zum "
+                    "Beispiel \"Stadtfest 2026\". Ein Tipp auf einen "
+                    "Namen zeigt dessen Aufgaben; hinter dem Namen steht, "
+                    "wie viele davon schon erledigt sind.\n\n"
+                    "\"Löschen\" entfernt die gewählte Liste samt ihrer "
+                    "Aufgaben - nach einer Rückfrage, die die Anzahl "
+                    "nennt."
+                ),
+            },
+            {
+                "heading": "Aufgaben eintragen",
+                "text": (
+                    "Unten schreibst du die Aufgabe ins Feld und tippst "
+                    "auf \"Hinzufügen\" - oder drückst die Eingabetaste. "
+                    "Die neue Aufgabe hängt sich unten an."
+                ),
+            },
+            {
+                "heading": "Eine Aufgabenzeile",
+                "text": (
+                    "Ganz links das Kästchen: Ein Tipp hakt die Aufgabe "
+                    "ab, ein weiterer nimmt den Haken zurück. Erledigte "
+                    "Aufgaben bleiben stehen, treten aber zurück.\n\n"
+                    "Daneben die Aufgabe selbst, dahinter die "
+                    "Zusatzangaben: Frist über den Kalender, "
+                    "Verantwortlich, Ansprechpartner und ein freies Feld "
+                    "für Infos. Geändert wird direkt in der Zeile; "
+                    "gespeichert wird, sobald du ein Feld verlässt."
+                ),
+            },
+            {
+                "heading": "Checkliste exportieren",
+                "text": (
+                    "\"Excel exportieren\" schreibt die gewählte Liste "
+                    "in den Ordner exports/excel, eingerichtet zum "
+                    "Ausdrucken. So kann die Liste am Stand hängen, ohne "
+                    "dass jemand das Tablet mit sich herumträgt - "
+                    "erledigte Punkte sind dort mit einem x "
+                    "gekennzeichnet."
                 ),
             },
         ],

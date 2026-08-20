@@ -163,7 +163,7 @@ class ArticleListRow(BoxLayout):
         self.add_widget(edit_button)
 
         delete_button = Button(
-            text="✕", size_hint_x=None, width=dp(46),
+            text="x", size_hint_x=None, width=dp(46),
             background_normal="", background_down="",
             background_color=theme.ERROR, color=theme.TEXT_WHITE,
             font_size="16sp", bold=True,
@@ -223,7 +223,7 @@ class ArticleListRow(BoxLayout):
         obere_zeile.add_widget(name_column)
 
         delete_button = Button(
-            text="✕", size_hint_x=None, width=dp(46),
+            text="x", size_hint_x=None, width=dp(46),
             background_normal="", background_down="",
             background_color=theme.ERROR, color=theme.TEXT_WHITE,
             font_size="16sp", bold=True,

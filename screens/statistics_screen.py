@@ -489,7 +489,7 @@ class StatisticsScreen(Screen):
         box.add_widget(button)
 
         clear_button = Button(
-            text="✕", size_hint_x=None, width=dp(36),
+            text="x", size_hint_x=None, width=dp(36),
             background_normal="", background_down="",
             background_color=theme.SURFACE, color=theme.TEXT_SECONDARY,
             font_size="14sp", bold=True,

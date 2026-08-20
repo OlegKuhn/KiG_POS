@@ -185,6 +185,8 @@ ICON_EVENTS = ICON_DIR / "events.png"
 
 ICON_CASHBOOK = ICON_DIR / "cashbook.png"
 
+ICON_CHECKLIST = ICON_DIR / "checklist.png"
+
 ICON_ARTICLES = ICON_DIR / "articles.png"
 
 ICON_USE = ICON_DIR / "use.png"
@@ -255,6 +257,7 @@ SCREEN_HOME = "home"
 SCREEN_CASH = "cash"
 SCREEN_EVENTS = "events"
 SCREEN_CASHBOOK = "cashbook"
+SCREEN_CHECKLIST = "checklist"
 SCREEN_PRODUCTS = "products"
 SCREEN_STATISTICS = "statistics"
 SCREEN_USE = "use"

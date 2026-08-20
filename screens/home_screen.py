@@ -183,6 +183,24 @@ class HomeScreen(Screen):
         )
 
         #
+        # Checkliste
+        #
+
+        self.tile_checklist = HomeTile()
+
+        self.tile_checklist.set_icon(
+            str(config.ICON_CHECKLIST)
+        )
+
+        self.tile_checklist.set_title(
+            "CHECKLISTE"
+        )
+
+        self.tile_checklist.set_subtitle(
+            "Aufgaben abhaken"
+        )
+
+        #
         # Artikelverwaltung (Artikel, Einkauf, Inventar, Rezepte)
         #
 
@@ -257,6 +275,10 @@ class HomeScreen(Screen):
         )
 
         self.grid.add_widget(
+            self.tile_checklist
+        )
+
+        self.grid.add_widget(
             self.tile_articles
         )
 
@@ -300,6 +322,10 @@ class HomeScreen(Screen):
 
         self.tile_cashbook.set_callback(
             self.open_cashbook
+        )
+
+        self.tile_checklist.set_callback(
+            self.open_checklist
         )
 
         self.tile_articles.set_callback(
@@ -370,6 +396,12 @@ class HomeScreen(Screen):
     def open_cashbook(self):
 
         self.manager.current = config.SCREEN_CASHBOOK
+
+    # -----------------------------------------------------
+
+    def open_checklist(self):
+
+        self.manager.current = config.SCREEN_CHECKLIST
 
     # -----------------------------------------------------
 

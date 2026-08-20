@@ -264,7 +264,10 @@ class CashBookScreen(Screen):
 
         if self.year_scroll.size_hint_y is None:
 
-            sichtbar = min(3, max(1, len(self.year_buttons)))
+            # Mindestens zwei Jahre auf einen Blick - eines allein
+            # sieht nach einer Schaltflaeche aus, nicht nach einer
+            # Liste, in der man blaettern kann.
+            sichtbar = min(3, max(2, len(self.year_buttons)))
 
             self.year_scroll.height = sichtbar * (
                 dp(self.YEAR_BUTTON_HEIGHT) + dp(theme.SPACE_XS)
@@ -496,7 +499,6 @@ class CashBookScreen(Screen):
         buttons = BoxLayout(
             size_hint_y=None, height=dp(52), spacing=dp(theme.ROW_SPACING)
         )
-        buttons.add_widget(self._action_button("Neu", self.new_entry))
         buttons.add_widget(self._action_button("Löschen", self.delete_entry))
         buttons.add_widget(self._action_button(
             "Speichern", self.save_entry,

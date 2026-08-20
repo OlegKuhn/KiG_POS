@@ -5,6 +5,7 @@ from kivy.metrics import dp
 import theme
 
 from widgets.common.kig_action_tile import KiGActionTile
+from widgets.common.kig_symbol import KiGSymbol
 
 
 class NumpadButton(KiGActionTile):
@@ -16,11 +17,15 @@ class NumpadButton(KiGActionTile):
             self,
             text,
             callback=None,
+            symbol=None,
             **kwargs
     ):
+        """symbol zeichnet statt einer Beschriftung ein Zeichen -
+        gebraucht fuer die Ruecktaste, deren Pfeil in Kivys Schrift
+        fehlt (siehe widgets/common/kig_symbol.py)."""
 
         super().__init__(
-            text=text,
+            text="" if symbol else text,
             callback=callback,
             **kwargs
         )
@@ -33,6 +38,12 @@ class NumpadButton(KiGActionTile):
         )
 
         self.background_color = theme.PRIMARY_ORANGE
+
+        if symbol:
+            self.layout.remove_widget(self.lbl_title)
+            self.layout.add_widget(KiGSymbol(
+                symbol=symbol, color=theme.TEXT_WHITE, line_width=3.0,
+            ))
 
     # =====================================================
     # Animation

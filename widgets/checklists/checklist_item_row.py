@@ -31,6 +31,7 @@ from kivy.uix.button import Button
 
 import theme
 
+from widgets.common.kig_symbol import KiGSymbolButton, HAKEN
 from widgets.common.rounded_input import RoundedInput
 
 
@@ -43,10 +44,9 @@ class ChecklistItemRow(BoxLayout):
     HAKEN_WIDTH = 52
     REMOVE_WIDTH = 110
 
-    # Kivys Roboto kennt weder Haken noch Kreuz - beide kaemen als
-    # leeres Kaestchen heraus. Deshalb ein schlichtes X, das jede
-    # Schrift hat.
-    DONE_MARK = "X"
+    # Der Haken wird gezeichnet (siehe widgets/common/kig_symbol.py):
+    # Kivys Schrift kennt kein Häkchen und setzte an seine Stelle ein
+    # leeres Kästchen.
 
     def __init__(
             self,
@@ -74,11 +74,10 @@ class ChecklistItemRow(BoxLayout):
         self.done = bool(item["done"])
 
         # ---- Haken ----
-        self.check_button = Button(
-            text=self.DONE_MARK if self.done else "",
+        self.check_button = KiGSymbolButton(
+            symbol=HAKEN if self.done else None,
             size_hint_x=None, width=dp(self.HAKEN_WIDTH),
-            background_normal="", background_down="",
-            font_size="22sp", bold=True,
+            line_width=2.6,
         )
         self.check_button.bind(on_release=lambda *_a: self.toggle())
         self._style_check()
@@ -145,8 +144,8 @@ class ChecklistItemRow(BoxLayout):
             size_hint_x=breite,
         )
 
-        feld_widget.foreground_color = theme.TEXT_PRIMARY
-        feld_widget.hint_text_color = theme.TEXT_SECONDARY
+        feld_widget.foreground_color = theme.INPUT_TEXT
+        feld_widget.hint_text_color = theme.INPUT_HINT
 
         # Beim Verlassen speichern statt bei jedem Tastendruck.
         feld_widget.bind(
@@ -163,7 +162,7 @@ class ChecklistItemRow(BoxLayout):
         self.check_button.background_color = (
             theme.PRIMARY_ORANGE if self.done else theme.SURFACE
         )
-        self.check_button.color = (
+        self.check_button.set_symbol_color(
             theme.TEXT_WHITE if self.done else theme.TEXT_PRIMARY
         )
 
@@ -171,7 +170,7 @@ class ChecklistItemRow(BoxLayout):
 
         self.done = not self.done
 
-        self.check_button.text = self.DONE_MARK if self.done else ""
+        self.check_button.set_symbol(HAKEN if self.done else None)
         self._style_check()
 
         # Erledigtes tritt zurück, ohne zu verschwinden - so bleibt

@@ -62,6 +62,12 @@ _LIGHT_COLORS = {
     "TEXT_LIGHT": (0.70, 0.70, 0.70, 1.0),
     "TEXT_WHITE": (1.0, 1.0, 1.0, 1.0),
 
+    # Eingabefelder: Was hineingeschrieben wurde, ist fast schwarz -
+    # der Platzhalter deutlich blasser, aber kraeftig genug, um ihn im
+    # Halbdunkel und auf dem E-Ink-Tablet lesen zu koennen.
+    "INPUT_TEXT": (0.08, 0.08, 0.08, 1.0),
+    "INPUT_HINT": (0.34, 0.34, 0.34, 1.0),
+
     # KiG Vereinsfarben (RAL 2004 Reinorange) - in beiden Modi
     # identisch, da Teil der Markenidentität.
     "PRIMARY_ORANGE": (244 / 255, 70 / 255, 17 / 255, 1),
@@ -118,6 +124,10 @@ _DARK_COLORS = {
     "TEXT_SECONDARY": (0.66, 0.66, 0.69, 1.0),
     "TEXT_LIGHT": (0.50, 0.50, 0.53, 1.0),
     "TEXT_WHITE": (1.0, 1.0, 1.0, 1.0),
+
+    # Eingabefelder (siehe hellen Modus)
+    "INPUT_TEXT": (0.97, 0.97, 0.98, 1.0),
+    "INPUT_HINT": (0.72, 0.72, 0.75, 1.0),
 
     # KiG Vereinsfarben - identisch zu hell (Markenidentität).
     "PRIMARY_ORANGE": (244 / 255, 70 / 255, 17 / 255, 1),
@@ -280,6 +290,13 @@ BUTTON_RADIUS = 14
 PROGRESS_RADIUS = 10
 
 INPUT_RADIUS = 10
+
+# Schriftgröße in Eingabefeldern.
+#
+# Kivys Voreinstellung (15 sp) ist an einer Bar nicht zu gebrauchen:
+# Wer im Halbdunkel einen Artikelnamen eintippt, muss lesen können,
+# was dasteht - erst recht auf dem E-Ink-Tablet.
+INPUT_FONT_SIZE = 19
 
 DIALOG_RADIUS = 18
 

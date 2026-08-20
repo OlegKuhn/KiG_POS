@@ -14,6 +14,8 @@ from kivy.uix.button import Button
 
 import theme
 
+from widgets.common.kig_symbol import KiGSymbolButton, PFEIL_LINKS
+
 from widgets.kig_label import KiGLabel
 from widgets.products.dashboard_stammdaten_card import StammdatenCard
 from widgets.products.dashboard_bestand_card import BestandCard
@@ -48,9 +50,11 @@ class ArticleDashboardPanel(BoxLayout):
 
         header = BoxLayout(size_hint_y=None, height=dp(48), spacing=dp(theme.CARD_SPACING))
 
-        back_button = Button(
-            text="← Zurück", size_hint_x=None, width=dp(120),
-            background_normal="", background_down="",
+        # Der Pfeil wird gezeichnet: Kivys Schrift kennt "←" nicht
+        # und setzte an seine Stelle ein leeres Kaestchen.
+        back_button = KiGSymbolButton(
+            symbol=PFEIL_LINKS,
+            text="Zurück", size_hint_x=None, width=dp(130),
             background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
             font_size="15sp", bold=True,
         )

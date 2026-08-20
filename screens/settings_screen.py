@@ -99,11 +99,14 @@ class SettingsScreen(Screen):
 
         mode_row = self._option_row()
 
+        # Sonne und Mond standen hier als Zeichen - Kivys Schrift
+        # kennt beide nicht und setzte ein leeres Kaestchen davor.
+        # Die Woerter sagen ohnehin alles.
         self.light_button = SettingsOptionButton(
-            "☀  Hell", "light", self.select_mode
+            "Hell", "light", self.select_mode
         )
         self.dark_button = SettingsOptionButton(
-            "🌙  Dunkel", "dark", self.select_mode
+            "Dunkel", "dark", self.select_mode
         )
 
         if theme.get_mode() == "dark":

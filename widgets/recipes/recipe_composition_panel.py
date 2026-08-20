@@ -189,8 +189,8 @@ class RecipeCompositionPanel(RoundedPanel):
         self.free_text_name_input = RoundedInput(
             hint_text="Name (z. B. Minze)", multiline=False,
         )
-        self.free_text_name_input.foreground_color = theme.TEXT_PRIMARY
-        self.free_text_name_input.hint_text_color = theme.TEXT_SECONDARY
+        self.free_text_name_input.foreground_color = theme.INPUT_TEXT
+        self.free_text_name_input.hint_text_color = theme.INPUT_HINT
         self.free_text_row.add_widget(self.free_text_name_input)
 
         self.free_text_amount_button = Button(
@@ -209,8 +209,8 @@ class RecipeCompositionPanel(RoundedPanel):
             hint_text="Einheit (z. B. TL)", multiline=False,
             size_hint_x=None, width=dp(120),
         )
-        self.free_text_unit_input.foreground_color = theme.TEXT_PRIMARY
-        self.free_text_unit_input.hint_text_color = theme.TEXT_SECONDARY
+        self.free_text_unit_input.foreground_color = theme.INPUT_TEXT
+        self.free_text_unit_input.hint_text_color = theme.INPUT_HINT
         self.free_text_row.add_widget(self.free_text_unit_input)
 
         self.free_text_add_button = Button(

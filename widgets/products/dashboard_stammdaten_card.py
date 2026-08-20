@@ -227,8 +227,8 @@ class StammdatenCard(RoundedPanel):
             hint_text=hint_text, multiline=False,
             kig_keyboard_mode=keyboard or "text",
         )
-        field.foreground_color = theme.TEXT_PRIMARY
-        field.hint_text_color = theme.TEXT_SECONDARY
+        field.foreground_color = theme.INPUT_TEXT
+        field.hint_text_color = theme.INPUT_HINT
 
         if keyboard == "numpad":
             field.numpad_callback = on_keyboard

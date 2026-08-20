@@ -273,8 +273,8 @@ class ChecklistScreen(Screen):
         self.new_task_input = RoundedInput(
             hint_text="Neue Aufgabe eintragen", multiline=False,
         )
-        self.new_task_input.foreground_color = theme.TEXT_PRIMARY
-        self.new_task_input.hint_text_color = theme.TEXT_SECONDARY
+        self.new_task_input.foreground_color = theme.INPUT_TEXT
+        self.new_task_input.hint_text_color = theme.INPUT_HINT
         self.new_task_input.bind(on_text_validate=lambda *_a: self.add_item())
 
         neue_zeile.add_widget(self.new_task_input)
@@ -454,8 +454,8 @@ class ChecklistScreen(Screen):
             hint_text="z. B. Stadtfest 2026", multiline=False,
             size_hint_y=None, height=dp(56),
         )
-        feld.foreground_color = theme.TEXT_PRIMARY
-        feld.hint_text_color = theme.TEXT_SECONDARY
+        feld.foreground_color = theme.INPUT_TEXT
+        feld.hint_text_color = theme.INPUT_HINT
 
         inhalt.add_widget(Label(
             text="Name der neuen Checkliste", color=theme.TEXT_PRIMARY,

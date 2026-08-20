@@ -19,6 +19,7 @@ import storage
 import theme
 from database import DatabaseManager
 from widgets.common.kig_popup import KiGPopup
+from widgets.common.kig_symbol import KiGSymbolButton, KREUZ
 from widgets.common.date_picker_popup import DatePickerPopup
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.kig_label import KiGLabel
@@ -488,11 +489,10 @@ class StatisticsScreen(Screen):
         button = self._button(f"{label_prefix}: alle", on_pick)
         box.add_widget(button)
 
-        clear_button = Button(
-            text="x", size_hint_x=None, width=dp(36),
-            background_normal="", background_down="",
-            background_color=theme.SURFACE, color=theme.TEXT_SECONDARY,
-            font_size="14sp", bold=True,
+        clear_button = KiGSymbolButton(
+            symbol=KREUZ, symbol_color=theme.TEXT_SECONDARY,
+            size_hint_x=None, width=dp(36),
+            background_color=theme.SURFACE,
         )
         clear_button.bind(on_release=lambda *_args: on_clear())
         box.add_widget(clear_button)

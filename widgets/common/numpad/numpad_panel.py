@@ -10,6 +10,7 @@ import theme
 
 from widgets.common.kig_action_tile import KiGActionTile
 from widgets.common.numpad.amount_display import AmountDisplay
+from widgets.common.kig_symbol import PFEIL_LINKS
 from widgets.common.numpad.numpad_button import NumpadButton
 from widgets.common.slide_panel import SlidePanel
 
@@ -255,7 +256,8 @@ class NumpadPanel(SlidePanel, BoxLayout):
 
         self.grid.add_widget(
             NumpadButton(
-                "←",
+                "",
+                symbol=PFEIL_LINKS,
                 callback=self._backspace
             )
         )

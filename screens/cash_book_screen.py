@@ -552,8 +552,8 @@ class CashBookScreen(Screen):
         feld = RoundedInput(
             hint_text=hinweis, multiline=False, size_hint_x=0.58,
         )
-        feld.foreground_color = theme.TEXT_PRIMARY
-        feld.hint_text_color = theme.TEXT_SECONDARY
+        feld.foreground_color = theme.INPUT_TEXT
+        feld.hint_text_color = theme.INPUT_HINT
 
         zeile.add_widget(feld)
 

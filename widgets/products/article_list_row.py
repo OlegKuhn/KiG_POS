@@ -9,6 +9,8 @@ from kivy.uix.label import Label
 import config
 import theme
 
+from widgets.common.kig_symbol import KiGSymbolButton, KREUZ
+
 
 class ArticleListRow(BoxLayout):
     """Zeigt Name, Kategorie, Verkaufs-/Einkaufspreis und Bestand eines
@@ -162,11 +164,10 @@ class ArticleListRow(BoxLayout):
         )
         self.add_widget(edit_button)
 
-        delete_button = Button(
-            text="x", size_hint_x=None, width=dp(46),
-            background_normal="", background_down="",
+        delete_button = KiGSymbolButton(
+            symbol=KREUZ, symbol_color=theme.TEXT_WHITE,
+            size_hint_x=None, width=dp(46),
             background_color=theme.ERROR, color=theme.TEXT_WHITE,
-            font_size="16sp", bold=True,
         )
         delete_button.bind(
             on_release=lambda *_args: self.delete_callback(self.article)
@@ -222,11 +223,10 @@ class ArticleListRow(BoxLayout):
 
         obere_zeile.add_widget(name_column)
 
-        delete_button = Button(
-            text="x", size_hint_x=None, width=dp(46),
-            background_normal="", background_down="",
+        delete_button = KiGSymbolButton(
+            symbol=KREUZ, symbol_color=theme.TEXT_WHITE,
+            size_hint_x=None, width=dp(46),
             background_color=theme.ERROR, color=theme.TEXT_WHITE,
-            font_size="16sp", bold=True,
         )
         delete_button.bind(
             on_release=lambda *_args: self.delete_callback(self.article)

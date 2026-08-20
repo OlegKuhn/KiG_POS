@@ -1,4 +1,5 @@
 from kivy.graphics import Color, RoundedRectangle, Line
+from kivy.metrics import dp
 from kivy.uix.textinput import TextInput
 from kivy.properties import BooleanProperty, ObjectProperty
 
@@ -57,15 +58,35 @@ class RoundedInput(TextInput):
         )
 
         # -------------------------------------------------
+        # Schriftgröße
+        # -------------------------------------------------
+        #
+        # Ohne diese Zeile gilt Kivys Voreinstellung von 15 sp - in
+        # einem 52 dp hohen Feld ein schmaler Streifen, den an der Bar
+        # niemand lesen kann. Wer eine eigene Größe braucht, kann sie
+        # weiterhin übergeben.
+        if "font_size" not in kwargs:
+            self.font_size = f"{theme.INPUT_FONT_SIZE}sp"
+
+        # Text mittig statt oben klebend: Kivy setzt einzeilige
+        # Eingaben sonst an den oberen Rand, was in hohen Feldern
+        # unruhig aussieht.
+        self.bind(
+            size=self._update_padding,
+            font_size=self._update_padding,
+            line_height=self._update_padding,
+        )
+
+        # -------------------------------------------------
         # Textfarben
         # -------------------------------------------------
 
         self.foreground_color = (
-            theme.TEXT_PRIMARY
+            theme.INPUT_TEXT
         )
 
         self.hint_text_color = (
-            theme.TEXT_SECONDARY
+            theme.INPUT_HINT
         )
 
         # Wichtig:
@@ -75,7 +96,7 @@ class RoundedInput(TextInput):
 
         
         self.disabled_foreground_color = (
-            theme.TEXT_PRIMARY
+            theme.INPUT_TEXT
         )
 
         # -------------------------------------------------
@@ -102,6 +123,26 @@ class RoundedInput(TextInput):
                 width=theme.BORDER_WIDTH
             )
 
+            # Textfarbe ZULETZT setzen.
+            #
+            # Kivy legt die Farbe des Textes ganz am Anfang von
+            # canvas.before fest und zeichnet den Text danach in
+            # canvas - also im Farbzustand, den die letzte Anweisung
+            # hier hinterlässt. Hintergrund und Rahmen von oben haben
+            # diesen Zustand bisher überschrieben, weshalb alles
+            # Geschriebene in Rahmengrau (0,88) erschien statt in der
+            # eingestellten Farbe: blass und kaum lesbar.
+            self.text_color_instruction = Color(*theme.INPUT_TEXT)
+
+        self.bind(
+            text=self._update_text_color,
+            foreground_color=self._update_text_color,
+            hint_text_color=self._update_text_color,
+            disabled=self._update_text_color,
+        )
+
+        self._update_text_color()
+
         # -------------------------------------------------
         # Bindings
         # -------------------------------------------------
@@ -115,6 +156,40 @@ class RoundedInput(TextInput):
     # =====================================================
     # Darstellung
     # =====================================================
+
+    def _update_text_color(self, *_args):
+        """Hält die zuletzt gesetzte Farbe passend zum Zustand -
+        genauso, wie Kivy es in seiner eigenen Vorlage tut
+        (kivy/data/style.kv, Abschnitt TextInput)."""
+
+        if self.disabled:
+            farbe = self.disabled_foreground_color
+        elif not self.text:
+            farbe = self.hint_text_color
+        else:
+            farbe = self.foreground_color
+
+        self.text_color_instruction.rgba = farbe
+
+    def _update_padding(self, *_args):
+        """Hält einzeiligen Text senkrecht in der Mitte.
+
+        line_height steht erst fest, wenn die Schrift geladen ist -
+        vorher meldet Kivy 1. Wer damit rechnet, drückt den Text auf
+        einen Pixel zusammen: Er sieht dann blass und angeschnitten
+        aus, weil nur ein Streifen davon übrig bleibt. Solange der
+        Wert unbrauchbar ist, wird deshalb aus der Schriftgröße
+        geschätzt.
+        """
+
+        if self.multiline:
+            return
+
+        zeile = self.line_height if self.line_height > 1 else self.font_size * 1.3
+
+        rand = max(dp(4), (self.height - zeile) / 2)
+
+        self.padding = [dp(12), rand, dp(12), rand]
 
     def _update_canvas(
             self,

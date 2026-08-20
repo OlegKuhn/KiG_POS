@@ -3150,6 +3150,90 @@ class DatabaseManager:
 
         return abweichung <= DatabaseManager.CASH_BOOK_TOLERANCE
 
+    def check_cash_book_entries(self, entries, previous_closing=None):
+        """Prüft eine Folge von Kassenbuchzeilen und liefert je Zeile
+        die Befunde (leere Liste = alles in Ordnung).
+
+        Geprüft wird zweierlei:
+
+            1. Innerhalb einer Zeile: Startbestand + Einnahmen -
+               Ausgaben muss den Endbestand ergeben.
+
+            2. Von Zeile zu Zeile: Der Startbestand einer Zeile muss
+               dem Endbestand der Zeile davor entsprechen. Was am Abend
+               in der Kasse lag, liegt am nächsten Morgen noch darin -
+               ist das nicht so, fehlt eine Buchung.
+
+        Bei einer Lücke in der Kette bekommen BEIDE beteiligten Zeilen
+        einen Befund: Von außen ist nicht zu entscheiden, welche der
+        beiden falsch ist.
+
+        previous_closing ist der Endbestand des letzten Eintrags VOR
+        dieser Folge - damit lässt sich auch der Übertrag in einen
+        neuen Monat prüfen.
+        """
+
+        befunde = {eintrag["id"]: [] for eintrag in entries}
+
+        for stelle, eintrag in enumerate(entries):
+
+            if not self.cash_book_entry_is_valid(eintrag):
+                befunde[eintrag["id"]].append(
+                    "Startbestand + Einnahmen - Ausgaben ergibt nicht "
+                    "den Endbestand"
+                )
+
+            if stelle == 0:
+
+                if previous_closing is None:
+                    continue
+
+                if abs(
+                    (eintrag["opening_balance"] or 0) - previous_closing
+                ) > self.CASH_BOOK_TOLERANCE:
+                    befunde[eintrag["id"]].append(
+                        "Startbestand passt nicht zum Endbestand des "
+                        "vorherigen Eintrags"
+                    )
+
+                continue
+
+            davor = entries[stelle - 1]
+
+            if abs(
+                (eintrag["opening_balance"] or 0)
+                - (davor["closing_balance"] or 0)
+            ) > self.CASH_BOOK_TOLERANCE:
+
+                befunde[eintrag["id"]].append(
+                    "Startbestand passt nicht zum Endbestand der Zeile "
+                    "davor"
+                )
+
+                befunde[davor["id"]].append(
+                    "Endbestand passt nicht zum Startbestand der Zeile "
+                    "danach"
+                )
+
+        return befunde
+
+    def get_cash_book_entries_checked(self, year=None, month=None):
+        """Kassenbuchzeilen eines Monats samt Befunden.
+
+        Liefert (Zeilen, Befunde je id). Die erste Zeile wird gegen den
+        letzten Eintrag davor geprüft - auch wenn der in einem anderen
+        Monat steht.
+        """
+
+        eintraege = self.get_cash_book_entries(year, month)
+
+        vorheriger = (
+            self.get_previous_closing_balance(eintraege[0]["entry_date"])
+            if eintraege else None
+        )
+
+        return eintraege, self.check_cash_book_entries(eintraege, vorheriger)
+
     def get_cash_book_entries(self, year=None, month=None):
         """Kassenbuchzeilen, nach Datum aufsteigend.
 
@@ -3299,16 +3383,13 @@ class DatabaseManager:
         """Summen eines Monats: Einnahmen, Ausgaben, Anzahl Zeilen und
         wie viele davon nicht aufgehen."""
 
-        eintraege = self.get_cash_book_entries(year, month)
+        eintraege, befunde = self.get_cash_book_entries_checked(year, month)
 
         return {
             "income": sum(e["income"] or 0 for e in eintraege),
             "expenses": sum(e["expenses"] or 0 for e in eintraege),
             "entries": len(eintraege),
-            "invalid": sum(
-                0 if self.cash_book_entry_is_valid(e) else 1
-                for e in eintraege
-            ),
+            "invalid": sum(1 for meldungen in befunde.values() if meldungen),
             "closing_balance": (
                 eintraege[-1]["closing_balance"] if eintraege else 0
             ),

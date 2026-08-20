@@ -45,6 +45,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.screenmanager import Screen
 
 import config
+import storage
 import theme
 
 from database import DatabaseManager
@@ -80,7 +81,7 @@ class CashBookRow(ButtonBehavior, BoxLayout):
 
     HEIGHT = 44
 
-    def __init__(self, entry, valid, selected_callback, **kwargs):
+    def __init__(self, entry, problems, selected_callback, **kwargs):
 
         super().__init__(
             orientation="horizontal", size_hint_y=None,
@@ -88,7 +89,8 @@ class CashBookRow(ButtonBehavior, BoxLayout):
         )
 
         self.entry = entry
-        self.valid = valid
+        self.problems = problems or []
+        self.valid = not self.problems
         self.selected_callback = selected_callback
         self.selected = False
 
@@ -100,9 +102,9 @@ class CashBookRow(ButtonBehavior, BoxLayout):
 
         self.bind(pos=self._refresh_canvas, size=self._refresh_canvas)
 
-        # Geht die Rechnung nicht auf, ersetzt "Prüfen" den Kommentar -
-        # ein Hinweis, der untergeht, ist keiner.
-        kommentar = "Prüfen" if not valid else (entry["comment"] or "")
+        # Gibt es einen Befund, ersetzt "Prüfen" den Kommentar - ein
+        # Hinweis, der untergeht, ist keiner.
+        kommentar = "Prüfen" if self.problems else (entry["comment"] or "")
 
         werte = (
             CashBookScreen.format_date(entry["entry_date"]),
@@ -118,13 +120,13 @@ class CashBookRow(ButtonBehavior, BoxLayout):
 
             farbe = (
                 theme.ERROR
-                if (not valid and spalte == 5)
+                if (self.problems and spalte == 5)
                 else theme.TEXT_PRIMARY
             )
 
             label = Label(
                 text=str(wert), color=farbe, font_size="13sp",
-                bold=(not valid and spalte == 5),
+                bold=bool(self.problems and spalte == 5),
                 halign="left", valign="middle",
                 text_size=(None, dp(self.HEIGHT)), size_hint_x=breite,
                 shorten=True, shorten_from="right",
@@ -355,6 +357,30 @@ class CashBookScreen(Screen):
 
         self.table_title = self._title("Kassenbuch")
         panel.add_widget(self.table_title)
+
+        # Ausgabe zum Abheften: Der Kassenprüfer bekommt den Monat auf
+        # Papier, nicht das Tablet in die Hand.
+        aktionen = BoxLayout(
+            size_hint_y=None, height=dp(40), spacing=dp(theme.ROW_SPACING)
+        )
+
+        self.export_status = Label(
+            text="", color=theme.TEXT_SECONDARY, font_size="13sp",
+            halign="left", valign="middle",
+        )
+        self.export_status.bind(
+            size=lambda instance, value: setattr(instance, "text_size", value)
+        )
+        aktionen.add_widget(self.export_status)
+
+        export_knopf = self._action_button(
+            "Excel exportieren", self.export_excel
+        )
+        export_knopf.size_hint_x = None
+        export_knopf.width = dp(190)
+        aktionen.add_widget(export_knopf)
+
+        panel.add_widget(aktionen)
 
         header = BoxLayout(size_hint_y=None, height=dp(32), spacing=0)
 
@@ -593,7 +619,7 @@ class CashBookScreen(Screen):
         self.rows_box.clear_widgets()
         self.selected_row = None
 
-        eintraege = self.db.get_cash_book_entries(
+        eintraege, befunde = self.db.get_cash_book_entries_checked(
             self.selected_year, self.selected_month
         )
 
@@ -617,7 +643,7 @@ class CashBookScreen(Screen):
 
                 zeile = CashBookRow(
                     entry=eintrag,
-                    valid=self.db.cash_book_entry_is_valid(eintrag),
+                    problems=befunde.get(eintrag["id"]),
                     selected_callback=self.row_selected,
                 )
 
@@ -822,23 +848,174 @@ class CashBookScreen(Screen):
         }
 
     def _refresh_check(self):
+        """Meldet Abweichungen schon beim Erfassen.
+
+        Geprüft wird beides: die Rechnung innerhalb der Zeile und der
+        Anschluss an den Eintrag davor. Beides erst in der Tabelle
+        auffallen zu lassen, hieße, den Fehler zweimal suchen zu
+        müssen.
+        """
 
         eintrag = self._current_entry()
 
-        erwartet = (
-            eintrag["opening_balance"] + eintrag["income"] - eintrag["expenses"]
-        )
+        meldungen = []
 
-        if self.db.cash_book_entry_is_valid(eintrag):
+        if not self.db.cash_book_entry_is_valid(eintrag):
+
+            erwartet = (
+                eintrag["opening_balance"]
+                + eintrag["income"]
+                - eintrag["expenses"]
+            )
+
+            meldungen.append(
+                f"Endbestand: erwartet {self.money(erwartet)}, "
+                f"eingetragen {self.money(eintrag['closing_balance'])}"
+            )
+
+        vorheriger = self.db.get_previous_closing_balance(self.date_value)
+
+        if vorheriger is not None and abs(
+            eintrag["opening_balance"] - vorheriger
+        ) > self.db.CASH_BOOK_TOLERANCE:
+
+            meldungen.append(
+                f"Startbestand: davor endete die Kasse mit "
+                f"{self.money(vorheriger)}"
+            )
+
+        if not meldungen:
             self.check_label.text = "Rechnung geht auf."
             self.check_label.color = theme.TEXT_SECONDARY
+            self.check_label.height = dp(34)
             return
 
-        self.check_label.text = (
-            f"Prüfen: erwartet {self.money(erwartet)}, "
-            f"eingetragen {self.money(eintrag['closing_balance'])}"
-        )
+        self.check_label.text = "Prüfen - " + "; ".join(meldungen)
         self.check_label.color = theme.ERROR
+
+        # Zwei Befunde brauchen zwei Zeilen.
+        self.check_label.height = dp(34 if len(meldungen) == 1 else 56)
+
+    # =====================================================
+    # Excel-Export
+    # =====================================================
+
+    def export_excel(self):
+        """Schreibt den angezeigten Monat als Excel-Datei.
+
+        Gedacht zum Ausdrucken und Abheften: Die letzte Spalte nennt
+        bei auffälligen Zeilen den Grund im Klartext - auf Papier hilft
+        ein rotes "Prüfen" ohne Erklärung niemandem weiter.
+        """
+
+        from openpyxl import Workbook
+        from openpyxl.styles import Alignment, Font
+
+        eintraege, befunde = self.db.get_cash_book_entries_checked(
+            self.selected_year, self.selected_month
+        )
+
+        if not eintraege:
+            self.export_status.text = "Für diesen Monat gibt es nichts zu exportieren."
+            return
+
+        monat = MONTH_NAMES[self.selected_month - 1]
+
+        workbook = Workbook()
+        blatt = workbook.active
+        blatt.title = f"{monat} {self.selected_year}"
+
+        fett = Font(bold=True)
+
+        blatt.append((f"Kassenbuch {monat} {self.selected_year}",))
+        blatt["A1"].font = Font(bold=True, size=14)
+
+        blatt.append(())
+
+        ueberschriften = (
+            "Datum", "Startbestand", "Einnahmen", "Ausgaben",
+            "Endbestand", "Kommentar", "Prüfer", "Hinweis",
+        )
+
+        blatt.append(ueberschriften)
+
+        for zelle in blatt[3]:
+            zelle.font = fett
+
+        auffaellig = 0
+
+        for eintrag in eintraege:
+
+            meldungen = befunde.get(eintrag["id"]) or []
+
+            if meldungen:
+                auffaellig += 1
+
+            blatt.append((
+                self.format_date(eintrag["entry_date"]),
+                round(eintrag["opening_balance"] or 0, 2),
+                round(eintrag["income"] or 0, 2),
+                round(eintrag["expenses"] or 0, 2),
+                round(eintrag["closing_balance"] or 0, 2),
+                eintrag["comment"] or "",
+                eintrag["auditor"] or "",
+                "Prüfen: " + "; ".join(meldungen) if meldungen else "",
+            ))
+
+        summen = self.db.get_cash_book_totals(
+            self.selected_year, self.selected_month
+        )
+
+        blatt.append(())
+
+        summenzeile = blatt.max_row + 1
+
+        blatt.append((
+            "Summe",
+            "",
+            round(summen["income"], 2),
+            round(summen["expenses"], 2),
+            round(summen["closing_balance"], 2),
+            "",
+            "",
+            (
+                f"{auffaellig} {'Zeile' if auffaellig == 1 else 'Zeilen'} "
+                "zu prüfen" if auffaellig else "alle Zeilen gehen auf"
+            ),
+        ))
+
+        for zelle in blatt[summenzeile]:
+            zelle.font = fett
+
+        # Beträge als Währung, damit die Ausgabe ohne Nacharbeit
+        # ausgedruckt werden kann.
+        for zeile in blatt.iter_rows(min_row=4, min_col=2, max_col=5):
+            for zelle in zeile:
+                zelle.number_format = '#,##0.00 "€"'
+
+        for spalte, breite in zip("ABCDEFGH", (12, 14, 12, 12, 14, 24, 14, 46)):
+            blatt.column_dimensions[spalte].width = breite
+
+        for zeile in blatt.iter_rows(min_row=4, min_col=8, max_col=8):
+            for zelle in zeile:
+                zelle.alignment = Alignment(wrap_text=True, vertical="top")
+
+        # Fürs Drucken: quer, auf eine Seitenbreite, Kopfzeile
+        # wiederholen.
+        blatt.page_setup.orientation = "landscape"
+        blatt.page_setup.fitToWidth = 1
+        blatt.sheet_properties.pageSetUpPr.fitToPage = True
+        blatt.print_title_rows = "3:3"
+
+        dateiname = (
+            f"kassenbuch_{self.selected_year}-{self.selected_month:02d}.xlsx"
+        )
+
+        ziel = storage.export_dir("excel") / dateiname
+
+        workbook.save(ziel)
+
+        self.export_status.text = f"Export erstellt: {ziel.name}"
 
     # =====================================================
     # Speichern und löschen

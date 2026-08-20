@@ -663,12 +663,37 @@ TOPICS = [
             {
                 "heading": "Wenn die Rechnung nicht aufgeht",
                 "text": (
-                    "Startbestand plus Einnahmen minus Ausgaben muss den "
-                    "Endbestand ergeben. Stimmt das nicht, steht in der "
-                    "Spalte \"Kommentar\" ein rotes \"Prüfen\" - dein "
-                    "eigener Kommentar tritt dann zurück, damit der "
-                    "Hinweis nicht untergeht. Stimmt alles, steht dort "
-                    "einfach dein Kommentar oder gar nichts."
+                    "Geprüft wird zweierlei.\n\n"
+                    "Innerhalb einer Zeile: Startbestand plus Einnahmen "
+                    "minus Ausgaben muss den Endbestand ergeben.\n\n"
+                    "Von Zeile zu Zeile: Der Startbestand einer Zeile "
+                    "muss dem Endbestand der Zeile davor entsprechen. "
+                    "Was am Abend in der Kasse lag, liegt am nächsten "
+                    "Morgen noch darin - ist das nicht so, fehlt eine "
+                    "Buchung. Bei einer Lücke bekommen beide beteiligten "
+                    "Zeilen den Hinweis, denn von außen ist nicht zu "
+                    "sagen, welche der beiden falsch ist. Auch der "
+                    "Übertrag in einen neuen Monat wird so geprüft.\n\n"
+                    "Gibt es einen Befund, steht in der Spalte "
+                    "\"Kommentar\" ein rotes \"Prüfen\" - dein eigener "
+                    "Kommentar tritt dann zurück, damit der Hinweis "
+                    "nicht untergeht. Stimmt alles, steht dort einfach "
+                    "dein Kommentar oder gar nichts."
+                ),
+            },
+            {
+                "heading": "Kassenbuch exportieren",
+                "text": (
+                    "\"Excel exportieren\" schreibt den angezeigten "
+                    "Monat als Tabelle in den Ordner exports/excel - "
+                    "eingerichtet zum Ausdrucken: Querformat, auf eine "
+                    "Seitenbreite passend, mit wiederholter Kopfzeile "
+                    "und einer Summenzeile.\n\n"
+                    "Die letzte Spalte \"Hinweis\" nennt bei "
+                    "auffälligen Zeilen den Grund im Klartext. Auf "
+                    "Papier hilft ein rotes \"Prüfen\" ohne Erklärung "
+                    "niemandem weiter - der Kassenprüfer sieht so "
+                    "sofort, woran es liegt."
                 ),
             },
             {

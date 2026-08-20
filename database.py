@@ -617,12 +617,25 @@ class DatabaseManager:
             "stock_unit": "TEXT NOT NULL DEFAULT 'Stück'",
             "bottle_size_ml": "REAL",
             "linked_shot_article_id": "INTEGER",
+
+            # Kosten je Lagereinheit (je ml, je Stück, je g).
+            #
+            # Das ist der Wert, mit dem Rezepte rechnen. Er hängt
+            # bewusst NICHT mehr an "Preis einer Flasche" und einer
+            # einzigen Flaschengröße: Wer heute 0,7 l für 30 EUR und
+            # morgen 1 l für 35 EUR kauft, bekommt sonst je nach
+            # zuletzt eingetragener Größe einen falschen Preis - oder
+            # gar keinen (siehe _kosten_je_einheit_mischen).
+            "cost_per_unit": "REAL",
         }
         for column, definition in article_migrations.items():
             if column not in article_columns:
                 self.cursor.execute(
                     f"ALTER TABLE articles ADD COLUMN {column} {definition}"
                 )
+
+        if "cost_per_unit" not in article_columns:
+            self._migrate_cost_per_unit()
 
         # ---------------------------------------------------------
         # Kategorie "Zutat" ergänzen
@@ -779,6 +792,41 @@ class DatabaseManager:
         """, ("Zutat", "#616161", next_order, now, now))
 
         self.logger.info("Migration: Kategorie 'Zutat' ergänzt.")
+
+    def _migrate_cost_per_unit(self):
+        """Füllt die neue Spalte cost_per_unit aus dem, was bisher da
+        war.
+
+        Bisher galt: Bei Einheit "Flasche" ist purchase_price der Preis
+        EINER Flasche (also durch die Flaschengröße zu teilen), bei
+        allen anderen Einheiten der Preis je Lagereinheit. Genau so
+        wird der Startwert gebildet.
+
+        Bleibt die Spalte leer (Flasche ohne hinterlegte Größe), ist der
+        Preis schlicht unbekannt - das war er vorher auch, nur hat es
+        niemand gesehen: Die Kasse hat für solche Rezepte stillschweigend
+        0,00 gebucht.
+        """
+
+        self.cursor.execute("""
+            UPDATE articles
+            SET cost_per_unit = CASE
+                WHEN stock_unit = ? THEN
+                    CASE WHEN bottle_size_ml > 0
+                         THEN purchase_price / bottle_size_ml
+                         ELSE NULL END
+                ELSE
+                    CASE WHEN purchase_price > 0
+                         THEN purchase_price
+                         ELSE NULL END
+            END
+        """, (config.BOTTLE_UNIT,))
+
+        self.logger.info(
+            "Migration: cost_per_unit aus Einkaufspreis und "
+            "Flaschengröße gefüllt (%s Artikel).",
+            self.cursor.rowcount
+        )
 
     def _migrate_recipe_ingredients_free_text(self):
         """Baut recipe_ingredients auf das freitextfähige Schema um
@@ -953,6 +1001,157 @@ class DatabaseManager:
         self.commit()
 
         return self.cursor.rowcount == 1
+
+    #################################################################
+    # Kosten je Lagereinheit
+    #################################################################
+
+    def get_cost_per_unit(self, article_id):
+        """Kosten einer Lagereinheit (je ml, je Stück, je g).
+
+        Liefert None, wenn sich der Preis nicht bestimmen lässt - dann
+        fehlt bei einer Flasche die Größe oder es wurde nie ein
+        Einkaufspreis erfasst.
+        """
+
+        self.cursor.execute(
+            "SELECT cost_per_unit, purchase_price, stock_unit, bottle_size_ml "
+            "FROM articles WHERE id = ?",
+            (article_id,)
+        )
+
+        row = self.cursor.fetchone()
+
+        if row is None:
+            return None
+
+        if row["cost_per_unit"] is not None:
+            return row["cost_per_unit"]
+
+        # Rückfall für Artikel, die seit der Migration nicht wieder
+        # angefasst wurden.
+        return self._kosten_aus_einkaufspreis(
+            row["purchase_price"], row["stock_unit"], row["bottle_size_ml"]
+        )
+
+    @staticmethod
+    def _kosten_aus_einkaufspreis(purchase_price, stock_unit, bottle_size_ml):
+        """Rechnet den eingetragenen Einkaufspreis in Kosten je
+        Lagereinheit um.
+
+        Bei "Flasche" gilt der Preis für eine ganze Flasche und muss
+        durch deren Inhalt geteilt werden; sonst gilt er direkt je
+        Lagereinheit.
+        """
+
+        if not purchase_price or purchase_price <= 0:
+            return None
+
+        if stock_unit == config.BOTTLE_UNIT:
+
+            if not bottle_size_ml or bottle_size_ml <= 0:
+                return None
+
+            return purchase_price / bottle_size_ml
+
+        return purchase_price
+
+    def set_cost_per_unit(self, article_id, cost_per_unit):
+        """Setzt die Kosten je Lagereinheit direkt."""
+
+        self.cursor.execute(
+            "UPDATE articles SET cost_per_unit = ?, updated_at = ? WHERE id = ?",
+            (cost_per_unit, self.timestamp(), article_id)
+        )
+
+        self.commit()
+
+        return self.cursor.rowcount == 1
+
+    def book_goods_receipt(
+            self,
+            article_id,
+            quantity,
+            cost_per_unit=None,
+            reason="Wareneingang",
+            changed_by="Einkauf",
+    ):
+        """Bucht einen Wareneingang und mischt den Einkaufspreis.
+
+        quantity ist immer in der Lagereinheit (bei Flaschen also in
+        ml, nicht in Flaschen).
+
+        cost_per_unit sind die Kosten je Lagereinheit dieser Lieferung.
+        Ohne Angabe bleibt der bisherige Wert stehen - dann wird
+        angenommen, dass zum selben Preis wie zuletzt eingekauft wurde.
+
+        Der neue Preis ist der gewichtete Durchschnitt aus altem
+        Bestand und Zugang:
+
+            (Restmenge x alter Preis + Zugang x neuer Preis)
+            -------------------------------------------------
+                        Restmenge + Zugang
+
+        So zählt bei gemischten Lieferungen das, was tatsächlich im
+        Regal steht: Wer 0,7 l für 30 EUR und danach 1 l für 35 EUR
+        kauft, rechnet mit 65 EUR auf 1700 ml.
+        """
+
+        alter_bestand = self.get_stock_quantity(article_id)
+        neuer_bestand = alter_bestand + quantity
+
+        alte_kosten = self.get_cost_per_unit(article_id)
+
+        gemischt = self._kosten_je_einheit_mischen(
+            alter_bestand, alte_kosten, quantity, cost_per_unit
+        )
+
+        if gemischt is not None:
+            self.set_cost_per_unit(article_id, gemischt)
+
+        self.update_stock(article_id, neuer_bestand)
+
+        self.add_stock_history(
+            article_id=article_id,
+            old_quantity=alter_bestand,
+            new_quantity=neuer_bestand,
+            reason=reason,
+            changed_by=changed_by,
+            changed_at=self.timestamp(),
+        )
+
+        return gemischt
+
+    @staticmethod
+    def _kosten_je_einheit_mischen(
+            alter_bestand, alte_kosten, menge, neue_kosten
+    ):
+        """Gewichteter Durchschnitt aus Restbestand und Zugang.
+
+        Sonderfälle, die in der Praxis vorkommen:
+
+            kein neuer Preis    -> es bleibt beim alten
+            kein alter Preis    -> der neue gilt für alles
+            Bestand <= 0        -> es gibt nichts zu mischen, der
+                                   neue Preis gilt (ein negativer
+                                   Bestand aus Nachbuchungen darf den
+                                   Durchschnitt nicht verzerren)
+        """
+
+        if neue_kosten is None:
+            return alte_kosten
+
+        if alte_kosten is None or alter_bestand <= 0 or menge <= 0:
+            return neue_kosten
+
+        gesamtmenge = alter_bestand + menge
+
+        if gesamtmenge <= 0:
+            return neue_kosten
+
+        return (
+            (alter_bestand * alte_kosten + menge * neue_kosten) / gesamtmenge
+        )
 
     #################################################################
     # Flaschengröße merken (Wareneingang in "Flasche")
@@ -2060,21 +2259,22 @@ class DatabaseManager:
         den Einkaufspreisen seiner Zutaten, jeweils auf die im Rezept
         verwendete Menge umgerechnet und aufsummiert.
 
-        Beispiel: Shot "Jack Daniels" (20 ml) einer Flasche, die für
-        28 € bei 700 ml Flaschengröße eingekauft wurde -> Kosten je ml
-        = 28 / 700, Kosten des Shots = 20 * (28 / 700).
+        Beispiel: Shot "Jack Daniels" (20 ml) aus einer Flasche, deren
+        Inhalt mit 0,0429 EUR je ml zu Buche steht -> 20 x 0,0429 =
+        0,86 EUR.
 
-        Bei Zutaten mit Einheit "Flasche" gilt der hinterlegte
-        Einkaufspreis als Preis EINER Flasche (bottle_size_ml) - bei
-        allen anderen Einheiten gilt er direkt als Preis je 1 Einheit
-        der Lagereinheit (z. B. je Stück, je ml, je g).
+        Maßgeblich sind die Kosten je Lagereinheit (siehe
+        get_cost_per_unit). Die entstehen beim Wareneingang als
+        gewichteter Durchschnitt und sind deshalb unabhängig davon, in
+        welcher Flaschengröße zuletzt eingekauft wurde.
 
         Gilt generell für beliebig viele Zutaten, nicht nur den
         Sonderfall "Shot" mit einer Zutat.
 
         Liefert None, wenn sich für mindestens eine Zutat kein Preis
-        ermitteln lässt (z. B. Flasche ohne hinterlegte Flaschengröße)
-        - lieber unbestimmt als ein irreführend zu niedriger Preis.
+        ermitteln lässt (z. B. Flasche ohne hinterlegte Flaschengröße
+        und ohne Wareneingang) - lieber unbestimmt als ein irreführend
+        zu niedriger Preis.
         """
 
         ingredients = self.get_recipe_ingredients(recipe_article_id)
@@ -2103,13 +2303,12 @@ class DatabaseManager:
             if qty_in_base is None:
                 return None
 
-            if article["stock_unit"] == config.BOTTLE_UNIT:
-                bottle_size = article["bottle_size_ml"]
-                if not bottle_size:
-                    return None
-                cost_per_base_unit = article["purchase_price"] / bottle_size
-            else:
-                cost_per_base_unit = article["purchase_price"]
+            cost_per_base_unit = self.get_cost_per_unit(
+                ingredient["ingredient_article_id"]
+            )
+
+            if cost_per_base_unit is None:
+                return None
 
             total += qty_in_base * cost_per_base_unit
 
@@ -2357,6 +2556,19 @@ class DatabaseManager:
 
         article_id = self.cursor.lastrowid
 
+        # Kosten je Lagereinheit aus dem eingetragenen Einkaufspreis
+        # ableiten. Beim ersten Wareneingang wird daraus ein
+        # gewichteter Durchschnitt (siehe book_goods_receipt).
+        self.cursor.execute(
+            "UPDATE articles SET cost_per_unit = ? WHERE id = ?",
+            (
+                self._kosten_aus_einkaufspreis(
+                    purchase_price, stock_unit, bottle_size_ml
+                ),
+                article_id,
+            )
+        )
+
         self.cursor.execute(
             """
             INSERT INTO article_stock(article_id,
@@ -2410,6 +2622,27 @@ class DatabaseManager:
                 exclude_id=article_id
         ):
             return False
+
+        # Wurde am Einkaufspreis oder an der Flaschengröße etwas
+        # geändert, gilt das als neue Ansage: Die Kosten je
+        # Lagereinheit werden daraus neu abgeleitet. Bleiben beide
+        # unverändert, bleibt auch der über Wareneingänge gemittelte
+        # Wert stehen - sonst würde jedes Speichern eines Artikels den
+        # Durchschnitt wieder auf "Preis geteilt durch Flaschengröße"
+        # zurückwerfen.
+        self.cursor.execute(
+            "SELECT purchase_price, stock_unit, bottle_size_ml "
+            "FROM articles WHERE id = ?",
+            (article_id,)
+        )
+
+        vorher = self.cursor.fetchone()
+
+        preis_geaendert = vorher is not None and (
+            vorher["purchase_price"] != purchase_price
+            or vorher["bottle_size_ml"] != bottle_size_ml
+            or vorher["stock_unit"] != stock_unit
+        )
 
         now = self.timestamp()
 
@@ -2477,9 +2710,22 @@ class DatabaseManager:
 
                             ))
 
+        geaendert = self.cursor.rowcount == 1
+
+        if geaendert and preis_geaendert:
+            self.cursor.execute(
+                "UPDATE articles SET cost_per_unit = ? WHERE id = ?",
+                (
+                    self._kosten_aus_einkaufspreis(
+                        purchase_price, stock_unit, bottle_size_ml
+                    ),
+                    article_id,
+                )
+            )
+
         self.commit()
 
-        return self.cursor.rowcount == 1
+        return geaendert
 
     #################################################################
     # Artikel deaktivieren
@@ -3138,6 +3384,99 @@ class DatabaseManager:
         sortiert = sorted(totals.items(), key=lambda item: (-item[1], item[0]))
 
         return [(name, betrag, farben.get(name)) for name, betrag in sortiert]
+
+    def count_missing_recipe_costs(self, date_from=None, date_to=None, event_id=None):
+        """Zählt Verkaufspositionen von Mix-/Rezeptartikeln, bei denen
+        kein Einkaufspreis erfasst wurde.
+
+        Das passiert bei Verkäufen aus der Zeit, in der die Kosten der
+        Zutaten nicht bestimmbar waren (z. B. Flasche ohne
+        Flaschengröße): Gebucht wurde dann 0,00 - der Gewinn dieser
+        Positionen ist damit zu hoch ausgewiesen.
+        """
+
+        sale_item_ids = self._sale_items_ohne_einkaufspreis(
+            date_from, date_to, event_id
+        )
+
+        return len(sale_item_ids)
+
+    def repair_recipe_costs(self, date_from=None, date_to=None, event_id=None):
+        """Trägt bei diesen Positionen den heute gültigen Rezeptpreis
+        nach.
+
+        Bewusst eine ausdrückliche Aktion und nichts, was im
+        Hintergrund geschieht: Es werden Zahlen einer abgeschlossenen
+        Abrechnung verändert. Positionen, deren Rezeptpreis auch heute
+        nicht bestimmbar ist, bleiben unangetastet.
+
+        Liefert die Anzahl der geänderten Positionen.
+        """
+
+        geaendert = 0
+
+        for sale_item_id, article_id in self._sale_items_ohne_einkaufspreis(
+            date_from, date_to, event_id
+        ):
+
+            kosten = self.get_recipe_cost(article_id)
+
+            if kosten is None or kosten <= 0:
+                continue
+
+            self.cursor.execute(
+                "UPDATE sale_items SET purchase_price = ? WHERE id = ?",
+                (kosten, sale_item_id)
+            )
+
+            geaendert += 1
+
+        self.commit()
+
+        self.logger.info(
+            "Einkaufspreise nachgetragen: %s Verkaufspositionen.", geaendert
+        )
+
+        return geaendert
+
+    def _sale_items_ohne_einkaufspreis(
+            self, date_from=None, date_to=None, event_id=None
+    ):
+        """Verkaufspositionen von Rezeptartikeln ohne Einkaufspreis -
+        als Liste aus (sale_item_id, article_id)."""
+
+        business_day = self._sales_business_day_sql()
+
+        query = f"""
+            SELECT si.id AS sale_item_id, si.article_id
+            FROM sale_items si
+            JOIN sales s ON s.id = si.sale_id
+            JOIN articles a ON a.id = si.article_id
+            WHERE a.article_type = 'MIX'
+              AND si.purchase_price <= 0
+              AND si.quantity > 0
+        """
+
+        parameters = []
+
+        if date_from:
+            query += f" AND {business_day} >= ?"
+            parameters.append(date_from)
+
+        if date_to:
+            query += f" AND {business_day} <= ?"
+            parameters.append(date_to)
+
+        if event_id is not None:
+            query += " AND s.event_id = ?"
+            parameters.append(event_id)
+
+        self.cursor.execute(query, parameters)
+
+        return [
+            (row["sale_item_id"], row["article_id"])
+            for row in self.cursor.fetchall()
+        ]
 
     def get_period_totals(self, date_from=None, date_to=None, event_id=None):
         """Kennzahlen des gewählten Zeitraums.

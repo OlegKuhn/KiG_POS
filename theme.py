@@ -94,6 +94,11 @@ _LIGHT_COLORS = {
     "STORNO_ROW": (1.00, 0.93, 0.93, 1),
     "CART_SEPARATOR": (0.93, 0.88, 0.84, 1),
 
+    # Artikelkachel ohne Bestand: leicht grau abgesetzt. Verkaufen
+    # lässt sie sich weiter (an der Bar wird nachgeschenkt, bevor
+    # jemand bucht) - sie soll nur auffallen.
+    "TILE_SOLD_OUT": (0.90, 0.90, 0.90, 1),
+
     # Buttonpress
     "TILE_PRESS_COLOR": (1.00, 0.82, 0.68, 1),
 
@@ -147,6 +152,9 @@ _DARK_COLORS = {
     "CART_FOOTER_BACKGROUND": (0.18, 0.14, 0.12, 1),
     "STORNO_ROW": (0.26, 0.13, 0.13, 1),
     "CART_SEPARATOR": (0.32, 0.25, 0.21, 1),
+
+    # Artikelkachel ohne Bestand (siehe hellen Modus)
+    "TILE_SOLD_OUT": (0.13, 0.13, 0.14, 1),
 
     # Buttonpress
     "TILE_PRESS_COLOR": (0.60, 0.32, 0.20, 1),

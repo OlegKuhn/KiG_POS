@@ -775,41 +775,70 @@ class ProductsScreen(Screen):
             BottleSizePopup(
                 article_name=article["name"], bottle_count=amount,
                 default_size_ml=article.get("bottle_size_ml"),
-                on_confirm=lambda bottle_size_ml: self._receive_bottle_from_list(
-                    article, amount, bottle_size_ml
+                default_price=article.get("purchase_price"),
+                on_confirm=lambda bottle_size_ml, preis: self._receive_bottle_from_list(
+                    article, amount, bottle_size_ml, preis
                 ),
             ).open()
             return
 
-        self._finish_receive_order_from_list(article_id, amount)
+        self._finish_receive_order_from_list(
+            article_id, amount, self._kosten_je_einheit(article)
+        )
 
-    def _receive_bottle_from_list(self, article, bottle_count, bottle_size_ml):
+    def _receive_bottle_from_list(
+            self, article, bottle_count, bottle_size_ml, preis_je_flasche
+    ):
 
         self.db.set_bottle_size(article["id"], bottle_size_ml)
-        self._finish_receive_order_from_list(article["id"], bottle_count * bottle_size_ml)
 
-    def _finish_receive_order_from_list(self, article_id, amount_to_add):
+        self._finish_receive_order_from_list(
+            article["id"],
+            bottle_count * bottle_size_ml,
+            (preis_je_flasche / bottle_size_ml) if preis_je_flasche else None,
+        )
 
-        self._credit_stock(article_id, amount_to_add)
+    def _kosten_je_einheit(self, article):
+        """Kosten je Lagereinheit aus dem hinterlegten Einkaufspreis.
+
+        Bei Stück-, ml- oder Gramm-Artikeln ist der Einkaufspreis genau
+        das - bei Flaschen wird der Preis dagegen im Wareneingang
+        erfragt (siehe BottleSizePopup).
+        """
+
+        if article["stock_unit"] == config.BOTTLE_UNIT:
+            return None
+
+        preis = article["purchase_price"]
+
+        return preis if preis and preis > 0 else None
+
+    def _finish_receive_order_from_list(
+            self, article_id, amount_to_add, cost_per_unit=None
+    ):
+
+        self._credit_stock(article_id, amount_to_add, cost_per_unit)
 
         self.order_amounts.pop(article_id, None)
         self.db.clear_order_item(article_id)
 
         self.refresh_articles()
 
-    def _credit_stock(self, article_id, amount_to_add):
+    def _credit_stock(self, article_id, amount_to_add, cost_per_unit=None):
         """Bucht `amount_to_add` (bereits in der internen Lagereinheit
-        des Artikels, z. B. ml) dem Bestand gut und protokolliert die
-        Änderung in der Historie."""
+        des Artikels, z. B. ml) dem Bestand gut, protokolliert die
+        Änderung und mischt den Einkaufspreis.
 
-        old_stock = self.db.get_stock_quantity(article_id)
-        new_stock = old_stock + amount_to_add
-        self.db.update_stock(article_id, new_stock)
-        self.db.add_stock_history(
-            article_id=article_id, old_quantity=old_stock, new_quantity=new_stock,
-            reason="Wareneingang", changed_by="Einkauf", changed_at=self.db.timestamp(),
+        cost_per_unit sind die Kosten je Lagereinheit DIESER Lieferung.
+        Ohne Angabe gilt der zuletzt bekannte Preis weiter (siehe
+        database.py:book_goods_receipt).
+        """
+
+        self.db.book_goods_receipt(
+            article_id, amount_to_add, cost_per_unit=cost_per_unit
         )
-        return new_stock
+
+        return self.db.get_stock_quantity(article_id)
 
     # =====================================================
     # Artikel löschen (Liste)
@@ -875,15 +904,19 @@ class ProductsScreen(Screen):
             BottleSizePopup(
                 article_name=article["name"], bottle_count=amount,
                 default_size_ml=article.get("bottle_size_ml"),
-                on_confirm=lambda bottle_size_ml: self._receive_bottle_dashboard(
-                    amount, bottle_size_ml
+                default_price=article.get("purchase_price"),
+                on_confirm=lambda bottle_size_ml, preis: self._receive_bottle_dashboard(
+                    amount, bottle_size_ml, preis
                 ),
             ).open()
             return
 
-        self._finish_receive_order_dashboard(amount, f"Bestand wurde um {amount} erhöht.")
+        self._finish_receive_order_dashboard(
+            amount, f"Bestand wurde um {amount} erhöht.",
+            self._kosten_je_einheit(article),
+        )
 
-    def _receive_bottle_dashboard(self, bottle_count, bottle_size_ml):
+    def _receive_bottle_dashboard(self, bottle_count, bottle_size_ml, preis_je_flasche):
 
         if self.selected_article is None:
             return
@@ -893,16 +926,28 @@ class ProductsScreen(Screen):
         self.selected_article["bottle_size_ml"] = bottle_size_ml
 
         total_ml = bottle_count * bottle_size_ml
+
         message = (
             f"Bestand wurde um {total_ml:g} ml erhöht "
             f"({bottle_count} Flasche(n) à {bottle_size_ml:g} ml)."
         )
-        self._finish_receive_order_dashboard(total_ml, message)
 
-    def _finish_receive_order_dashboard(self, amount_to_add, message):
+        if preis_je_flasche:
+            message += (
+                f"\nEinkauf: {preis_je_flasche:.2f} € je Flasche".replace(".", ",")
+            )
+
+        self._finish_receive_order_dashboard(
+            total_ml, message,
+            (preis_je_flasche / bottle_size_ml) if preis_je_flasche else None,
+        )
+
+    def _finish_receive_order_dashboard(
+            self, amount_to_add, message, cost_per_unit=None
+    ):
 
         article_id = self.selected_article["id"]
-        new_stock = self._credit_stock(article_id, amount_to_add)
+        new_stock = self._credit_stock(article_id, amount_to_add, cost_per_unit)
 
         self.order_amounts.pop(article_id, None)
         self.db.clear_order_item(article_id)

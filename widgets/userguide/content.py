@@ -167,7 +167,12 @@ TOPICS = [
                     "Rezeptartikeln steht stattdessen \"Verfügbar\": "
                     "diese Artikel haben keinen eigenen Bestand, die "
                     "Zahl sagt, wie oft die knappste Zutat den Verkauf "
-                    "noch hergibt."
+                    "noch hergibt.\n\n"
+                    "Ist der Bestand bei 0 oder darunter, wird die "
+                    "Kachel leicht grau. Verkaufen lässt sie sich "
+                    "weiter - an der Bar wird schon mal nachgeschenkt, "
+                    "bevor jemand den Wareneingang bucht -, sie fällt "
+                    "nur auf, damit du ans Nachbuchen denkst."
                 ),
             },
             {
@@ -484,10 +489,18 @@ TOPICS = [
                     "Über der Zutatenliste steht, wie oft sich das Rezept "
                     "mit dem aktuellen Zutatenbestand noch verkaufen "
                     "lässt (begrenzt durch die knappste Zutat) und was "
-                    "eine Portion im Einkauf kostet - hochgerechnet aus "
-                    "den Einkaufspreisen aller Zutaten. Dieser berechnete "
-                    "Preis fließt beim Verkauf automatisch in die "
-                    "Gewinnermittlung der Statistik ein."
+                    "eine Portion im Einkauf kostet - anteilig "
+                    "hochgerechnet aus den Kosten aller Zutaten. Ein "
+                    "Shot von 20 ml aus einer Flasche, deren Inhalt mit "
+                    "0,0429 € je ml zu Buche steht, kostet also 0,86 €. "
+                    "Dieser Preis fließt beim Verkauf automatisch in die "
+                    "Gewinnermittlung der Statistik ein.\n\n"
+                    "Steht dort in Rot \"Einkaufspreis unbestimmt\", "
+                    "fehlt bei mindestens einer Zutat der Preis - meist, "
+                    "weil für eine Flasche noch kein Wareneingang mit "
+                    "Preis gebucht wurde. Solche Verkäufe werden mit "
+                    "0,00 € Einkauf erfasst, der Gewinn steht dann zu "
+                    "hoch."
                 ),
             },
             {
@@ -498,10 +511,18 @@ TOPICS = [
                     "Artikeltyp, Verkaufspreis und der Verkauf-Schalter "
                     "entfallen dann, weil sie feststehen. Der Bestand "
                     "wird intern immer in Millilitern geführt - beim "
-                    "Buchen oder Korrigieren fragt das Programm nach der "
-                    "Flaschengröße und rechnet selbst um. Der Bestand "
-                    "zeigt zusätzlich an, wie vielen Flaschen die "
-                    "Milliliter entsprechen."
+                    "Buchen fragt das Programm in zwei Schritten nach "
+                    "der Flaschengröße und dem Preis je Flasche und "
+                    "rechnet selbst um. Der Bestand zeigt zusätzlich an, "
+                    "wie vielen Flaschen die Milliliter entsprechen.\n\n"
+                    "Aus Größe und Preis ergeben sich die Kosten je "
+                    "Milliliter - nur damit kann ein Rezept anteilig "
+                    "rechnen. Beide Angaben dürfen sich bei jedem "
+                    "Einkauf ändern: Kaufst du erst 0,7 l für 30 € und "
+                    "danach 1 l für 35 €, führt das Programm beides "
+                    "zusammen (65 € auf 1700 ml) und rechnet ab dann mit "
+                    "diesem Mischpreis. So passt der Wert immer zu dem, "
+                    "was tatsächlich im Regal steht."
                 ),
                 "image": "artikel/06_flasche_und_shot.png",
             },
@@ -704,6 +725,23 @@ TOPICS = [
                     "Unten rechts zeigt das Balkendiagramm die "
                     "meistverkauften Artikel nach Menge - praktisch, um "
                     "auf einen Blick die Verkaufsschlager zu erkennen."
+                ),
+            },
+            {
+                "heading": "Einkaufspreise nachtragen",
+                "text": (
+                    "Wurde ein Rezeptartikel verkauft, während der Preis "
+                    "seiner Zutaten noch unbestimmt war, steht in der "
+                    "Verkaufsliste 0,00 € Einkauf - der Gewinn ist dann "
+                    "zu hoch ausgewiesen. In diesem Fall erscheint über "
+                    "der Tabelle ein roter Hinweis mit der Zahl der "
+                    "betroffenen Verkäufe.\n\n"
+                    "Buche zuerst bei den Zutaten den Wareneingang mit "
+                    "Preis, dann trägt \"Einkaufspreise nachtragen\" den "
+                    "heute gültigen Rezeptpreis bei diesen Verkäufen "
+                    "nach. Das ändert Zahlen einer abgeschlossenen "
+                    "Abrechnung und passiert deshalb nur auf "
+                    "ausdrückliche Bestätigung."
                 ),
             },
             {

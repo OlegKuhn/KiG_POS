@@ -183,6 +183,8 @@ class StatisticsScreen(Screen):
         actions_top.add_widget(self._button("Excel exportieren", self.export_excel, width=dp(170)))
         panel.add_widget(actions_top)
 
+        panel.add_widget(self._build_repair_hint())
+
         # Bewusst OHNE Abstand zwischen den Spalten: die Kopfzeile muss
         # exakt dieselbe Spaltenaufteilung haben wie SaleRow (dort
         # ebenfalls kein spacing), sonst stehen Überschrift und Wert
@@ -211,6 +213,88 @@ class StatisticsScreen(Screen):
         actions.add_widget(self._button("Zeitraum löschen", self.delete_period))
         panel.add_widget(actions)
         return panel
+
+    # =====================================================
+    # Fehlende Einkaufspreise nachtragen
+    # =====================================================
+
+    def _build_repair_hint(self):
+        """Zeile, die auf Rezeptverkäufe ohne Einkaufspreis hinweist.
+
+        Solche Positionen entstehen, wenn beim Verkauf die Kosten der
+        Zutaten nicht bestimmbar waren (z. B. Flasche ohne
+        Wareneingang): Gebucht wurde dann 0,00, der Gewinn steht damit
+        zu hoch. Die Zeile bleibt unsichtbar, solange alles stimmt.
+        """
+
+        self.repair_row = BoxLayout(
+            size_hint_y=None, height=0, opacity=0,
+            spacing=dp(theme.ROW_SPACING),
+        )
+
+        self.repair_label = Label(
+            text="", color=theme.ERROR, font_size="13sp",
+            halign="left", valign="middle",
+        )
+        self.repair_label.bind(
+            size=lambda instance, value: setattr(instance, "text_size", value)
+        )
+
+        self.repair_row.add_widget(self.repair_label)
+        self.repair_row.add_widget(
+            self._button("Einkaufspreise nachtragen", self.repair_costs, width=dp(220))
+        )
+
+        return self.repair_row
+
+    def _refresh_repair_hint(self, date_from, date_to, event_id):
+
+        offen = self.db.count_missing_recipe_costs(date_from, date_to, event_id)
+
+        if not offen:
+            self.repair_row.height = 0
+            self.repair_row.opacity = 0
+            self.repair_row.disabled = True
+            return
+
+        self.repair_label.text = (
+            f"{offen} {'Verkauf' if offen == 1 else 'Verkäufe'} von "
+            "Rezeptartikeln ohne Einkaufspreis - der Gewinn steht zu hoch."
+        )
+
+        self.repair_row.height = dp(40)
+        self.repair_row.opacity = 1
+        self.repair_row.disabled = False
+
+    def repair_costs(self):
+
+        date_from, date_to = self._period()
+        event_id = self.event_options.get(self.event_filter.text)
+
+        offen = self.db.count_missing_recipe_costs(date_from, date_to, event_id)
+
+        if not offen:
+            return
+
+        self._confirm(
+            f"Bei {offen} Verkaufsposition(en) den heute gültigen "
+            "Rezeptpreis als Einkaufspreis nachtragen?",
+            lambda: self._repair_costs_confirmed(date_from, date_to, event_id),
+            confirm_text="Nachtragen",
+        )
+
+    def _repair_costs_confirmed(self, date_from, date_to, event_id):
+
+        nachgetragen = self.db.repair_recipe_costs(date_from, date_to, event_id)
+
+        self.refresh()
+
+        self.export_status.text = (
+            f"{nachgetragen} Einkaufspreis(e) nachgetragen."
+            if nachgetragen else
+            "Kein Preis nachtragbar - bitte zuerst den Wareneingang "
+            "der Zutaten mit Preis buchen."
+        )
 
     def _build_summary_panel(self):
         """Die rechte Spalte: oben die Zahlen des Zeitraums, unten die
@@ -471,6 +555,7 @@ class StatisticsScreen(Screen):
 
         self._refresh_totals(date_from, date_to, event_id)
         self._refresh_top_articles(date_from, date_to, event_id)
+        self._refresh_repair_hint(date_from, date_to, event_id)
 
     def _row_selected(self, row, selected):
         row_key = row.sale["row_key"]
@@ -712,7 +797,7 @@ class StatisticsScreen(Screen):
         if callable(self.revenue_changed_callback):
             self.revenue_changed_callback()
 
-    def _confirm(self, message, callback):
+    def _confirm(self, message, callback, confirm_text="Löschen"):
         content = BoxLayout(
             orientation="vertical",
             padding=dp(theme.CARD_PADDING),
@@ -724,7 +809,7 @@ class StatisticsScreen(Screen):
         cancel = self._button("Abbrechen", popup.dismiss)
         buttons.add_widget(cancel)
         if callback:
-            confirm = self._button("Löschen", lambda: (popup.dismiss(), callback()))
+            confirm = self._button(confirm_text, lambda: (popup.dismiss(), callback()))
             buttons.add_widget(confirm)
         content.add_widget(buttons)
         popup.open()

@@ -197,9 +197,13 @@ class CashArticleTile(KiGTile):
         # daher die abweichende Beschriftung "Verfügbar" statt "Bestand".
         self.stock_caption = "Verfügbar" if article_type == "MIX" else "Bestand"
 
+        self.stock_quantity = self._stock_value(getattr(article, "stock", 0))
+
         self.stock = self._format_stock(getattr(article, "stock", 0))
 
         self.price = f"{price:.2f} €"
+
+        self._mark_sold_out()
 
         # =====================================================
         # Initial aktualisieren
@@ -237,6 +241,46 @@ class CashArticleTile(KiGTile):
 
         self.lbl_stock.text = f"{getattr(self, 'stock_caption', 'Bestand')}: {self.stock}"
         self.lbl_stock.text_size = self.lbl_stock.size
+
+    # =========================================================
+    # Ausverkauft
+    # =========================================================
+
+    def _mark_sold_out(self):
+        """Färbt die Kachel leicht grau, wenn nichts mehr da ist.
+
+        Antippen bleibt möglich: An der Bar wird gelegentlich
+        nachgeschenkt, bevor jemand den Wareneingang bucht - ein
+        gesperrter Artikel würde den Verkauf aufhalten. Die Kachel soll
+        nur ins Auge fallen.
+        """
+
+        self.sold_out = (
+            self.stock_quantity is not None and self.stock_quantity <= 0
+        )
+
+        if not self.sold_out:
+            return
+
+        self.background_color = theme.TILE_SOLD_OUT
+
+        # Auch nach einem Tipp wieder grau werden (siehe
+        # KiGTile.animate_press).
+        self.normal_color = theme.TILE_SOLD_OUT
+
+        self.lbl_title.set_color(theme.TEXT_SECONDARY)
+        self.lbl_stock.set_color(theme.TEXT_LIGHT)
+        self.lbl_price.set_color(theme.TEXT_LIGHT)
+
+    @staticmethod
+    def _stock_value(stock):
+        """Bestand als Zahl - oder None, wenn er sich nicht bestimmen
+        lässt (dann wird auch nichts eingegraut)."""
+
+        try:
+            return float(stock)
+        except (TypeError, ValueError):
+            return None
 
     @staticmethod
     def _format_stock(stock):

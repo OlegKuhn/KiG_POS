@@ -52,6 +52,12 @@ class KiGTile(ButtonBehavior, KiGWidget):
 
         super().__init__(**kwargs)
 
+        # Farbe, zu der die Kachel nach einem Tipp zurückkehrt und die
+        # beim Abwählen wieder gilt. Normalerweise die Kartenfarbe -
+        # abweichend z. B. bei ausverkauften Artikeln, die grau
+        # bleiben sollen (siehe widgets/cash/article_tile.py).
+        self.normal_color = kwargs["background_color"]
+
         # =====================================================
         # WICHTIG:
         # Ursprüngliches Größenverhalten beibehalten
@@ -117,7 +123,7 @@ class KiGTile(ButtonBehavior, KiGWidget):
         normal_color = (
             theme.PRIMARY_ORANGE
             if self.selected
-            else theme.CARD
+            else self.normal_color
         )
 
         (
@@ -208,7 +214,7 @@ class KiGTile(ButtonBehavior, KiGWidget):
 
         self.selected = False
 
-        self.background_color = theme.CARD
+        self.background_color = self.normal_color
 
     # =====================================================
     # Sichtbarkeit

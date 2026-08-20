@@ -79,6 +79,12 @@ class RecipeCompositionPanel(RoundedPanel):
         # knappste Zutat) und was kostet eine Portion, umgerechnet aus
         # den Einkaufspreisen der Zutaten (siehe
         # database.py:get_recipe_available_quantity/get_recipe_cost).
+        # Wie viele Zutaten das Rezept hat - entscheidet mit, ob ein
+        # unbestimmter Einkaufspreis ein Hinweis wert ist (siehe
+        # set_summary). Ein Rezept ganz ohne Zutaten ist einfach noch
+        # nicht fertig.
+        self.ingredient_count = 0
+
         self.summary_label = KiGLabel(text="")
         self.summary_label.set_font_size(15)
         self.summary_label.set_bold(True)
@@ -262,17 +268,36 @@ class RecipeCompositionPanel(RoundedPanel):
         if cost is not None:
             parts.append(f"Berechneter Einkaufspreis: {cost:.2f} €".replace(".", ","))
 
+        elif self.ingredient_count:
+
+            # Ein unbestimmter Preis muss auffallen: Die Kasse bucht
+            # solche Verkäufe mit 0,00 Einkauf, der Gewinn in der
+            # Statistik ist dann zu hoch. Meist fehlt bei einer
+            # Flaschen-Zutat der Wareneingang (und damit der Preis je
+            # ml) oder es steht eine Freitext-Zutat im Rezept.
+            parts.append(
+                "Einkaufspreis unbestimmt - bitte bei den Zutaten den "
+                "Wareneingang mit Preis buchen"
+            )
+
         text = "   ·   ".join(parts)
 
         self.summary_label.text = text
         self.summary_label.height = dp(24) if text else 0
         self.summary_label.opacity = 1 if text else 0
 
+        self.summary_label.set_color(
+            theme.ERROR if (cost is None and self.ingredient_count)
+            else theme.TEXT_PRIMARY
+        )
+
     ########################################################
     # Zutatenliste
     ########################################################
 
     def set_ingredients(self, ingredients):
+
+        self.ingredient_count = len(ingredients or [])
 
         self.list_layout.clear_widgets()
 

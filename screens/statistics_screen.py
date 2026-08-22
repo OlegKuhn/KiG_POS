@@ -21,6 +21,9 @@ from database import DatabaseManager
 from widgets.common.kig_popup import KiGPopup
 from widgets.common.kig_symbol import KiGSymbolButton, KREUZ
 from widgets.common.date_picker_popup import DatePickerPopup
+from widgets.common.exporthinweis import (
+    export_hinweis, hinweisfeld_vorbereiten,
+)
 from widgets.common.feldausrichtung import links_ausrichten
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.kig_label import KiGLabel
@@ -175,16 +178,21 @@ class StatisticsScreen(Screen):
         panel.add_widget(filters)
 
         actions_top = BoxLayout(size_hint_y=None, height=dp(40), spacing=dp(theme.ROW_SPACING))
+        actions_top.add_widget(Widget())
+        actions_top.add_widget(self._button("Excel exportieren", self.export_excel, width=dp(170)))
+        panel.add_widget(actions_top)
+
+        # Eigene Zeile unter den Knoepfen: Der Hinweis nennt den Ordner
+        # mit, und ein vollstaendiger Pfad braucht die ganze Breite
+        # (siehe widgets/common/exporthinweis.py).
         self.export_status = Label(
             text="", color=theme.TEXT_SECONDARY, font_size="13sp",
             halign="left", valign="middle",
         )
-        self.export_status.bind(
-            size=lambda instance, value: setattr(instance, "text_size", value)
-        )
-        actions_top.add_widget(self.export_status)
-        actions_top.add_widget(self._button("Excel exportieren", self.export_excel, width=dp(170)))
-        panel.add_widget(actions_top)
+
+        hinweisfeld_vorbereiten(self.export_status, 0)
+
+        panel.add_widget(self.export_status)
 
         panel.add_widget(self._build_repair_hint())
 
@@ -758,7 +766,7 @@ class StatisticsScreen(Screen):
         export_path = storage.export_dir("excel") / filename
         workbook.save(export_path)
 
-        self.export_status.text = f"Export erstellt: {export_path.name}"
+        self.export_status.text = export_hinweis(export_path)
 
     def delete_selected(self):
         if not self.selected_rows:

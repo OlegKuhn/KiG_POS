@@ -43,12 +43,16 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.screenmanager import Screen
+from kivy.uix.widget import Widget
 
 import config
 import storage
 import theme
 
 from database import DatabaseManager
+from widgets.common.exporthinweis import (
+    export_hinweis, hinweisfeld_vorbereiten,
+)
 from widgets.common.feldausrichtung import links_ausrichten
 from widgets.common.confirm_popup import ConfirmPopup
 from widgets.common.date_picker_popup import DatePickerPopup
@@ -368,14 +372,7 @@ class CashBookScreen(Screen):
             size_hint_y=None, height=dp(40), spacing=dp(theme.ROW_SPACING)
         )
 
-        self.export_status = Label(
-            text="", color=theme.TEXT_SECONDARY, font_size="13sp",
-            halign="left", valign="middle",
-        )
-        self.export_status.bind(
-            size=lambda instance, value: setattr(instance, "text_size", value)
-        )
-        aktionen.add_widget(self.export_status)
+        aktionen.add_widget(Widget())
 
         export_knopf = self._action_button(
             "Excel exportieren", self.export_excel
@@ -385,6 +382,18 @@ class CashBookScreen(Screen):
         aktionen.add_widget(export_knopf)
 
         panel.add_widget(aktionen)
+
+        # Der Hinweis steht unter der Zeile und nicht daneben: Er nennt
+        # den Ordner mit, und ein vollständiger Pfad braucht die ganze
+        # Breite (siehe widgets/common/exporthinweis.py).
+        self.export_status = Label(
+            text="", color=theme.TEXT_SECONDARY, font_size="13sp",
+            halign="left", valign="middle",
+        )
+
+        hinweisfeld_vorbereiten(self.export_status, 0)
+
+        panel.add_widget(self.export_status)
 
         header = BoxLayout(size_hint_y=None, height=dp(32), spacing=0)
 
@@ -1023,7 +1032,7 @@ class CashBookScreen(Screen):
 
         workbook.save(ziel)
 
-        self.export_status.text = f"Export erstellt: {ziel.name}"
+        self.export_status.text = export_hinweis(ziel)
 
     # =====================================================
     # Speichern und löschen

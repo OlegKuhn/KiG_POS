@@ -36,7 +36,10 @@ from kivy.uix.screenmanager import Screen
 import config
 import storage
 import theme
+
 import units
+
+from widgets.common.exporthinweis import export_hinweis
 
 from database import DatabaseManager
 
@@ -350,7 +353,7 @@ class ProductsScreen(Screen):
                     item["quantity"],
                 ])
 
-        self.article_list_panel.set_export_status(f"Export erstellt: {export_path.name}")
+        self.article_list_panel.set_export_status(export_hinweis(export_path))
 
     # =====================================================
     # Liste <-> Dashboard

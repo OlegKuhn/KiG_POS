@@ -131,7 +131,7 @@ class UserguideTopicPanel(RoundedPanel):
         blendet die Zeile wieder aus)."""
 
         self.status_label.text = text
-        self.status_label.height = dp(34) if text else 0
+        self.status_label.height = dp(52) if text else 0
 
     def set_export_available(self, verfuegbar):
         """Sperrt den Export, wenn er auf diesem Gerät nicht geht.

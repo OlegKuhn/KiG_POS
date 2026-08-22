@@ -37,6 +37,10 @@ import config
 import storage
 import theme
 
+from widgets.common.exporthinweis import (
+    export_hinweis, hinweisfeld_vorbereiten,
+)
+
 from database import DatabaseManager
 from widgets.checklists.checklist_item_row import ChecklistItemRow
 from widgets.common.confirm_popup import ConfirmPopup
@@ -214,12 +218,12 @@ class ChecklistScreen(Screen):
 
         self.status_label = Label(
             text="", color=theme.TEXT_SECONDARY, font_size="13sp",
-            size_hint_y=None, height=dp(24),
             halign="left", valign="middle",
         )
-        self.status_label.bind(
-            size=lambda instance, value: setattr(instance, "text_size", value)
-        )
+
+        # Waechst mit: Nach einem Export steht hier zusaetzlich der
+        # Ordner (siehe widgets/common/exporthinweis.py).
+        hinweisfeld_vorbereiten(self.status_label, dp(24))
         panel.add_widget(self.status_label)
 
         # Kopfzeile über den Spalten - ohne sie ist nicht zu erraten,
@@ -613,7 +617,7 @@ class ChecklistScreen(Screen):
 
         workbook.save(ziel)
 
-        self.status_label.text = f"Export erstellt: {ziel.name}"
+        self.status_label.text = export_hinweis(ziel)
         self.status_label.color = theme.TEXT_SECONDARY
 
     # =====================================================

@@ -26,6 +26,8 @@ from kivy.uix.screenmanager import Screen
 
 import theme
 
+from widgets.common.exporthinweis import export_hinweis
+
 from widgets.userguide.content import TOPICS
 from widgets.userguide.userguide_topic_panel import UserguideTopicPanel
 from widgets.userguide.userguide_content_panel import UserguideContentPanel
@@ -123,6 +125,8 @@ class UserguideScreen(Screen):
         except Exception as error:
             self.topic_panel.set_export_status(f"Export fehlgeschlagen: {error}")
         else:
-            self.topic_panel.set_export_status(f"Gespeichert: {path.name}")
+            self.topic_panel.set_export_status(
+                export_hinweis(path, was="Gespeichert")
+            )
         finally:
             self.topic_panel.set_export_busy(False)

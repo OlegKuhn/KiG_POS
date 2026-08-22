@@ -119,6 +119,8 @@ TOPICS = [
                     "rechts speicherst du das komplette Handbuch mit "
                     "allen Screenshots als PDF-Datei - praktisch zum "
                     "Ausdrucken oder Weitergeben an neue Helfer.\n\n"
+                    "Nach dem Export steht unter dem Knopf, wie die Datei "
+                    "heißt und in welchem Ordner sie liegt.\n\n"
                     "Den PDF-Export gibt es nur in der Windows-Fassung; "
                     "auf dem Telefon ist der Knopf gesperrt. Das "
                     "Handbuch selbst kannst du dort natürlich trotzdem "
@@ -392,7 +394,9 @@ TOPICS = [
                     "mit eingetragener Bestellmenge in eine CSV-Datei "
                     "(Kategorie, Artikel, Menge). Sie landet im Ordner "
                     "exports/csv des Programmverzeichnisses und lässt "
-                    "sich mit Excel öffnen oder direkt verschicken."
+                    "sich mit Excel öffnen oder direkt verschicken.\n\n"
+                    "Nach dem Export steht unter dem Knopf, wie die Datei "
+                    "heißt und in welchem Ordner sie liegt."
                 ),
             },
             {
@@ -700,7 +704,9 @@ TOPICS = [
                     "auffälligen Zeilen den Grund im Klartext. Auf "
                     "Papier hilft ein rotes \"Prüfen\" ohne Erklärung "
                     "niemandem weiter - der Kassenprüfer sieht so "
-                    "sofort, woran es liegt."
+                    "sofort, woran es liegt.\n\n"
+                    "Nach dem Export steht unter dem Knopf, wie die Datei "
+                    "heißt und in welchem Ordner sie liegt."
                 ),
             },
             {
@@ -795,7 +801,9 @@ TOPICS = [
                     "Ausdrucken. So kann die Liste am Stand hängen, ohne "
                     "dass jemand das Tablet mit sich herumträgt - "
                     "erledigte Punkte sind dort mit einem x "
-                    "gekennzeichnet."
+                    "gekennzeichnet.\n\n"
+                    "Nach dem Export steht unter dem Knopf, wie die Datei "
+                    "heißt und in welchem Ordner sie liegt."
                 ),
             },
         ],
@@ -884,7 +892,9 @@ TOPICS = [
                     "Verkaufspositionen und ein Blatt mit der "
                     "Zusammenfassung inklusive Diagrammen. Die Datei "
                     "landet im Ordner exports/excel des "
-                    "Programmverzeichnisses."
+                    "Programmverzeichnisses.\n\n"
+                    "Nach dem Export steht unter dem Knopf, wie die Datei "
+                    "heißt und in welchem Ordner sie liegt."
                 ),
             },
             {

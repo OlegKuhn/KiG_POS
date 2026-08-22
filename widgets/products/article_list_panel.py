@@ -8,6 +8,8 @@ from kivy.uix.scrollview import ScrollView
 
 import theme
 
+from widgets.common.exporthinweis import hinweisfeld_vorbereiten
+
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.kig_label import KiGLabel
 from widgets.products.article_list_row import ArticleListRow
@@ -137,12 +139,13 @@ class ArticleListPanel(RoundedPanel):
         self._update_header()
 
         self.export_status = Label(
-            text="", color=theme.TEXT_SECONDARY, font_size="12sp", size_hint_y=None,
-            height=dp(18), halign="right", valign="middle",
+            text="", color=theme.TEXT_SECONDARY, font_size="12sp",
+            halign="right", valign="middle",
         )
-        self.export_status.bind(
-            size=lambda instance, value: setattr(instance, "text_size", value)
-        )
+
+        # Waechst mit: Nach einem Export steht hier zusaetzlich der
+        # Ordner (siehe widgets/common/exporthinweis.py).
+        hinweisfeld_vorbereiten(self.export_status, dp(18))
         self.add_widget(self.export_status)
 
         # -------------------------------------------------

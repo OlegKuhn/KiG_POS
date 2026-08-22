@@ -179,6 +179,74 @@ _MODES = {
 CURRENT_MODE = "light"
 
 
+# =========================================================
+# AKZENTFARBE (normal / Demo)
+# =========================================================
+#
+# Im Demo-Modus arbeitet die Anwendung auf einer Kopie der Datenbank
+# (siehe demo.py). Damit auf einen Blick klar ist, dass gerade nichts
+# Echtes passiert, wechselt die Akzentfarbe von Vereinsorange auf ein
+# grelles Grün - zusammen mit dem Wort DEMO in der Kopfzeile.
+
+_ACCENTS = {
+
+    "normal": {
+        "PRIMARY_ORANGE": (244 / 255, 70 / 255, 17 / 255, 1),
+        "PRIMARY_ORANGE_LIGHT": (1.00, 0.42, 0.18, 1),
+        "PRIMARY_ORANGE_DARK": (0.82, 0.22, 0.05, 1),
+        "TILE_PRESS_COLOR": (1.00, 0.82, 0.68, 1),
+    },
+
+    "demo": {
+        "PRIMARY_ORANGE": (0.20, 0.85, 0.10, 1),
+        "PRIMARY_ORANGE_LIGHT": (0.55, 0.95, 0.35, 1),
+        "PRIMARY_ORANGE_DARK": (0.12, 0.60, 0.05, 1),
+        "TILE_PRESS_COLOR": (0.72, 0.98, 0.60, 1),
+    },
+}
+
+CURRENT_ACCENT = "normal"
+
+
+def set_accent(accent):
+    """Schaltet die Akzentfarbe um ("normal" oder "demo").
+
+    Wie beim Farbmodus gilt: Bereits gebaute Widgets behalten ihre
+    Farben - die Oberfläche muss danach neu aufgebaut werden (siehe
+    KiGPOS.apply_demo_mode).
+    """
+
+    global CURRENT_ACCENT
+
+    if accent not in _ACCENTS:
+        return
+
+    CURRENT_ACCENT = accent
+
+    _apply_accent()
+
+
+def get_accent():
+
+    return CURRENT_ACCENT
+
+
+def _apply_accent():
+    """Trägt die Akzentfarben ein und rechnet alles nach, was sich
+    aus ihnen ableitet."""
+
+    global PROGRESS_FOREGROUND, BUTTON_PRIMARY, BUTTON_PRIMARY_HOVER
+    global BUTTON_PRIMARY_PRESSED
+
+    globals().update(_ACCENTS[CURRENT_ACCENT])
+
+    PROGRESS_FOREGROUND = PRIMARY_ORANGE
+
+    BUTTON_PRIMARY = PRIMARY_ORANGE
+    BUTTON_PRIMARY_HOVER = PRIMARY_ORANGE_LIGHT
+    BUTTON_PRIMARY_PRESSED = PRIMARY_ORANGE_DARK
+
+
 def set_mode(mode):
     """Wendet die Farbpalette des gewünschten Modus an ("light"
     oder "dark"). Unbekannte Werte werden ignoriert.
@@ -214,6 +282,10 @@ def set_mode(mode):
     BUTTON_TEXT = TEXT_WHITE
 
     CARD_BACKGROUND = CARD
+
+    # Die Palette bringt die Vereinsfarben mit; im Demo-Modus gilt
+    # stattdessen der grüne Akzent.
+    _apply_accent()
 
 
 def get_mode():

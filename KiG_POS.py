@@ -26,6 +26,8 @@ from kivy.uix.screenmanager import ScreenManager
 from kivy.utils import platform
 
 import config
+import demo
+import storage
 import theme
 
 from database import DatabaseManager
@@ -292,6 +294,14 @@ class KiGPOS(App):
 
         _umrechnung_sicherstellen()
 
+        # Der Demo-Modus wird bewusst nicht gespeichert: Jeder Start
+        # beginnt im normalen Modus. Eine Kopie, die von einem Absturz
+        # uebrig geblieben ist, wird hier weggeraeumt (siehe demo.py).
+        try:
+            demo.aufraeumen(storage.data_dir())
+        except Exception:
+            traceback.print_exc()
+
         # Gespeicherten Farbmodus VOR dem Aufbau der Oberfläche
         # anwenden, damit bereits die erste Bildschirmzeichnung im
         # richtigen Modus erfolgt.
@@ -473,6 +483,55 @@ class KiGPOS(App):
         db.set_setting("screen_orientation", orientation)
 
         apply_window_orientation(orientation)
+
+        self.rebuild_main()
+
+    # =====================================================
+    # Demo-Modus
+    # =====================================================
+
+    def apply_demo_mode(self, aktiv):
+        """Schaltet den Demo-Modus ein oder aus.
+
+        Beim Einschalten wird der aktuelle Stand der Datenbank
+        eingefroren (kopiert) und die Anwendung arbeitet ab da auf der
+        Kopie; beim Ausschalten verschwindet die Kopie samt allem, was
+        darin angestellt wurde.
+
+        Die Reihenfolge ist wichtig:
+
+            1. Verbindung schließen - erst dann steht alles in der
+               Datei und nicht mehr im WAL-Journal, und nur dann ist
+               die Kopie vollständig.
+            2. Umschalten (kopieren bzw. verwerfen).
+            3. Datenbank neu aufbauen - der DatabaseManager ist ein
+               Singleton und hängt sonst an der alten Datei.
+            4. Oberfläche neu aufbauen: Die Screens halten eigene
+               Verweise auf die Datenbank, und die Farben stecken
+               ohnehin in den Widgets.
+        """
+
+        alte_db = DatabaseManager()
+
+        datenordner = storage.data_dir()
+
+        alte_db.close()
+
+        DatabaseManager._instance = None
+
+        if aktiv:
+            demo.starten(datenordner)
+        else:
+            demo.beenden(datenordner)
+
+        neue_db = DatabaseManager()
+
+        theme.set_accent("demo" if aktiv else "normal")
+
+        # Farbmodus und Ausrichtung stehen in der Datenbank - und die
+        # ist jetzt eine andere. Beides neu einlesen, damit die Demo
+        # aussieht wie das Original.
+        theme.set_mode(neue_db.get_setting("theme_mode") or "light")
 
         self.rebuild_main()
 

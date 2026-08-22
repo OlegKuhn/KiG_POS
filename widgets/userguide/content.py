@@ -992,6 +992,46 @@ TOPICS = [
                 ),
             },
             {
+                "heading": "Demo-Modus",
+                "text": (
+                    "Unter \"Demo\" startest du eine Spielwiese: Das "
+                    "Programm friert den aktuellen Stand der Datenbank "
+                    "ein und arbeitet ab da auf einer Kopie. Alles "
+                    "funktioniert wie sonst - Verkäufe, Artikel, "
+                    "Kassenbuch, Checklisten werden gespeichert -, aber "
+                    "nur in dieser Kopie. An den echten Daten ändert "
+                    "sich nichts.\n\n"
+                    "Gedacht zum Zeigen und Ausprobieren: neue Helfer "
+                    "einweisen, eine Rezeptkalkulation durchspielen, "
+                    "einen Abend üben."
+                ),
+                "image": "einstellungen/02_demo.png",
+            },
+            {
+                "heading": "Woran du den Demo-Modus erkennst",
+                "text": (
+                    "Die Akzentfarbe wechselt von Orange auf ein grelles "
+                    "Grün, und oben in der Kopfzeile steht groß DEMO. "
+                    "So ist auch von weitem klar, dass gerade nichts "
+                    "Echtes gebucht wird."
+                ),
+                "image": "einstellungen/03_demo_aktiv.png",
+            },
+            {
+                "heading": "Demo beenden",
+                "text": (
+                    "Über denselben Knopf verlässt du den Demo-Modus. "
+                    "Die Kopie wird dabei verworfen: Alles, was im "
+                    "Demo-Modus angelegt oder geändert wurde, ist weg, "
+                    "und es gilt wieder der Stand von vor dem Start. "
+                    "Auch das kommt vorher als Rückfrage.\n\n"
+                    "Der Demo-Modus wird nie gespeichert - nach jedem "
+                    "Programmstart läuft der normale Modus. Sollte das "
+                    "Programm im Demo-Modus abstürzen, räumt der "
+                    "nächste Start die Kopie weg."
+                ),
+            },
+            {
                 "heading": "Einstellungen bleiben erhalten",
                 "text": (
                     "Farbmodus und Ausrichtung werden gespeichert und "

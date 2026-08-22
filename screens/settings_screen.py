@@ -25,11 +25,14 @@ Version:
 from kivy.app import App
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.button import Button
 from kivy.uix.screenmanager import Screen
 
+import demo
 import theme
 
+from widgets.common.confirm_popup import ConfirmPopup
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.kig_label import KiGLabel
 
@@ -91,11 +94,25 @@ class SettingsScreen(Screen):
         title.height = dp(42)
         panel.add_widget(title)
 
+        # Die Einstellungen wachsen mit jeder Funktion; ohne
+        # Rollbereich ragt der unterste Abschnitt aus der Karte, sobald
+        # das Fenster etwas kleiner ist.
+        inhalt = BoxLayout(
+            orientation="vertical",
+            spacing=dp(theme.CARD_SPACING),
+            size_hint_y=None,
+        )
+        inhalt.bind(minimum_height=inhalt.setter("height"))
+
+        scroll = ScrollView(do_scroll_x=False, bar_width=dp(8))
+        scroll.add_widget(inhalt)
+        panel.add_widget(scroll)
+
         #
         # Farbmodus
         #
 
-        panel.add_widget(self._section_label("Farbmodus"))
+        inhalt.add_widget(self._section_label("Farbmodus"))
 
         mode_row = self._option_row()
 
@@ -116,7 +133,7 @@ class SettingsScreen(Screen):
 
         mode_row.add_widget(self.light_button)
         mode_row.add_widget(self.dark_button)
-        panel.add_widget(mode_row)
+        inhalt.add_widget(mode_row)
 
         #
         # Bildschirmausrichtung
@@ -124,7 +141,7 @@ class SettingsScreen(Screen):
         # Auf jedem Gerät vorhanden: Ein Tablet im Ständer ist quer
         # ebenso sinnvoll wie ein Telefon hochkant.
 
-        panel.add_widget(self._section_label("Bildschirmausrichtung"))
+        inhalt.add_widget(self._section_label("Bildschirmausrichtung"))
 
         orientation_row = self._option_row()
 
@@ -142,7 +159,7 @@ class SettingsScreen(Screen):
 
         orientation_row.add_widget(self.landscape_button)
         orientation_row.add_widget(self.portrait_button)
-        panel.add_widget(orientation_row)
+        inhalt.add_widget(orientation_row)
 
         # Ohne diesen Hinweis wirkt es wie ein Fehler, wenn nach dem
         # Umschalten plötzlich das ganze Fenster seine Größe ändert.
@@ -158,10 +175,47 @@ class SettingsScreen(Screen):
         hint.set_color(theme.TEXT_SECONDARY)
         hint.size_hint_y = None
         hint.height = dp(46)
-        panel.add_widget(hint)
+        inhalt.add_widget(hint)
 
-        # Restlicher Platz bleibt für künftige Einstellungen frei.
-        panel.add_widget(BoxLayout())
+        #
+        # Demo-Modus
+        #
+
+        inhalt.add_widget(self._section_label("Demo"))
+
+        demo_row = self._option_row()
+
+        self.demo_button = SettingsOptionButton(
+            "Demo beenden" if demo.ist_aktiv() else "Demo starten",
+            "demo", lambda _wert: self.toggle_demo(),
+        )
+
+        if demo.ist_aktiv():
+            self.demo_button.select()
+
+        demo_row.add_widget(self.demo_button)
+
+        # Zweite Haelfte bleibt leer, damit der Knopf dieselbe Breite
+        # hat wie die Knoepfe darueber.
+        demo_row.add_widget(BoxLayout())
+
+        inhalt.add_widget(demo_row)
+
+        demo_hint = KiGLabel(text=(
+            "Im Demo-Modus arbeitet das Programm auf einer Kopie der "
+            "Datenbank: Alles lässt sich ausprobieren, Verkäufe, Artikel "
+            "und Listen werden gespeichert - aber nur in der Kopie. Die "
+            "Akzentfarbe wird grün und oben steht DEMO.\n\n"
+            "Beim Beenden des Demo-Modus wird die Kopie verworfen; es "
+            "gilt wieder der Stand von vorher. Nach einem Programmstart "
+            "läuft immer der normale Modus."
+        ))
+        demo_hint.set_font_size(14)
+        demo_hint.set_alignment("left")
+        demo_hint.set_color(theme.TEXT_SECONDARY)
+        demo_hint.size_hint_y = None
+        demo_hint.height = dp(76)
+        inhalt.add_widget(demo_hint)
 
         root.add_widget(panel)
         self.add_widget(root)
@@ -216,3 +270,49 @@ class SettingsScreen(Screen):
 
         if app is not None:
             app.apply_orientation(orientation)
+
+    # =====================================================
+    # Demo-Modus
+    # =====================================================
+
+    def toggle_demo(self):
+        """Startet den Demo-Modus oder verlässt ihn.
+
+        Beides mit Rückfrage: Beim Start wird die Datenbank
+        eingefroren, beim Beenden alles Ausprobierte verworfen - in
+        beiden Fällen soll klar sein, was gleich passiert.
+        """
+
+        app = App.get_running_app()
+
+        if app is None:
+            return
+
+        if demo.ist_aktiv():
+
+            ConfirmPopup(
+                title="Demo beenden",
+                message=(
+                    "Demo-Modus beenden?\n\n"
+                    "Alles, was im Demo-Modus angelegt oder geändert "
+                    "wurde, wird verworfen. Es gilt wieder der Stand "
+                    "von vor dem Start."
+                ),
+                confirm_text="Beenden",
+                on_confirm=lambda: app.apply_demo_mode(False),
+            ).open()
+
+            return
+
+        ConfirmPopup(
+            title="Demo starten",
+            message=(
+                "Demo-Modus starten?\n\n"
+                "Der aktuelle Stand der Datenbank wird eingefroren. "
+                "Ab dann arbeitest du auf einer Kopie - an den echten "
+                "Daten ändert sich nichts."
+            ),
+            confirm_text="Starten",
+            confirm_color=theme.SUCCESS,
+            on_confirm=lambda: app.apply_demo_mode(True),
+        ).open()

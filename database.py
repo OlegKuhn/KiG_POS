@@ -51,6 +51,7 @@ from pathlib import Path
 from kivy.app import App
 
 import config
+import demo
 import storage
 import units
 
@@ -209,7 +210,11 @@ class DatabaseManager:
 
         # Wo die Daten liegen, entscheidet die Plattform - siehe
         # storage.py (Windows: AppData, Android: privater App-Ordner).
-        return storage.data_dir() / "kig.db"
+        #
+        # WELCHE Datenbank es ist, entscheidet der Demo-Modus: Dort
+        # arbeitet die Anwendung auf einer Kopie, damit sich nichts
+        # Echtes verändert (siehe demo.py).
+        return demo.database_path(storage.data_dir())
 
     #################################################################
     # Verbindung

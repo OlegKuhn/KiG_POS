@@ -54,6 +54,7 @@ from widgets.kig_divider import (
 
 from kivy.metrics import dp
 
+import demo
 import theme
 
 
@@ -83,6 +84,10 @@ class KiGHeaderBar(KiGWidget):
 
     # Breite des Veranstaltungsbereichs in der Mitte (Querformat).
     EVENT_AREA_WIDTH = 500
+
+    # Demo-Hinweis in der Kopfzeile
+    DEMO_AREA_WIDTH = 150
+    DEMO_FONT_SIZE = 34
 
     LOGO_SIZE = 120
 
@@ -236,6 +241,18 @@ class KiGHeaderBar(KiGWidget):
         self.content.add_widget(
             KiGDividerVertical()
         )
+
+        # Im Demo-Modus steht hier gross DEMO. Zusammen mit der gruenen
+        # Akzentfarbe soll auf einen Blick klar sein, dass gerade auf
+        # einer Kopie gearbeitet wird und nichts Echtes passiert
+        # (siehe demo.py).
+        if demo.ist_aktiv():
+
+            self.content.add_widget(self._build_demo_badge())
+
+            self.content.add_widget(
+                KiGDividerVertical()
+            )
 
         self.content.add_widget(self.event_container)
 
@@ -648,6 +665,28 @@ class KiGHeaderBar(KiGWidget):
     # =====================================================
     # Datum / Uhrzeit
     # =====================================================
+
+    # =====================================================
+    # Demo-Hinweis
+    # =====================================================
+
+    def _build_demo_badge(self):
+        """Das Wort DEMO in der Kopfzeile."""
+
+        behaelter = BoxLayout(
+            size_hint=(None, 1),
+            width=dp(self.DEMO_AREA_WIDTH),
+        )
+
+        label = KiGLabel(text="DEMO")
+        label.set_font_size(self.DEMO_FONT_SIZE)
+        label.set_bold(True)
+        label.set_alignment("center")
+        label.set_color(theme.PRIMARY_ORANGE)
+
+        behaelter.add_widget(label)
+
+        return behaelter
 
     def update_datetime(self, dt=None):
         """

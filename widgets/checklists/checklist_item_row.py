@@ -32,6 +32,7 @@ from kivy.uix.button import Button
 import theme
 
 from widgets.common.kig_symbol import KiGSymbolButton, HAKEN
+from widgets.common.feldausrichtung import links_ausrichten
 from widgets.common.rounded_input import RoundedInput
 
 
@@ -104,6 +105,8 @@ class ChecklistItemRow(BoxLayout):
             background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
             font_size="14sp",
         )
+        links_ausrichten(self.deadline_button)
+
         self.deadline_button.bind(
             on_release=lambda *_a: self.on_deadline(self)
         )

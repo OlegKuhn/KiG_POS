@@ -4,6 +4,8 @@ from kivy.uix.spinner import Spinner, SpinnerOption
 
 import theme
 
+from widgets.common.feldausrichtung import links_ausrichten
+
 
 class RoundedSpinnerOption(SpinnerOption):
     """
@@ -29,6 +31,10 @@ class RoundedSpinnerOption(SpinnerOption):
         self.background_down = ""
 
         self.background_color = theme.SURFACE
+
+        # Auch die Eintraege im aufgeklappten Menue stehen links -
+        # sonst springt der Text beim Aufklappen an eine andere Stelle.
+        links_ausrichten(self)
 
         self.bind(
             option_text_color=self._update_text_color
@@ -78,6 +84,8 @@ class RoundedSpinner(Spinner):
         # -------------------------------------------------
 
         self.color = self.text_color
+
+        links_ausrichten(self)
 
         self.bind(
             text_color=self._update_text_color

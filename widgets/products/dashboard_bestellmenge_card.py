@@ -7,6 +7,7 @@ from kivy.uix.button import Button
 import theme
 
 from widgets.common.rounded_panel import RoundedPanel
+from widgets.common.feldausrichtung import links_ausrichten
 from widgets.kig_label import KiGLabel
 
 
@@ -54,6 +55,8 @@ class BestellmengeCard(RoundedPanel):
             background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
             font_size="20sp", bold=True,
         )
+        links_ausrichten(self.amount_button)
+
         self.amount_button.bind(on_release=lambda *_args: self.on_amount_button())
         row.add_widget(self.amount_button)
 

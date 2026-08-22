@@ -9,6 +9,8 @@ from kivy.uix.label import Label
 import config
 import theme
 
+from widgets.common.feldausrichtung import links_ausrichten
+
 from widgets.common.kig_symbol import KiGSymbolButton, KREUZ
 
 
@@ -128,6 +130,10 @@ class ArticleListRow(BoxLayout):
             font_size="15sp", bold=True,
             disabled=is_mix,
         )
+        # Wertfeld mit Nummernblock dahinter: schreibt links wie die
+        # uebrigen Felder (siehe widgets/common/feldausrichtung.py).
+        links_ausrichten(self.amount_button)
+
         if not is_mix:
             self.amount_button.bind(
                 on_release=lambda *_args: self.amount_callback(self.article)
@@ -271,6 +277,10 @@ class ArticleListRow(BoxLayout):
             font_size="15sp", bold=True,
             disabled=is_mix,
         )
+        # Wertfeld mit Nummernblock dahinter: schreibt links wie die
+        # uebrigen Felder (siehe widgets/common/feldausrichtung.py).
+        links_ausrichten(self.amount_button)
+
         if not is_mix:
             self.amount_button.bind(
                 on_release=lambda *_args: self.amount_callback(self.article)

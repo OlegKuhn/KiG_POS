@@ -9,6 +9,7 @@ from kivy.uix.label import Label
 import theme
 import units
 
+from widgets.common.feldausrichtung import links_ausrichten
 from widgets.common.rounded_spinner import RoundedSpinner
 
 
@@ -73,6 +74,8 @@ class RecipeIngredientRow(BoxLayout):
             background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
             font_size="16sp", bold=True,
         )
+        links_ausrichten(self.amount_button)
+
         self.amount_button.bind(
             on_release=lambda *_args: self.quantity_callback(self.ingredient)
         )

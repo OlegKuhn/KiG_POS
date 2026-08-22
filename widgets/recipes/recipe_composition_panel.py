@@ -8,6 +8,7 @@ from kivy.uix.scrollview import ScrollView
 import theme
 import units
 
+from widgets.common.feldausrichtung import links_ausrichten
 from widgets.common.rounded_input import RoundedInput
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.common.rounded_spinner import RoundedSpinner
@@ -135,6 +136,8 @@ class RecipeCompositionPanel(RoundedPanel):
             background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
             font_size="18sp", bold=True,
         )
+        links_ausrichten(self.add_amount_button)
+
         self.add_amount_button.bind(
             on_release=lambda *_args: self.add_amount_callback()
         )
@@ -199,6 +202,8 @@ class RecipeCompositionPanel(RoundedPanel):
             background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
             font_size="18sp", bold=True,
         )
+        links_ausrichten(self.free_text_amount_button)
+
         self.free_text_amount_button.bind(
             on_release=lambda *_args: self.add_free_text_amount_callback()
             if callable(self.add_free_text_amount_callback) else None

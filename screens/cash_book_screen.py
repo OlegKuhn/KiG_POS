@@ -49,6 +49,7 @@ import storage
 import theme
 
 from database import DatabaseManager
+from widgets.common.feldausrichtung import links_ausrichten
 from widgets.common.confirm_popup import ConfirmPopup
 from widgets.common.date_picker_popup import DatePickerPopup
 from widgets.common.rounded_input import RoundedInput
@@ -531,6 +532,11 @@ class CashBookScreen(Screen):
             background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
             font_size="16sp", bold=True, size_hint_x=0.58,
         )
+
+        # Hinter der Schaltflaeche steckt ein Kalender oder der
+        # Nummernblock - sie ist ein Feld und schreibt deshalb links.
+        links_ausrichten(button)
+
         button.bind(on_release=lambda *_args: callback())
 
         zeile.add_widget(button)

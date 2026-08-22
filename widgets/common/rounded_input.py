@@ -68,6 +68,11 @@ class RoundedInput(TextInput):
         if "font_size" not in kwargs:
             self.font_size = f"{theme.INPUT_FONT_SIZE}sp"
 
+        # Ausdruecklich, auch wenn Kivy hier ohnehin links schreibt:
+        # So steht die Regel an derselben Stelle wie bei den
+        # Auswahlfeldern (siehe feldausrichtung.py).
+        self.halign = "left"
+
         # Text mittig statt oben klebend: Kivy setzt einzeilige
         # Eingaben sonst an den oberen Rand, was in hohen Feldern
         # unruhig aussieht.

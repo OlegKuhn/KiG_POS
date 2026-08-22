@@ -21,6 +21,7 @@ from database import DatabaseManager
 from widgets.common.kig_popup import KiGPopup
 from widgets.common.kig_symbol import KiGSymbolButton, KREUZ
 from widgets.common.date_picker_popup import DatePickerPopup
+from widgets.common.feldausrichtung import links_ausrichten
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.kig_label import KiGLabel
 from widgets.statistics.category_pie import CategoryPiePanel
@@ -156,6 +157,7 @@ class StatisticsScreen(Screen):
             text="Alle Events", values=("Alle Events",),
             font_size="15sp", size_hint_x=1.15,
         )
+        links_ausrichten(self.event_filter)
         self.event_filter.bind(text=lambda *_args: self.refresh())
         filters.add_widget(self.event_filter)
 
@@ -487,6 +489,10 @@ class StatisticsScreen(Screen):
         box = BoxLayout(spacing=dp(theme.LABEL_SPACING))
 
         button = self._button(f"{label_prefix}: alle", on_pick)
+
+        # Datumsfeld, kein Aktionsknopf: linksbuendig.
+        links_ausrichten(button)
+
         box.add_widget(button)
 
         clear_button = KiGSymbolButton(

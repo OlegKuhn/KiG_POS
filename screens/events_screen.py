@@ -16,6 +16,7 @@ from kivy.uix.widget import Widget
 
 import theme
 from database import DatabaseManager
+from widgets.common.feldausrichtung import links_ausrichten
 from widgets.common.confirm_popup import ConfirmPopup
 from widgets.common.kig_popup import KiGPopup
 from widgets.common.rounded_input import RoundedInput
@@ -132,6 +133,7 @@ class EventsScreen(Screen):
         header.add_widget(self._button("‹", self.previous_month, width=dp(68)))
 
         self.month_spinner = Spinner(font_size="21sp")
+        links_ausrichten(self.month_spinner)
         self.month_spinner.bind(text=self._month_selected)
         header.add_widget(self.month_spinner)
         header.add_widget(self._button("›", self.next_month, width=dp(68)))
@@ -266,6 +268,7 @@ class EventsScreen(Screen):
             spacing=dp(theme.CARD_SPACING),
         )
         type_spinner = Spinner(values=list(LABEL_TYPES), size_hint_y=None, height=dp(54))
+        links_ausrichten(type_spinner)
         name_input = RoundedInput(multiline=False, size_hint_y=None, height=dp(54))
         content.add_widget(type_spinner)
         content.add_widget(name_input)

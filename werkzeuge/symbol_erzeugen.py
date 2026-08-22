@@ -35,7 +35,7 @@ Version:
 import sys
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 PROJEKT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJEKT))
@@ -50,6 +50,9 @@ KIG_LINKS = 0.28
 KIG_RECHTS = 0.72
 KIG_UNTEN = 0.52
 
+# Rundung der Ecken, als Anteil der Kantenlaenge. 0 = eckig.
+ECKEN_ANTEIL = 0.16
+
 GROSSE_GROESSEN = (256, 128, 64)
 KLEINE_GROESSEN = (48, 32, 16)
 
@@ -62,8 +65,41 @@ def zuschneiden(bild):
     return bild.crop(rand) if rand else bild
 
 
-def ins_quadrat(bild, kante, rand_anteil=0.06):
-    """Legt ein Bild mittig auf eine durchsichtige quadratische Fläche."""
+def weisse_flaeche(kante):
+    """Weiße Kachel mit abgerundeten Ecken.
+
+    Das Logo ist schwarz auf durchsichtig. Auf einem dunklen
+    Bildschirm - dunkler Desktop, dunkle Taskleiste - stand es damit
+    schwarz auf schwarz und war schlicht nicht zu sehen. Die weiße
+    Fläche darunter macht es überall sichtbar.
+
+    Die Ecken sind gerundet, wie bei Programmsymbolen üblich; ein
+    hartes weißes Quadrat sieht in der Taskleiste aus wie ein
+    Blatt Papier. Wer es eckig möchte, setzt ECKEN_ANTEIL auf 0.
+    """
+
+    flaeche = Image.new("RGBA", (kante, kante), (255, 255, 255, 0))
+
+    if ECKEN_ANTEIL <= 0:
+        flaeche.paste((255, 255, 255, 255), (0, 0, kante, kante))
+        return flaeche
+
+    # Vierfach gezeichnet und dann verkleinert: Sonst sind die
+    # Rundungen bei 16 Bildpunkten ausgefranst.
+    fein = 4
+    gross = Image.new("RGBA", (kante * fein, kante * fein), (255, 255, 255, 0))
+
+    ImageDraw.Draw(gross).rounded_rectangle(
+        (0, 0, kante * fein - 1, kante * fein - 1),
+        radius=int(kante * fein * ECKEN_ANTEIL),
+        fill=(255, 255, 255, 255),
+    )
+
+    return gross.resize((kante, kante), Image.LANCZOS)
+
+
+def ins_quadrat(bild, kante, rand_anteil=0.08):
+    """Legt ein Bild mittig auf die weiße Kachel."""
 
     platz = int(kante * (1 - 2 * rand_anteil))
 
@@ -75,7 +111,7 @@ def ins_quadrat(bild, kante, rand_anteil=0.06):
         Image.LANCZOS,
     )
 
-    flaeche = Image.new("RGBA", (kante, kante), (255, 255, 255, 0))
+    flaeche = weisse_flaeche(kante)
     flaeche.paste(
         verkleinert,
         (

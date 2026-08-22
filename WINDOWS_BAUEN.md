@@ -50,17 +50,36 @@ in `daten\backups`.)
 
 ## Das Programmsymbol
 
-`assets\icons\kig_pos.ico` entsteht aus dem Vereinslogo:
+Beide Symboldateien entstehen aus dem Vereinslogo:
 
 ```bash
 .venv\Scripts\python.exe werkzeuge\symbol_erzeugen.py
 ```
 
-Die Datei enthält zwei Zuschnitte — das ganze Logo für große
-Darstellungen, nur den Schriftzug "KiG" für kleine. In der Taskleiste
-wäre das vollständige Logo sonst ein grauer Streifen.
+| Datei | Wer zeigt sie |
+|---|---|
+| `assets\icons\kig_pos.ico` | Windows: die exe, Verknüpfungen, Explorer |
+| `assets\icons\kig_pos.png` | Kivy: Fenster und Taskleiste des laufenden Programms |
 
-Neu erzeugen muss man es nur, wenn sich das Logo ändert.
+**Zwei Dateien sind nötig, keine Bequemlichkeit:** Kivy nimmt eine
+.ico-Datei zwar widerspruchslos an, lädt sie aber nicht — das Fenster
+behält dann Kivys eigenes Zeichen, und genau das steht in der
+Taskleiste. Nachgemessen am laufenden Fenster (`WM_GETICON`).
+
+Die .ico enthält zwei Zuschnitte: das ganze Logo für große
+Darstellungen, nur den Schriftzug "KiG" für kleine. In der Taskleiste
+wäre das vollständige Logo sonst ein grauer Streifen. Beides liegt auf
+einer weißen Kachel, sonst ist das schwarze Logo auf dunklem
+Bildschirm unsichtbar.
+
+Neu erzeugen muss man die Dateien nur, wenn sich das Logo ändert.
+
+**Wenn Windows trotzdem das alte Symbol zeigt:** Das ist der
+Symbolzwischenspeicher, nicht die Datei. Auffrischen mit
+
+```bash
+ie4uinit.exe -show
+```
 
 ---
 

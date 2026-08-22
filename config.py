@@ -214,9 +214,18 @@ ICON_USE = ICON_DIR / "use.png"
 
 ICON_SETTINGS = ICON_DIR / "settings.png"
 
-# Programmsymbol für Fenster, Taskleiste und die .exe selbst.
-# Erzeugt aus dem Vereinslogo, siehe werkzeuge/symbol_erzeugen.py.
+# Programmsymbol, erzeugt aus dem Vereinslogo
+# (siehe werkzeuge/symbol_erzeugen.py). Zwei Dateien, weil zwei
+# verschiedene Stellen es anzeigen:
+#
+#     .ico   Windows selbst: die exe, Verknüpfungen, Explorer
+#     .png   Kivy: Fenster und Taskleiste des laufenden Programms
+#
+# Kivy bekommt eine .ico-Datei nicht geladen und behält dann sein
+# eigenes Zeichen - nachgemessen am laufenden Fenster.
 ICON_APP = ICON_DIR / "kig_pos.ico"
+
+ICON_APP_FENSTER = ICON_DIR / "kig_pos.png"
 
 # ==========================================================
 # Hinweis zu Farben, Größen und Schriftgrößen

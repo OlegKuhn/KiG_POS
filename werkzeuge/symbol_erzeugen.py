@@ -7,8 +7,14 @@ Datei:
     werkzeuge/symbol_erzeugen.py
 
 Beschreibung:
-    Erzeugt das Programmsymbol assets/icons/kig_pos.ico
-    aus assets/kig_logo.png.
+    Erzeugt das Programmsymbol aus assets/kig_logo.png.
+
+    Zwei Dateien, weil zwei Stellen es anzeigen:
+
+        kig_pos.ico   Windows: die exe, Verknüpfungen,
+                      Explorer
+        kig_pos.png   Kivy: Fenster und Taskleiste des
+                      laufenden Programms
 
     Das Logo ist doppelt so breit wie hoch. In ein Quadrat
     gezwängt bleibt davon in der Taskleiste ein grauer
@@ -23,6 +29,10 @@ Beschreibung:
     Bild heraus. So bleibt in der Taskleiste erkennbar,
     was man vor sich hat, und in der Dateiübersicht steht
     trotzdem das vollständige Logo.
+
+    Beides liegt auf einer weißen Kachel: Das Logo selbst
+    ist schwarz auf durchsichtig und war auf einem dunklen
+    Bildschirm nicht zu sehen.
 
 Aufruf:
     .venv\\Scripts\\python.exe werkzeuge\\symbol_erzeugen.py
@@ -41,7 +51,14 @@ PROJEKT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJEKT))
 
 QUELLE = PROJEKT / "assets" / "kig_logo.png"
+
+# Zwei Ziele, zwei Verwendungen:
+#     .ico  Windows: die exe selbst, Verknüpfungen, Explorer
+#     .png  Kivy: Fenster und Taskleiste des laufenden Programms
 ZIEL = PROJEKT / "assets" / "icons" / "kig_pos.ico"
+ZIEL_PNG = PROJEKT / "assets" / "icons" / "kig_pos.png"
+
+FENSTER_GROESSE = 256
 
 # Anteil der Logobreite, in dem der Schriftzug "KiG" steht. Gemessen am
 # vorhandenen Logo: Die Krone links und rechts (Dartpfeile, Billardqueues)
@@ -153,6 +170,23 @@ def main():
 
     print(f"{ZIEL.relative_to(PROJEKT)} erzeugt "
           f"({', '.join(str(bild.width) for bild in bilder)})")
+
+    # -------------------------------------------------
+    # Dasselbe Symbol als PNG - fuer Fenster und Taskleiste
+    # -------------------------------------------------
+    #
+    # Kivy bekommt eine .ico-Datei NICHT geladen: Das Fenster behaelt
+    # dann Kivys eigenes Zeichen, und genau das steht in der
+    # Taskleiste. Nachgemessen am laufenden Fenster (WM_GETICON) -
+    # mit .png kommt unser Symbol an, mit .ico nicht.
+    #
+    # Bewusst der Zuschnitt "KiG" und nicht das ganze Logo: In der
+    # Taskleiste ist das Symbol rund 32 Bildpunkte gross.
+
+    ins_quadrat(schriftzug, FENSTER_GROESSE).save(ZIEL_PNG)
+
+    print(f"{ZIEL_PNG.relative_to(PROJEKT)} erzeugt "
+          f"({FENSTER_GROESSE} fuer Fenster und Taskleiste)")
 
 
 if __name__ == "__main__":

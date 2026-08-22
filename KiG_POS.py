@@ -286,7 +286,12 @@ class KiGPOS(App):
     # Vereinslogo in Fenster und Taskleiste. Ohne diese Zeile zeigt
     # Kivy dort sein eigenes Zeichen - im Verein sitzt aber niemand
     # vor "einem Kivy-Programm", sondern vor der Vereinskasse.
-    icon = str(config.ICON_APP)
+    #
+    # Ausdrücklich die PNG-Fassung: Eine .ico-Datei nimmt Kivy zwar
+    # widerspruchslos an, lädt sie aber nicht - das Fenster behält
+    # dann sein altes Zeichen. Am laufenden Fenster nachgemessen
+    # (WM_GETICON), siehe config.ICON_APP_FENSTER.
+    icon = str(config.ICON_APP_FENSTER)
 
     def build(self):
 

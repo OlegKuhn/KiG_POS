@@ -53,11 +53,19 @@ def data_dir() -> Path:
     also AppData\\Roaming\\<name>, auf Android der private App-Ordner.
     Ohne laufende Anwendung (z. B. in einem Skript) bleibt es beim
     Projektordner aus config.py.
+
+    Ausnahme: das fertige Programmpaket (.exe). Dort liegen die Daten
+    im Ordner "daten" NEBEN der exe. Wer sie weitergibt, gibt damit
+    einen in sich geschlossenen Ordner weiter; wer die exe zum ersten
+    Mal startet, fängt mit einer leeren Datenbank an - und nicht mit
+    dem, was zufällig unter AppData eines Entwicklungsrechners liegt.
     """
 
     app = App.get_running_app()
 
-    if app is not None:
+    if config.IST_PROGRAMMPAKET:
+        ordner = config.BASE_DIR / "daten"
+    elif app is not None:
         ordner = Path(app.user_data_dir)
     else:
         ordner = config.DATABASE_DIR

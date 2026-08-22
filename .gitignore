@@ -26,6 +26,11 @@ logs/
 .buildozer/
 bin/
 
+# Ergebnisse des Windows-Baus (PyInstaller): 62 MB, jederzeit aus
+# KiG_POS.spec neu erzeugbar
+build/
+dist/
+
 # Python
 __pycache__/
 *.pyc

@@ -52,6 +52,8 @@ Build:
 ====================================================================
 """
 
+import sys
+
 from pathlib import Path
 
 # ==========================================================
@@ -126,10 +128,29 @@ SPLASH_DURATION = 2.0
 # ==========================================================
 # Ordnerstruktur
 # ==========================================================
+#
+# Als fertiges Programm (.exe) gibt es zwei verschiedene Orte:
+#
+#     BASE_DIR      der Ordner NEBEN der exe - dorthin wird
+#                   geschrieben (Datenbank, Ausgaben, Protokoll)
+#     RESOURCE_DIR  die mitgelieferten Dateien im Programmpaket -
+#                   von dort wird nur gelesen
+#
+# PyInstaller packt die Bilder und Schriften in einen eigenen Ordner
+# (sys._MEIPASS), der bei jedem Start neu entsteht. Wer dort etwas
+# ablegt, findet es beim nächsten Start nicht wieder - deshalb die
+# Trennung. Im Projektordner sind beide gleich.
 
-BASE_DIR = Path(__file__).resolve().parent
+IST_PROGRAMMPAKET = getattr(sys, "frozen", False)
 
-ASSETS_DIR = BASE_DIR / "assets"
+if IST_PROGRAMMPAKET:
+    BASE_DIR = Path(sys.executable).resolve().parent
+    RESOURCE_DIR = Path(getattr(sys, "_MEIPASS", BASE_DIR))
+else:
+    BASE_DIR = Path(__file__).resolve().parent
+    RESOURCE_DIR = BASE_DIR
+
+ASSETS_DIR = RESOURCE_DIR / "assets"
 
 DATABASE_DIR = BASE_DIR / "database"
 
@@ -192,6 +213,10 @@ ICON_ARTICLES = ICON_DIR / "articles.png"
 ICON_USE = ICON_DIR / "use.png"
 
 ICON_SETTINGS = ICON_DIR / "settings.png"
+
+# Programmsymbol für Fenster, Taskleiste und die .exe selbst.
+# Erzeugt aus dem Vereinslogo, siehe werkzeuge/symbol_erzeugen.py.
+ICON_APP = ICON_DIR / "kig_pos.ico"
 
 # ==========================================================
 # Hinweis zu Farben, Größen und Schriftgrößen

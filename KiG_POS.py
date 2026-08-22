@@ -283,6 +283,11 @@ class KiGPOS(App):
 
     title = config.APP_NAME
 
+    # Vereinslogo in Fenster und Taskleiste. Ohne diese Zeile zeigt
+    # Kivy dort sein eigenes Zeichen - im Verein sitzt aber niemand
+    # vor "einem Kivy-Programm", sondern vor der Vereinskasse.
+    icon = str(config.ICON_APP)
+
     def build(self):
 
         # Kivys Umrechnung von "sp" und "dp" in Ordnung bringen, bevor

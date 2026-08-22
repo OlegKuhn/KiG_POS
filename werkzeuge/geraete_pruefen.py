@@ -317,10 +317,21 @@ class GeraetePruefungApp(App):
         if not fehler:
             print(f"    alle {len(SCREENS)} Screens ohne Ueberlauf -- OK")
 
-        # Zusätzlich: Wie viele Kacheln passen nebeneinander? Das ist
-        # kein Fehler, aber die Zahl, die man sehen will.
+        # Zusätzlich: Wie viele Kacheln passen je Gruppe nebeneinander
+        # und passt die Startseite ohne Rollen? Kein Fehler, aber die
+        # Zahlen, die man sehen will.
         home = layout.home_screen
-        print(f"    Startseite: {home.grid.cols} Kacheln je Reihe")
+
+        spalten = [raster.cols for _titel, raster, _kacheln in home.groups]
+
+        passt = (
+            "ohne Rollen"
+            if home.groups_layout.height <= home.scroll.height + 1
+            else f"rollt ({home.groups_layout.height - home.scroll.height:.0f} px)"
+        )
+
+        print(f"    Startseite: Gruppen mit {spalten} Kacheln je Reihe, "
+              f"{passt}")
 
         return fehler
 

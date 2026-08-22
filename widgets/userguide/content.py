@@ -45,11 +45,18 @@ TOPICS = [
             {
                 "heading": "Aufbau des Programms",
                 "text": (
-                    "Nach dem Start landest du auf der Startseite. Von "
-                    "hier aus erreichst du über die sechs Kacheln alle "
-                    "Bereiche des Programms: Kasse, Statistik, Events, "
-                    "Artikel, Userguide und Einstellungen. Ein Tipp auf "
-                    "eine Kachel öffnet den jeweiligen Bereich."
+                    "Nach dem Start landest du auf der Startseite. Die "
+                    "Kacheln stehen dort in drei Gruppen, damit du "
+                    "findest, was du gerade brauchst:\n\n"
+                    "Operativ - was während der Veranstaltung läuft: "
+                    "Kasse und Kassenbuch.\n\n"
+                    "Administrativ - was vorbereitet und ausgewertet "
+                    "wird: Artikel, Events, Checkliste und Statistik.\n\n"
+                    "Support - Userguide und Einstellungen.\n\n"
+                    "Ein Tipp auf eine Kachel öffnet den jeweiligen "
+                    "Bereich. Wie viele Kacheln nebeneinander stehen, "
+                    "richtet sich nach dem Bildschirm - am Rechner vier, "
+                    "auf dem Telefon eine untereinander."
                 ),
                 "image": "start/01_startseite.png",
             },

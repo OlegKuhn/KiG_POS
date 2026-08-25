@@ -74,26 +74,6 @@ jobs:
             libncursesw5-dev libgdbm-dev tk-dev uuid-dev
           pip install --upgrade buildozer cython==0.29.36
 
-      # Fester Signaturschlüssel.
-      #
-      # Ohne diesen Schritt erzeugt Gradle bei jedem Lauf einen neuen
-      # Schlüssel. Android sieht dann eine fremde App und verweigert
-      # das Update - man müsste die alte deinstallieren und verlöre
-      # dabei die Datenbank. Mit einem festen Schlüssel installiert
-      # sich jede neue Fassung über die alte, die Daten bleiben.
-      #
-      # Der Schlüssel liegt im Projekt (android/debug.keystore) und
-      # trägt bewusst die Standardwerte eines Debug-Schlüssels -
-      # Gradle sucht genau danach. Siehe ANDROID_BAUEN.md.
-      - name: Signaturschlüssel einsetzen
-        run: |
-          mkdir -p ~/.android
-          cp android/debug.keystore ~/.android/debug.keystore
-          keytool -list -v \
-            -keystore ~/.android/debug.keystore \
-            -storepass android -alias androiddebugkey \
-            | grep -i "SHA256:"
-
       # Die Ausgabe zusätzlich in eine Datei schreiben, damit sie im
       # Fehlerfall komplett heruntergeladen werden kann.
       #
@@ -126,6 +106,40 @@ jobs:
             | tee -a bauprotokoll.txt
 
           buildozer android debug 2>&1 | tee -a bauprotokoll.txt
+
+      # Fester Signaturschlüssel.
+      #
+      # Android lässt ein Update nur zu, wenn die neue Fassung
+      # denselben Schlüssel trägt wie die installierte. Gradle erzeugt
+      # sich sonst bei jedem Lauf einen neuen - die alte App müsste
+      # weichen, und mit ihr die Datenbank.
+      #
+      # Unterschrieben wird deshalb hier, ausdrücklich und im
+      # Nachhinein: Es genügte NICHT, den Schlüssel unter
+      # ~/.android/debug.keystore abzulegen - Gradle sucht ihn dort
+      # nicht (nachgemessen, Lauf 28: die APK trug einen fremden
+      # Fingerabdruck). apksigner ersetzt die Unterschrift der
+      # fertigen Datei und hängt von keiner Suchregel ab.
+      - name: APK unterschreiben
+        run: |
+          APK=$(ls bin/*.apk | head -1)
+          APKSIGNER=$(find ~/.buildozer -name apksigner -type f 2>/dev/null | head -1)
+
+          echo "APK:        $APK"
+          echo "apksigner:  $APKSIGNER"
+
+          if [ -z "$APKSIGNER" ]; then
+            echo "::error::apksigner nicht gefunden - ohne ihn laesst sich"\
+                 "die Unterschrift nicht festlegen."
+            exit 1
+          fi
+
+          "$APKSIGNER" sign \
+            --ks android/debug.keystore \
+            --ks-pass pass:android \
+            --ks-key-alias androiddebugkey \
+            --key-pass pass:android \
+            "$APK"
 
       # Nachprüfen statt hoffen: Ist die fertige APK wirklich mit
       # unserem Schlüssel unterschrieben?
@@ -169,12 +183,12 @@ jobs:
           echo "gefunden:   $GEFUNDEN"
 
           if [ "$GEFUNDEN" != "$NORMIERT" ]; then
-            echo "::error::Die APK ist mit einem FREMDEN Schluessel"\
-                 "unterschrieben - ein Update wuerde die Datenbank kosten."
+            echo "::error::Fremder Schluessel: gefunden $GEFUNDEN,"\
+                 "erwartet $NORMIERT - ein Update wuerde die Datenbank kosten."
             exit 1
           fi
 
-          echo "Signatur stimmt - Updates behalten die Datenbank."
+          echo "::notice::Signatur stimmt ($GEFUNDEN) - Updates behalten die Datenbank."
 
       # Auch (und gerade) wenn der Bau scheitert: Protokoll sichern.
       - name: Bauprotokoll bereitstellen

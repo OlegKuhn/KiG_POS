@@ -153,10 +153,9 @@ Seitdem liegt der Schlüssel im Projekt:
 android/debug.keystore
 ```
 
-Der Bauablauf kopiert ihn vor dem Übersetzen nach
-`~/.android/debug.keystore` — dort sucht Gradle danach. **Danach prüft
-er nach**, ob die fertige APK wirklich diesen Fingerabdruck trägt, und
-bricht ab, wenn nicht:
+Der Bauablauf unterschreibt die fertige APK ausdrücklich mit diesem
+Schlüssel (`apksigner sign`) und **prüft danach nach**, ob sie wirklich
+diesen Fingerabdruck trägt; sonst bricht er ab:
 
 ```
 35:34:42:AF:E7:E8:15:32:21:C4:FF:1E:4D:69:7B:FF:

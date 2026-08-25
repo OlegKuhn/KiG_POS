@@ -295,6 +295,20 @@ class KiGPOS(App):
 
     def build(self):
 
+        # Die Bildschirmtastatur soll das Feld nicht verdecken, in das
+        # gerade geschrieben wird.
+        #
+        # Auf dem Tablet klappt sie über die untere Bildschirmhälfte -
+        # und genau dort steht in allen Listen das Feld für den neuen
+        # Eintrag. Man tippte also blind.
+        #
+        # "below_target" schiebt den Fensterinhalt so weit nach oben,
+        # dass das gerade beschriebene Feld direkt über der Tastatur
+        # steht: nur so weit wie nötig, und alles Übrige bleibt an
+        # seinem Platz. Kivy reicht die Einstellung an Android weiter
+        # (siehe window_sdl2.py: request_keyboard -> show_keyboard).
+        Window.softinput_mode = "below_target"
+
         # Kivys Umrechnung von "sp" und "dp" in Ordnung bringen, bevor
         # die erste Beschriftung entsteht: auf dem Rechner anstoßen
         # (sonst wird die Schrift unsichtbar, siehe _bildpunkt_faktor),

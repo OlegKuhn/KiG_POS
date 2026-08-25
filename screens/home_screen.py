@@ -289,11 +289,12 @@ class HomeScreen(Screen):
         self.groups = []
 
         for ueberschrift, kacheln in (
-            ("Operativ", (self.tile_cash, self.tile_cashbook)),
+            ("Operativ", (
+                self.tile_cash, self.tile_cashbook, self.tile_articles,
+            )),
             ("Administrativ", (
-                self.tile_articles, self.tile_events,
-                self.tile_checklist, self.tile_shiftplan,
-                self.tile_statistics,
+                self.tile_events, self.tile_checklist,
+                self.tile_shiftplan, self.tile_statistics,
             )),
             ("Support", (self.tile_use, self.tile_settings)),
         ):

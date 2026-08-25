@@ -114,10 +114,10 @@ class ShiftRow(BoxLayout):
     # zueinander - der Balken bekommt deshalb ausdruecklich einen
     # eigenen Anteil und nicht "den Rest", sonst draengt er die
     # Zeitfelder auf zwei Ziffern zusammen.
-    TASK_WIDTH = 0.26
-    TIME_WIDTH = 0.13
+    TASK_WIDTH = 0.24
+    TIME_WIDTH = 0.17
     COUNT_WIDTH = 90
-    BAR_WIDTH = 0.30
+    BAR_WIDTH = 0.22
     HELPER_WIDTH = 0.28
     REMOVE_WIDTH = 52
 

@@ -307,6 +307,11 @@ class KiGPOS(App):
         # steht: nur so weit wie nötig, und alles Übrige bleibt an
         # seinem Platz. Kivy reicht die Einstellung an Android weiter
         # (siehe window_sdl2.py: request_keyboard -> show_keyboard).
+        #
+        # Auf dem Boox Go 10.3 nachgeprüft: Das Feld rutscht hoch, man
+        # sieht beim Tippen, was man schreibt. Auf dem Rechner ist
+        # davon nichts zu sehen - dort gibt es keine
+        # Bildschirmtastatur.
         Window.softinput_mode = "below_target"
 
         # Kivys Umrechnung von "sp" und "dp" in Ordnung bringen, bevor

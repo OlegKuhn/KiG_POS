@@ -31,8 +31,8 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
 
 
+from widgets.common.senkrechte_beschriftung import SenkrechteBeschriftung
 from widgets.home.home_tile import HomeTile
-from widgets.kig_label import KiGLabel
 
 import config
 import theme
@@ -42,13 +42,15 @@ class HomeScreen(Screen):
     Startbildschirm der Anwendung.
     """
 
-    # Höchstens so viele Kacheln nebeneinander. Vier, weil die
-    # größte Gruppe (Administrativ) genau vier hat und auf einem
-    # breiten Bildschirm in einer Reihe stehen soll.
-    MAX_COLUMNS = 4
+    # Höchstens so viele Kacheln nebeneinander. Fünf, damit auch die
+    # größte Gruppe (Administrativ) auf einem breiten Bildschirm in
+    # einer Reihe steht.
+    MAX_COLUMNS = 5
 
-    # Höhe einer Gruppenüberschrift
-    GROUP_TITLE_HEIGHT = 28
+    # Breite des Streifens links neben den Kacheln, in dem die
+    # Gruppenüberschrift hochkant steht. Waagerecht kostete sie eine
+    # ganze Zeile Höhe - und Höhe ist auf dem Tablet das knappere Gut.
+    GROUP_TITLE_WIDTH = 30
 
     # =====================================================
     # Konstruktor
@@ -337,21 +339,30 @@ class HomeScreen(Screen):
         )
 
     def _add_group(self, ueberschrift, kacheln):
-        """Eine Gruppe: Überschrift und darunter ihre Kacheln.
+        """Eine Gruppe: Überschrift links, daneben ihre Kacheln.
+
+        Die Überschrift steht hochkant in einem schmalen Streifen -
+        siehe GROUP_TITLE_WIDTH.
 
         Liefert (Überschrift, Raster, Kacheln) - der Bildschirm braucht
         beides später, um die Spaltenzahl anzupassen.
         """
 
-        titel = KiGLabel(text=ueberschrift)
-        titel.set_font_size(16)
-        titel.set_bold(True)
-        titel.set_alignment("left")
-        titel.set_color(theme.TEXT_SECONDARY)
-        titel.size_hint = (None, None)
-        titel.height = dp(self.GROUP_TITLE_HEIGHT)
+        zeile = BoxLayout(
+            orientation="horizontal",
+            spacing=dp(theme.SPACE_S),
+            size_hint=(None, None),
+        )
 
-        self.groups_layout.add_widget(titel)
+        titel = SenkrechteBeschriftung(
+            text=ueberschrift,
+            font_size=16,
+            color=theme.TEXT_SECONDARY,
+            size_hint=(None, None),
+            width=dp(self.GROUP_TITLE_WIDTH),
+        )
+
+        zeile.add_widget(titel)
 
         raster = GridLayout(
             cols=len(kacheln),
@@ -364,7 +375,20 @@ class HomeScreen(Screen):
         for kachel in kacheln:
             raster.add_widget(kachel)
 
-        self.groups_layout.add_widget(raster)
+        zeile.add_widget(raster)
+
+        # Die Zeile ist so hoch wie ihr Raster - und die Überschrift
+        # genauso hoch, damit der gedrehte Text auf ganzer Höhe mittig
+        # sitzt.
+        def anpassen(_instanz, groesse):
+            titel.height = groesse[1]
+            zeile.height = groesse[1]
+            zeile.width = titel.width + dp(theme.SPACE_S) + groesse[0]
+
+        raster.bind(size=anpassen)
+        anpassen(raster, raster.size)
+
+        self.groups_layout.add_widget(zeile)
 
         return titel, raster, tuple(kacheln)
 
@@ -384,7 +408,11 @@ class HomeScreen(Screen):
         abstand = dp(theme.TILE_SPACING)
         rand = dp(theme.SCREEN_PADDING)
 
-        verfuegbar = self.width - 2 * rand
+        # Der Streifen mit der hochkanten Überschrift geht vom Platz
+        # für die Kacheln ab.
+        streifen = dp(self.GROUP_TITLE_WIDTH) + dp(theme.SPACE_S)
+
+        verfuegbar = self.width - 2 * rand - streifen
 
         passend = int((verfuegbar + abstand) // (kachel_breite + abstand))
         passend = max(1, min(self.MAX_COLUMNS, passend))
@@ -402,11 +430,7 @@ class HomeScreen(Screen):
 
         breite = breiteste * kachel_breite + (breiteste - 1) * abstand
 
-        self.groups_layout.width = breite + 2 * rand
-
-        for titel, _raster, _kacheln in self.groups:
-            titel.width = breite
-            titel.text_size = (breite, titel.height)
+        self.groups_layout.width = breite + streifen + 2 * rand
 
     # =====================================================
     # Callbacks

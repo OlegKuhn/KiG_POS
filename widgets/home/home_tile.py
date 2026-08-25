@@ -17,13 +17,19 @@ class HomeTile(KiGTile):
     subtitle = StringProperty("")
     icon = StringProperty("")
 
-    PADDING = theme.CARD_PADDING
+    # Kleiner als die allgemeine Kachel (KiGTile: 260 x 180): Auf der
+    # Startseite zählt, wie viele Bereiche auf einen Blick zu sehen
+    # sind - im Hochformat passt so eine Kachel mehr in die Reihe.
+    WIDTH = 210
+    HEIGHT = 140
+
+    PADDING = theme.SPACE_M
     SPACING = theme.LABEL_SPACING
 
-    ICON_SIZE = 72
+    ICON_SIZE = 56
 
-    TITLE_SIZE = 20
-    SUBTITLE_SIZE = 14
+    TITLE_SIZE = 17
+    SUBTITLE_SIZE = 12
 
     def __init__(self, **kwargs):
 

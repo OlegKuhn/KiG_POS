@@ -82,7 +82,7 @@ fullscreen  = Vollbild
 borderless  = randloses Fenster
 """
 
-WINDOW_MODE = "fullscreen"
+WINDOW_MODE = "window"
 
 WINDOW_WIDTH = 1200
 

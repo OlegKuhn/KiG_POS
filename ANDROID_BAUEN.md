@@ -137,6 +137,53 @@ normal.
 
 ---
 
+## Der Signaturschlüssel — warum Updates jetzt die Daten behalten
+
+Jede Android-App ist unterschrieben. Android lässt ein Update **nur
+zu, wenn die neue Fassung denselben Schlüssel trägt** wie die
+installierte; sonst gilt sie als fremde App. Man müsste die alte
+deinstallieren — und mit ihr verschwindet die Datenbank.
+
+Genau das passierte anfangs: Ohne festen Schlüssel erzeugte Gradle bei
+jedem Bau einen neuen.
+
+Seitdem liegt der Schlüssel im Projekt:
+
+```
+android/debug.keystore
+```
+
+Der Bauablauf kopiert ihn vor dem Übersetzen nach
+`~/.android/debug.keystore` — dort sucht Gradle danach. **Danach prüft
+er nach**, ob die fertige APK wirklich diesen Fingerabdruck trägt, und
+bricht ab, wenn nicht:
+
+```
+35:34:42:AF:E7:E8:15:32:21:C4:FF:1E:4D:69:7B:FF:
+DB:2E:AD:A4:9F:11:B9:6D:8E:7C:4C:0C:DD:1C:CA:06
+```
+
+Eine APK mit fremdem Schlüssel wäre schlimmer als keine: Sie ließe
+sich installieren, und erst beim übernächsten Mal fiele auf, dass die
+Kette gerissen ist.
+
+**Was das bedeutet:** Der Schlüssel liegt offen im Projekt und trägt
+die Standardwerte eines Debug-Schlüssels (Passwort `android`, Alias
+`androiddebugkey`). Er ist also kein Geheimnis — wer das Projekt hat,
+kann eine APK bauen, die sich über die installierte legt. Für eine
+Vereins-App, die von Hand aufs Tablet kommt, ist das in Ordnung. Soll
+KiG POS je in einen App-Store, braucht es einen echten
+Veröffentlichungsschlüssel, der **nicht** ins Projekt gehört, sondern
+in die GitHub-Secrets.
+
+**Einmalig noch nötig:** Die erste Fassung mit festem Schlüssel kann
+sich nicht über eine ältere legen — die trägt ja noch den zufälligen
+Schlüssel von damals. Für diesen einen Wechsel also: Datenbank sichern,
+alte App deinstallieren, neue installieren, Datenbank zurückspielen
+(siehe unten). Ab dann genügt `adb install -r`.
+
+---
+
 ## Was auf dem Telefon anders ist
 
 | | Windows | Android |

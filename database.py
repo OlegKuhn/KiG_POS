@@ -311,6 +311,8 @@ class DatabaseManager:
 
         self._create_checklist_tables()
 
+        self._create_shift_tables()
+
         self.commit()
 
         self.logger.info("Alle Tabellen erfolgreich erstellt.")
@@ -1461,6 +1463,85 @@ class DatabaseManager:
             updated_at TEXT,
 
             FOREIGN KEY(checklist_id) REFERENCES checklists(id)
+
+        )
+
+        """)
+
+    def _create_shift_tables(self):
+        """Schichtpläne, Schichten und die eingetragenen Helfer.
+
+        Ein Plan gehört zu genau einer Veranstaltung, eine Schicht zu
+        genau einem Plan.
+
+        Wie viele Helfer eine Schicht HAT, wird bewusst nicht
+        gespeichert: Es ist die Anzahl der Zeilen in shift_helpers.
+        Eine zweite, gepflegte Zahl liefe früher oder später aus dem
+        Ruder - gebraucht wird sie nicht, gezählt ist schnell genug.
+        Gespeichert ist nur, wie viele gebraucht werden (needed).
+        """
+
+        self.cursor.execute("""
+
+        CREATE TABLE IF NOT EXISTS shift_plans(
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            event_id INTEGER NOT NULL UNIQUE,
+
+            created_at TEXT,
+
+            updated_at TEXT,
+
+            FOREIGN KEY(event_id) REFERENCES events(id)
+
+        )
+
+        """)
+
+        self.cursor.execute("""
+
+        CREATE TABLE IF NOT EXISTS shifts(
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            plan_id INTEGER NOT NULL,
+
+            position INTEGER NOT NULL DEFAULT 0,
+
+            task TEXT NOT NULL DEFAULT '',
+
+            start_time TEXT,
+
+            end_time TEXT,
+
+            needed INTEGER NOT NULL DEFAULT 1,
+
+            created_at TEXT,
+
+            updated_at TEXT,
+
+            FOREIGN KEY(plan_id) REFERENCES shift_plans(id)
+
+        )
+
+        """)
+
+        self.cursor.execute("""
+
+        CREATE TABLE IF NOT EXISTS shift_helpers(
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            shift_id INTEGER NOT NULL,
+
+            name TEXT NOT NULL,
+
+            note TEXT,
+
+            created_at TEXT,
+
+            FOREIGN KEY(shift_id) REFERENCES shifts(id)
 
         )
 
@@ -3654,6 +3735,292 @@ class DatabaseManager:
         zeile = self.cursor.fetchone()
 
         return zeile["erledigt"], zeile["gesamt"]
+
+    #################################################################
+    # Schichtpläne
+    #################################################################
+
+    def get_shift_plans(self):
+        """Alle Schichtpläne mit ihrer Veranstaltung, nächste zuerst."""
+
+        self.cursor.execute("""
+            SELECT p.id, p.event_id,
+                   e.name AS event_name,
+                   e.start_date AS event_date
+            FROM shift_plans p
+            JOIN events e ON e.id = p.event_id
+            ORDER BY e.start_date, e.id
+        """)
+
+        return self.cursor.fetchall()
+
+    def get_shift_plan(self, plan_id):
+
+        self.cursor.execute("""
+            SELECT p.id, p.event_id,
+                   e.name AS event_name,
+                   e.start_date AS event_date
+            FROM shift_plans p
+            JOIN events e ON e.id = p.event_id
+            WHERE p.id = ?
+        """, (plan_id,))
+
+        return self.cursor.fetchone()
+
+    def get_shift_plan_for_event(self, event_id):
+
+        self.cursor.execute(
+            "SELECT * FROM shift_plans WHERE event_id = ?", (event_id,)
+        )
+
+        return self.cursor.fetchone()
+
+    def get_events_without_shift_plan(self):
+        """Veranstaltungen, für die es noch keinen Plan gibt.
+
+        Barschichten und reine Termine bleiben außen vor: Ein
+        Schichtplan gehört zu einer Veranstaltung.
+        """
+
+        self.cursor.execute("""
+            SELECT e.id, e.name, e.start_date
+            FROM events e
+            LEFT JOIN shift_plans p ON p.event_id = e.id
+            WHERE e.entry_type = 'EVENT' AND p.id IS NULL
+            ORDER BY e.start_date, e.id
+        """)
+
+        return self.cursor.fetchall()
+
+    def add_shift_plan(self, event_id):
+        """Legt einen Schichtplan an und liefert dessen id.
+
+        Gibt es für die Veranstaltung schon einen, wird dessen id
+        geliefert - zweimal derselbe Plan hilft niemandem.
+        """
+
+        vorhanden = self.get_shift_plan_for_event(event_id)
+
+        if vorhanden is not None:
+            return vorhanden["id"]
+
+        now = self.timestamp()
+
+        self.cursor.execute(
+            "INSERT INTO shift_plans(event_id, created_at, updated_at) "
+            "VALUES (?, ?, ?)",
+            (event_id, now, now)
+        )
+
+        self.commit()
+
+        return self.cursor.lastrowid
+
+    def delete_shift_plan(self, plan_id):
+        """Löscht einen Plan samt Schichten und eingetragenen Helfern."""
+
+        self.cursor.execute("""
+            DELETE FROM shift_helpers
+            WHERE shift_id IN (SELECT id FROM shifts WHERE plan_id = ?)
+        """, (plan_id,))
+
+        self.cursor.execute("DELETE FROM shifts WHERE plan_id = ?", (plan_id,))
+
+        self.cursor.execute(
+            "DELETE FROM shift_plans WHERE id = ?", (plan_id,)
+        )
+
+        self.commit()
+
+        return self.cursor.rowcount == 1
+
+    # -----------------------------------------------------
+    # Schichten
+    # -----------------------------------------------------
+
+    def get_shifts(self, plan_id):
+        """Schichten eines Plans, jede mit der Zahl ihrer Helfer.
+
+        "besetzt" kommt aus der Zählung, nicht aus einem Feld - siehe
+        _create_shift_tables.
+        """
+
+        self.cursor.execute("""
+            SELECT s.*,
+                   (SELECT COUNT(*) FROM shift_helpers h
+                    WHERE h.shift_id = s.id) AS besetzt
+            FROM shifts s
+            WHERE s.plan_id = ?
+            ORDER BY s.position, s.id
+        """, (plan_id,))
+
+        return self.cursor.fetchall()
+
+    def add_shift(
+            self,
+            plan_id,
+            task,
+            start_time="",
+            end_time="",
+            needed=1,
+    ):
+        """Hängt eine Schicht an den Plan an und liefert ihre id."""
+
+        task = (task or "").strip()
+
+        if not task:
+            return None
+
+        self.cursor.execute(
+            "SELECT COALESCE(MAX(position), -1) + 1 AS naechste "
+            "FROM shifts WHERE plan_id = ?",
+            (plan_id,)
+        )
+
+        position = self.cursor.fetchone()["naechste"]
+
+        now = self.timestamp()
+
+        self.cursor.execute("""
+            INSERT INTO shifts(
+                plan_id, position, task, start_time, end_time, needed,
+                created_at, updated_at
+            )
+            VALUES (?,?,?,?,?,?,?,?)
+        """, (
+            plan_id, position, task, start_time or "", end_time or "",
+            max(0, int(needed or 0)), now, now
+        ))
+
+        self.commit()
+
+        return self.cursor.lastrowid
+
+    def update_shift(self, shift_id, **felder):
+        """Ändert einzelne Angaben einer Schicht."""
+
+        erlaubt = ("task", "start_time", "end_time", "needed", "position")
+
+        zu_setzen = {
+            name: wert for name, wert in felder.items() if name in erlaubt
+        }
+
+        if not zu_setzen:
+            return False
+
+        if "needed" in zu_setzen:
+            zu_setzen["needed"] = max(0, int(zu_setzen["needed"] or 0))
+
+        zuweisungen = ", ".join(f"{name} = ?" for name in zu_setzen)
+
+        self.cursor.execute(
+            f"UPDATE shifts SET {zuweisungen}, updated_at = ? WHERE id = ?",
+            (*zu_setzen.values(), self.timestamp(), shift_id)
+        )
+
+        self.commit()
+
+        return self.cursor.rowcount == 1
+
+    def delete_shift(self, shift_id):
+        """Löscht eine Schicht samt ihrer Helfer."""
+
+        self.cursor.execute(
+            "DELETE FROM shift_helpers WHERE shift_id = ?", (shift_id,)
+        )
+
+        self.cursor.execute("DELETE FROM shifts WHERE id = ?", (shift_id,))
+
+        self.commit()
+
+        return self.cursor.rowcount == 1
+
+    def copy_shifts(self, quell_plan_id, ziel_plan_id):
+        """Übernimmt die Schichten eines Plans in einen anderen.
+
+        Ohne Helfer: Übernommen wird das Gerüst (Tätigkeit, Zeit,
+        Bedarf), nicht wer letztes Jahr da war.
+
+        Liefert die Anzahl der übernommenen Schichten.
+        """
+
+        uebernommen = 0
+
+        for schicht in self.get_shifts(quell_plan_id):
+
+            neu = self.add_shift(
+                ziel_plan_id,
+                schicht["task"],
+                schicht["start_time"],
+                schicht["end_time"],
+                schicht["needed"],
+            )
+
+            if neu is not None:
+                uebernommen += 1
+
+        return uebernommen
+
+    # -----------------------------------------------------
+    # Helfer
+    # -----------------------------------------------------
+
+    def get_shift_helpers(self, shift_id):
+
+        self.cursor.execute(
+            "SELECT * FROM shift_helpers WHERE shift_id = ? "
+            "ORDER BY created_at, id",
+            (shift_id,)
+        )
+
+        return self.cursor.fetchall()
+
+    def add_shift_helper(self, shift_id, name, note=""):
+        """Trägt einen Helfer in eine Schicht ein."""
+
+        name = (name or "").strip()
+
+        if not name:
+            return None
+
+        self.cursor.execute(
+            "INSERT INTO shift_helpers(shift_id, name, note, created_at) "
+            "VALUES (?, ?, ?, ?)",
+            (shift_id, name, note or "", self.timestamp())
+        )
+
+        self.commit()
+
+        return self.cursor.lastrowid
+
+    def delete_shift_helper(self, helper_id):
+
+        self.cursor.execute(
+            "DELETE FROM shift_helpers WHERE id = ?", (helper_id,)
+        )
+
+        self.commit()
+
+        return self.cursor.rowcount == 1
+
+    def get_shift_plan_summary(self, plan_id):
+        """(besetzt, plaetze, offene_schichten) eines Plans.
+
+        offene_schichten zählt die Schichten, in denen noch jemand
+        fehlt - die Zahl, die am Ende zählt.
+        """
+
+        schichten = self.get_shifts(plan_id)
+
+        besetzt = sum(schicht["besetzt"] for schicht in schichten)
+        plaetze = sum(schicht["needed"] for schicht in schichten)
+
+        offen = sum(
+            1 for schicht in schichten
+            if schicht["besetzt"] < schicht["needed"]
+        )
+
+        return besetzt, plaetze, offen
 
     #################################################################
     # Nächste Bonnummer

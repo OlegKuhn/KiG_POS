@@ -211,6 +211,24 @@ class HomeScreen(Screen):
         )
 
         #
+        # Schichtplan
+        #
+
+        self.tile_shiftplan = HomeTile()
+
+        self.tile_shiftplan.set_icon(
+            str(config.ICON_SHIFTPLAN)
+        )
+
+        self.tile_shiftplan.set_title(
+            "SCHICHTPLAN"
+        )
+
+        self.tile_shiftplan.set_subtitle(
+            "Helfer einteilen"
+        )
+
+        #
         # Artikelverwaltung (Artikel, Einkauf, Inventar, Rezepte)
         #
 
@@ -274,7 +292,8 @@ class HomeScreen(Screen):
             ("Operativ", (self.tile_cash, self.tile_cashbook)),
             ("Administrativ", (
                 self.tile_articles, self.tile_events,
-                self.tile_checklist, self.tile_statistics,
+                self.tile_checklist, self.tile_shiftplan,
+                self.tile_statistics,
             )),
             ("Support", (self.tile_use, self.tile_settings)),
         ):
@@ -314,6 +333,10 @@ class HomeScreen(Screen):
 
         self.tile_checklist.set_callback(
             self.open_checklist
+        )
+
+        self.tile_shiftplan.set_callback(
+            self.open_shiftplan
         )
 
         self.tile_articles.set_callback(
@@ -465,6 +488,12 @@ class HomeScreen(Screen):
     def open_checklist(self):
 
         self.manager.current = config.SCREEN_CHECKLIST
+
+    # -----------------------------------------------------
+
+    def open_shiftplan(self):
+
+        self.manager.current = config.SCREEN_SHIFTPLAN
 
     # -----------------------------------------------------
 

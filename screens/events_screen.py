@@ -18,6 +18,7 @@ import theme
 from database import DatabaseManager
 from widgets.common.feldausrichtung import links_ausrichten
 from widgets.common.confirm_popup import ConfirmPopup
+from widgets.common.kig_checkbox import KiGCheckbox
 from widgets.common.kig_popup import KiGPopup
 from widgets.common.rounded_input import RoundedInput
 from widgets.common.rounded_panel import RoundedPanel
@@ -273,6 +274,35 @@ class EventsScreen(Screen):
         content.add_widget(type_spinner)
         content.add_widget(name_input)
 
+        # -------------------------------------------------
+        # Was gehört sonst noch zu einer Veranstaltung?
+        # -------------------------------------------------
+        #
+        # Zu einem Event gehören fast immer eine Checkliste und ein
+        # Schichtplan. Beides ließe sich auch später von Hand anlegen -
+        # aber genau hier, beim Anlegen, weiß man den Namen und denkt
+        # daran. Angehakt wird bewusst nichts: Ein reiner
+        # Kalendereintrag soll nicht ungefragt zwei Listen erzeugen.
+        optionen = BoxLayout(
+            orientation="vertical",
+            size_hint_y=None,
+            height=dp(2 * KiGCheckbox.HEIGHT + theme.SPACE_XS),
+            spacing=dp(theme.SPACE_XS),
+        )
+
+        checkliste_haken = KiGCheckbox(text="Checkliste dazu anlegen")
+        schichtplan_haken = KiGCheckbox(text="Schichtplan dazu anlegen")
+
+        optionen.add_widget(checkliste_haken)
+        optionen.add_widget(schichtplan_haken)
+
+        # Nur beim Anlegen und nur für Events: Eine Barschicht oder ein
+        # Termin braucht weder Checkliste noch Schichtplan.
+        optionen_sichtbar = entry is None
+
+        if optionen_sichtbar:
+            content.add_widget(optionen)
+
         if entry is None:
             type_spinner.text = "Event"
             name_input.hint_text = "Name des Events oder Termins"
@@ -281,10 +311,28 @@ class EventsScreen(Screen):
             name_input.text = CalendarDayButton._display_name(entry)
 
         def update_hint(_spinner, label):
+
             name_input.hint_text = (
                 "Namen der arbeitenden Personen" if label == "Barschicht"
                 else "Name des Events oder Termins"
             )
+
+            if entry is not None:
+                return
+
+            # Aus dem Baum NEHMEN statt nur ausblenden: Ein Widget, das
+            # noch im Baum hängt, fängt weiterhin Berührungen ab (siehe
+            # cash_screen.py, _render_overlays).
+            gewuenscht = label == "Event"
+            vorhanden = optionen.parent is not None
+
+            if gewuenscht and not vorhanden:
+                # Index 1: über der Knopfzeile, die zuletzt angehängt
+                # wurde.
+                content.add_widget(optionen, index=1)
+
+            elif not gewuenscht and vorhanden:
+                content.remove_widget(optionen)
 
         type_spinner.bind(text=update_hint)
         update_hint(type_spinner, type_spinner.text)
@@ -294,13 +342,19 @@ class EventsScreen(Screen):
             title="Eintrag bearbeiten" if entry else "Neuen Eintrag anlegen",
             content=content,
             size_hint=(0.62, None),
-            height=min(dp(340), Window.height - dp(20)),
+            height=min(
+                dp(430) if optionen_sichtbar else dp(340),
+                Window.height - dp(20),
+            ),
             pos_hint={"center_x": 0.5, "top": 0.98},
             auto_dismiss=False
         )
 
         buttons.add_widget(self._button("Speichern", lambda: self.save_entry(
-            editor_popup, selected_day, entry, type_spinner.text, name_input.text
+            editor_popup, selected_day, entry, type_spinner.text,
+            name_input.text,
+            mit_checkliste=checkliste_haken.aktiv,
+            mit_schichtplan=schichtplan_haken.aktiv,
         ), height=dp(54)))
 
         if entry is not None:
@@ -310,7 +364,16 @@ class EventsScreen(Screen):
         content.add_widget(buttons)
         editor_popup.open()
 
-    def save_entry(self, popup, selected_day, entry, type_label, text):
+    def save_entry(
+            self,
+            popup,
+            selected_day,
+            entry,
+            type_label,
+            text,
+            mit_checkliste=False,
+            mit_schichtplan=False,
+    ):
         text = text.strip()
         if not text:
             return
@@ -320,7 +383,8 @@ class EventsScreen(Screen):
         staff_names = text if entry_type == "SHIFT" else ""
 
         if entry is None:
-            self.db.add_event(
+
+            event_id = self.db.add_event(
                 name=name,
                 location="",
                 organizer="",
@@ -329,6 +393,16 @@ class EventsScreen(Screen):
                 entry_type=entry_type,
                 staff_names=staff_names
             )
+
+            # Nur für Events - siehe open_entry_editor.
+            if entry_type == "EVENT":
+
+                if mit_checkliste:
+                    self.db.add_checklist(name)
+
+                if mit_schichtplan:
+                    self.db.add_shift_plan(event_id)
+
         else:
             self.db.update_event(entry["id"], name, entry_type, staff_names)
 

@@ -45,6 +45,7 @@ from screens.home_screen import HomeScreen
 from screens.cash_screen import CashScreen
 from screens.cash_book_screen import CashBookScreen
 from screens.checklist_screen import ChecklistScreen
+from screens.shift_plan_screen import ShiftPlanScreen
 from screens.events_screen import EventsScreen
 from screens.products_screen import ProductsScreen
 from screens.statistics_screen import StatisticsScreen
@@ -117,6 +118,10 @@ class MainLayout(BoxLayout):
             name=config.SCREEN_CHECKLIST
         )
 
+        self.shift_plan_screen = ShiftPlanScreen(
+            name=config.SCREEN_SHIFTPLAN
+        )
+
         self.products_screen = ProductsScreen(
             name=config.SCREEN_PRODUCTS
         )
@@ -141,6 +146,7 @@ class MainLayout(BoxLayout):
         self.screen_manager.add_widget(self.events_screen)
         self.screen_manager.add_widget(self.cash_book_screen)
         self.screen_manager.add_widget(self.checklist_screen)
+        self.screen_manager.add_widget(self.shift_plan_screen)
         self.screen_manager.add_widget(self.products_screen)
         self.screen_manager.add_widget(self.statistics_screen)
         self.screen_manager.add_widget(self.settings_screen)

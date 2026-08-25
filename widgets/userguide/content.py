@@ -810,6 +810,106 @@ TOPICS = [
     },
 
     # =====================================================
+    # Schichtplan
+    # =====================================================
+
+    {
+        "id": "shiftplan",
+        "title": "Schichtplan",
+        "steps": [
+            {
+                "heading": "Wozu ein Schichtplan",
+                "text": (
+                    "Er beantwortet eine einzige Frage: Wo fehlen noch "
+                    "Helfer?\n\n"
+                    "Links stehen die Veranstaltungen mit Plan, rechts "
+                    "deren Schichten. Je Schicht siehst du, wie viele "
+                    "gebraucht werden und wie viele eingetragen sind - "
+                    "und der Balken daneben zeigt dasselbe auf einen "
+                    "Blick."
+                ),
+                "image": "schichtplan/01_uebersicht.png",
+            },
+            {
+                "heading": "Die Farben",
+                "text": (
+                    "Grün heißt: besetzt, hier ist nichts mehr zu tun.\n\n"
+                    "Orange heißt: teilweise besetzt, es fehlt noch "
+                    "jemand.\n\n"
+                    "Rot heißt: für diese Schicht hat sich noch niemand "
+                    "eingetragen. In der Spalte \"Helfer\" steht dann "
+                    "\"niemand\".\n\n"
+                    "Über der Tabelle steht dasselbe in Worten, zum "
+                    "Beispiel \"11 von 15 Plätzen besetzt · 2 Schichten "
+                    "brauchen noch Helfer\"."
+                ),
+            },
+            {
+                "heading": "Einen Plan anlegen",
+                "text": (
+                    "Am einfachsten gleich im Kalender: Beim Anlegen "
+                    "einer Veranstaltung kannst du \"Schichtplan dazu "
+                    "anlegen\" ankreuzen - und gleich daneben auch eine "
+                    "Checkliste mit demselben Namen.\n\n"
+                    "Später geht es auch hier über \"Plan anlegen\". "
+                    "Angeboten werden dann die Veranstaltungen, die noch "
+                    "keinen Plan haben."
+                ),
+            },
+            {
+                "heading": "Schichten eintragen",
+                "text": (
+                    "Unten die Tätigkeit ins Feld schreiben und auf "
+                    "\"Hinzufügen\" tippen - zum Beispiel \"Theke\", "
+                    "\"Grill\" oder \"Aufbau\".\n\n"
+                    "In der Zeile stehen dann Uhrzeit von und bis "
+                    "(einfach hineinschreiben, etwa 18:00) und hinter "
+                    "\"Ist / Soll\" die Zahl der benötigten Helfer. Ein "
+                    "Tipp darauf öffnet den Nummernblock.\n\n"
+                    "Getrennte Schichten je Uhrzeit lohnen sich: Meist "
+                    "ist nicht die Tätigkeit das Problem, sondern die "
+                    "späte Stunde."
+                ),
+            },
+            {
+                "heading": "Helfer eintragen",
+                "text": (
+                    "Ein Tipp auf die Spalte \"Helfer\" öffnet die Liste "
+                    "der Schicht. Dort trägst du Namen ein und nimmst sie "
+                    "mit dem roten Kreuz wieder heraus.\n\n"
+                    "Die Zahl vor dem Schrägstrich zählt sich selbst - "
+                    "sie ist schlicht die Anzahl der eingetragenen Namen "
+                    "und kann deshalb nie mit der Wirklichkeit "
+                    "auseinanderlaufen."
+                ),
+            },
+            {
+                "heading": "Schichten übernehmen",
+                "text": (
+                    "\"Schichten übernehmen\" holt das Gerüst einer "
+                    "anderen Veranstaltung herüber: dieselben "
+                    "Tätigkeiten, Zeiten und Bedarfszahlen. Die Helfer "
+                    "bleiben außen vor - wer letztes Jahr da war, sagt "
+                    "nichts darüber, wer dieses Jahr kann.\n\n"
+                    "Beim Stadtfest, das jedes Jahr gleich abläuft, "
+                    "spart das die halbe Arbeit."
+                ),
+            },
+            {
+                "heading": "Schichtplan exportieren",
+                "text": (
+                    "\"Excel exportieren\" schreibt den Plan zum "
+                    "Ausdrucken: Tätigkeit, Zeit, Soll, Ist, wie viele "
+                    "fehlen und die Namen. So hängt der Plan am Stand, "
+                    "ohne dass jemand das Tablet mit sich herumträgt.\n\n"
+                    "Nach dem Export steht unter dem Knopf, wie die Datei "
+                    "heißt und in welchem Ordner sie liegt."
+                ),
+            },
+        ],
+    },
+
+    # =====================================================
     # Statistik
     # =====================================================
 

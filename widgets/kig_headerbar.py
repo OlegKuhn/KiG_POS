@@ -87,6 +87,9 @@ class KiGHeaderBar(KiGWidget):
 
     # Demo-Hinweis in der Kopfzeile
     DEMO_AREA_WIDTH = 150
+
+    BESITZ_AREA_WIDTH = 190
+    BESITZ_FONT_SIZE = 17
     DEMO_FONT_SIZE = 34
 
     LOGO_SIZE = 120
@@ -249,6 +252,20 @@ class KiGHeaderBar(KiGWidget):
         if demo.ist_aktiv():
 
             self.content.add_widget(self._build_demo_badge())
+
+            self.content.add_widget(
+                KiGDividerVertical()
+            )
+
+        # Gehoert die Kasse gerade einem anderen Geraet, steht das
+        # hier - sonst tippt jemand eine Viertelstunde lang Artikel
+        # ein und wundert sich, dass nichts gespeichert wird
+        # (siehe uebergabe.py).
+        besitzstreifen = self._build_besitz_hinweis()
+
+        if besitzstreifen is not None:
+
+            self.content.add_widget(besitzstreifen)
 
             self.content.add_widget(
                 KiGDividerVertical()
@@ -685,6 +702,49 @@ class KiGHeaderBar(KiGWidget):
         label.set_color(theme.PRIMARY_ORANGE)
 
         behaelter.add_widget(label)
+
+        return behaelter
+
+    def _build_besitz_hinweis(self):
+        """Streifen "Nur Ansicht", solange ein anderes Geraet die
+        Kasse hat. Liefert None, wenn dieses Geraet sie hat."""
+
+        from database import DatabaseManager
+
+        try:
+            db = DatabaseManager()
+
+            if not db.nur_ansicht:
+                return None
+
+            besitz = db.get_besitz()
+
+        except Exception:
+            # Die Kopfzeile darf an so etwas nie scheitern.
+            return None
+
+        behaelter = BoxLayout(
+            orientation="vertical",
+            size_hint=(None, 1),
+            width=dp(self.BESITZ_AREA_WIDTH),
+        )
+
+        titel = KiGLabel(text="NUR ANSICHT")
+        titel.set_font_size(self.BESITZ_FONT_SIZE)
+        titel.set_bold(True)
+        titel.set_alignment("center")
+        titel.set_color(theme.WARNING)
+
+        behaelter.add_widget(titel)
+
+        name = besitz["geraet_name"] if besitz else "einem anderen Geraet"
+
+        hinweis = KiGLabel(text=f"Kasse bei {name}")
+        hinweis.set_font_size(12)
+        hinweis.set_alignment("center")
+        hinweis.set_color(theme.TEXT_SECONDARY)
+
+        behaelter.add_widget(hinweis)
 
         return behaelter
 

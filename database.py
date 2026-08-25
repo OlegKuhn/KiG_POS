@@ -52,6 +52,7 @@ from kivy.app import App
 
 import config
 import demo
+import geraet
 import storage
 import units
 
@@ -60,6 +61,79 @@ import units
 # Bei täglichem Betrieb deckt das gut zwei Wochen ab, ohne dass der
 # Ordner nennenswert Platz braucht (die Datenbank ist klein).
 BACKUP_ANZAHL = 15
+
+
+class NurAnsichtFehler(Exception):
+    """Es wurde geschrieben, obwohl ein anderes Gerät die Kasse hat."""
+
+
+class NurAnsichtCursor:
+    """Cursor, der im Nur-Ansicht-Modus keine Änderungen durchlässt.
+
+    Warum hier und nicht in jeder einzelnen Schreibmethode: Es gibt
+    über hundert davon. Eine vergessene wäre kein auffälliger Fehler,
+    sondern eine stille Änderung an einer Datenbank, die einem anderen
+    Gerät gehört - und die beim nächsten Zusammenführen verloren geht
+    oder etwas überschreibt. Am Cursor kommt keine vorbei.
+
+    Ausgenommen sind die Einstellungen: Heller/dunkler Modus und
+    Ausrichtung sind Sache des Geräts, an dem gerade jemand sitzt.
+    Wer nur zuschauen darf, soll trotzdem das Licht anmachen können.
+    """
+
+    SCHREIBBEFEHLE = ("INSERT", "UPDATE", "DELETE", "REPLACE", "DROP")
+
+    ERLAUBTE_TABELLEN = ("settings",)
+
+    def __init__(self, cursor, ist_gesperrt):
+
+        self._cursor = cursor
+        self._ist_gesperrt = ist_gesperrt
+
+    # -----------------------------------------------------
+
+    def execute(self, sql, parameter=()):
+
+        if self._ist_gesperrt() and self._aendert(sql):
+            raise NurAnsichtFehler(
+                "Diese Datenbank gehört gerade einem anderen Gerät. "
+                "Erst übernehmen, dann ändern."
+            )
+
+        return self._cursor.execute(sql, parameter)
+
+    def executemany(self, sql, parameter):
+
+        if self._ist_gesperrt() and self._aendert(sql):
+            raise NurAnsichtFehler(
+                "Diese Datenbank gehört gerade einem anderen Gerät."
+            )
+
+        return self._cursor.executemany(sql, parameter)
+
+    # -----------------------------------------------------
+
+    @classmethod
+    def _aendert(cls, sql):
+        """Ändert dieser Befehl Daten, die einem anderen gehören?"""
+
+        anfang = sql.lstrip().split(None, 1)
+
+        if not anfang or anfang[0].upper() not in cls.SCHREIBBEFEHLE:
+            return False
+
+        kleingeschrieben = sql.lower()
+
+        return not any(
+            f" {tabelle}" in kleingeschrieben
+            for tabelle in cls.ERLAUBTE_TABELLEN
+        )
+
+    # Alles Übrige (fetchone, fetchall, lastrowid, ...) unverändert
+    # durchreichen.
+    def __getattr__(self, name):
+
+        return getattr(self._cursor, name)
 
 
 class DatabaseManager:
@@ -101,6 +175,16 @@ class DatabaseManager:
 
         self.connection = None
         self.cursor = None
+
+        # Kennung dieses Geräts, siehe geraet.py. Sie steht bewusst
+        # neben der Datenbank und nicht darin - die Datenbank wandert
+        # zwischen den Geräten, die Kennung bleibt.
+        self.geraet = geraet.laden(storage.data_dir())
+
+        # Schreibschutz: gesetzt, solange ein anderes Gerät die Kasse
+        # hat. Die Oberfläche zeigt das an; hier ist die Notbremse
+        # für alles, was sie übersieht (siehe _schreiben_erlaubt).
+        self.nur_ansicht = False
 
         self.database_path = self.get_database_path()
 
@@ -230,7 +314,12 @@ class DatabaseManager:
 
         self.connection.row_factory = sqlite3.Row
 
-        self.cursor = self.connection.cursor()
+        # Der Schreibschutz sitzt am Cursor und damit an der einzigen
+        # Stelle, durch die jede Änderung muss - siehe
+        # NurAnsichtCursor.
+        self.cursor = NurAnsichtCursor(
+            self.connection.cursor(), lambda: self.nur_ansicht
+        )
 
         self.cursor.execute("PRAGMA foreign_keys = ON;")
 
@@ -312,6 +401,8 @@ class DatabaseManager:
         self._create_checklist_tables()
 
         self._create_shift_tables()
+
+        self._create_besitz_tables()
 
         self.commit()
 
@@ -653,6 +744,30 @@ class DatabaseManager:
         # ---------------------------------------------------------
 
         self._ensure_zutat_category()
+
+        # ---------------------------------------------------------
+        # Welches Gerät hat den Bon geschrieben?
+        # ---------------------------------------------------------
+        #
+        # Solange nur ein Gerät kassiert, ist die Bonnummer für sich
+        # eindeutig. Kommt ein zweites dazu, vergeben beide die 42 -
+        # und beim Zusammenführen fiele auf, dass es zwei Bons Nummer
+        # 42 gibt, ohne dass noch zu klären wäre, welcher welcher ist.
+        #
+        # Mit der Gerätekennung daneben bleibt jeder Bon
+        # unterscheidbar (TAB-3f9a-42 statt 42), ohne die Nummer
+        # selbst anzufassen. Bestehende Bons stammen aus der Zeit vor
+        # mehreren Geräten und behalten ein leeres Feld.
+
+        self.cursor.execute("PRAGMA table_info(sales)")
+
+        sales_columns = {row["name"] for row in self.cursor.fetchall()}
+
+        if "device_id" not in sales_columns:
+            self.cursor.execute(
+                "ALTER TABLE sales ADD COLUMN device_id TEXT"
+            )
+            self.logger.info("Migration: device_id zu sales hinzugefügt.")
 
         # ---------------------------------------------------------
         # Eigene Einheit je Rezeptzutat
@@ -1463,6 +1578,59 @@ class DatabaseManager:
             updated_at TEXT,
 
             FOREIGN KEY(checklist_id) REFERENCES checklists(id)
+
+        )
+
+        """)
+
+    def _create_besitz_tables(self):
+        """Wer darf gerade buchen - und wer hat wann übergeben?
+
+        Das Schreibrecht steht ausdrücklich HIER, in der Datenbank,
+        und nicht als Einstellung im Gerät. Nur so kann es sich nicht
+        verdoppeln: Ein Gerät fragt nicht sich selbst, ob es das
+        Hauptgerät ist, sondern die Datenbank, die es geöffnet hat.
+
+        "stand" zählt bei jeder Übergabe hoch. Er verhindert, dass
+        eine alte Datei einen neueren Stand überschreibt - siehe
+        uebergabe.py.
+        """
+
+        self.cursor.execute("""
+
+        CREATE TABLE IF NOT EXISTS besitz(
+
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+
+            geraet_id TEXT NOT NULL,
+
+            geraet_name TEXT NOT NULL,
+
+            stand INTEGER NOT NULL DEFAULT 1,
+
+            seit TEXT
+
+        )
+
+        """)
+
+        self.cursor.execute("""
+
+        CREATE TABLE IF NOT EXISTS uebergaben(
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            stand INTEGER NOT NULL,
+
+            von_id TEXT,
+
+            von_name TEXT,
+
+            an_id TEXT,
+
+            an_name TEXT,
+
+            zeitpunkt TEXT
 
         )
 
@@ -3737,6 +3905,112 @@ class DatabaseManager:
         return zeile["erledigt"], zeile["gesamt"]
 
     #################################################################
+    # Besitz: wer darf buchen?
+    #################################################################
+
+    def get_besitz(self):
+        """Wem gehört die Kasse gerade? None, solange niemand
+        eingetragen ist (frische Datenbank)."""
+
+        self.cursor.execute("SELECT * FROM besitz WHERE id = 1")
+
+        return self.cursor.fetchone()
+
+    def schema_sicherstellen(self):
+        """Tabellen und Migrationen dieser Programmfassung anwenden.
+
+        Wird nach dem Einspielen einer Übergabe gebraucht: Die Datei
+        kann von einem Gerät mit älterer Programmfassung stammen und
+        neuere Tabellen noch nicht kennen.
+        """
+
+        self.create_tables()
+        self._migrate_database()
+        self.create_default_data()
+
+    def ist_besitzer(self):
+        """Darf dieses Gerät buchen?
+
+        Eine frische Datenbank hat noch keinen Besitzer - dann ja,
+        das erste Gerät übernimmt sie (siehe besitz_sicherstellen).
+        """
+
+        besitz = self.get_besitz()
+
+        return besitz is None or besitz["geraet_id"] == self.geraet["id"]
+
+    def besitz_sicherstellen(self):
+        """Trägt dieses Gerät ein, falls die Datenbank noch niemandem
+        gehört, und setzt danach den Schreibschutz."""
+
+        if self.get_besitz() is None:
+            self.besitz_uebernehmen(
+                self.geraet["id"], self.geraet["name"], stand=1
+            )
+
+        self.nur_ansicht = not self.ist_besitzer()
+
+        return self.nur_ansicht
+
+    def besitz_uebernehmen(self, geraet_id, geraet_name, stand=None):
+        """Trägt dieses Gerät als Besitzer ein.
+
+        Ohne stand wird der bisherige um eins erhöht. Mit stand
+        (beim Einspielen einer Übergabe) wird der mitgelieferte
+        übernommen - er kommt vom abgebenden Gerät.
+        """
+
+        vorher = self.get_besitz()
+
+        if stand is None:
+            stand = (vorher["stand"] + 1) if vorher else 1
+
+        now = self.timestamp()
+
+        if vorher is None:
+            self.cursor.execute(
+                "INSERT INTO besitz(id, geraet_id, geraet_name, stand, seit) "
+                "VALUES (1, ?, ?, ?, ?)",
+                (geraet_id, geraet_name, stand, now)
+            )
+        else:
+            self.cursor.execute(
+                "UPDATE besitz SET geraet_id = ?, geraet_name = ?, "
+                "stand = ?, seit = ? WHERE id = 1",
+                (geraet_id, geraet_name, stand, now)
+            )
+
+        self.cursor.execute(
+            "INSERT INTO uebergaben(stand, von_id, von_name, an_id, "
+            "an_name, zeitpunkt) VALUES (?,?,?,?,?,?)",
+            (
+                stand,
+                vorher["geraet_id"] if vorher else None,
+                vorher["geraet_name"] if vorher else None,
+                geraet_id,
+                geraet_name,
+                now,
+            )
+        )
+
+        self.commit()
+
+        return stand
+
+    def get_uebergaben(self, grenze=30):
+        """Das Übergabeprotokoll, neueste zuerst.
+
+        Wenn hinterher jemand fragt, wo die Bons vom Samstag sind,
+        sieht man hier nach, statt zu raten.
+        """
+
+        self.cursor.execute(
+            "SELECT * FROM uebergaben ORDER BY id DESC LIMIT ?", (grenze,)
+        )
+
+        return self.cursor.fetchall()
+
+    #################################################################
     # Schichtpläne
     #################################################################
 
@@ -4027,6 +4301,13 @@ class DatabaseManager:
     #################################################################
 
     def get_next_receipt_number(self):
+        """Die nächste Bonnummer DIESES Geräts.
+
+        Bewusst je Gerät gezählt und nicht über alle hinweg: Zwei
+        Geräte, die dieselbe Zählung fortsetzen, vergeben dieselbe
+        Nummer zweimal, sobald sie eine Weile getrennt arbeiten.
+        Zusammen mit device_id bleibt jeder Bon eindeutig.
+        """
 
         self.cursor.execute("""
 
@@ -4034,7 +4315,9 @@ class DatabaseManager:
 
             FROM sales
 
-        """)
+            WHERE device_id = ?
+
+        """, (self.geraet["id"],))
 
         number = self.cursor.fetchone()[0]
 
@@ -4103,11 +4386,13 @@ class DatabaseManager:
 
                 change,
 
-                created_at
+                created_at,
+
+                device_id
 
             )
 
-            VALUES(?,?,?,?,?,?,?,?,?,?,?)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
 
         """, (
 
@@ -4131,7 +4416,9 @@ class DatabaseManager:
 
             change,
 
-            created
+            created,
+
+            self.geraet["id"]
 
         ))
 

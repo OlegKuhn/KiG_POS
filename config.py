@@ -172,6 +172,11 @@ EXPORT_PDF_DIR = EXPORT_DIR / "pdf"
 
 EXPORT_CSV_DIR = EXPORT_DIR / "csv"
 
+# Übergabedateien zwischen den Geräten (siehe uebergabe.py). Eigener
+# Ordner, damit sie nicht zwischen Excel-Listen untergehen - man sucht
+# sie gezielt, wenn die Kasse weitergereicht wird.
+EXPORT_UEBERGABE_DIR = EXPORT_DIR / "uebergabe"
+
 # ==========================================================
 # Dateien
 # ==========================================================

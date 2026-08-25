@@ -95,7 +95,7 @@ def log_dir() -> Path:
 def export_dir(unterordner: str) -> Path:
     """Ordner für eine Ausgabe, die der Nutzer wiederfinden soll.
 
-    unterordner: "pdf", "excel" oder "csv".
+    unterordner: "pdf", "excel", "csv" oder "uebergabe".
     """
 
     if IS_ANDROID:
@@ -125,6 +125,9 @@ def _windows_export_dir(unterordner: str) -> Path:
 
     if unterordner == "csv":
         return config.EXPORT_CSV_DIR
+
+    if unterordner == "uebergabe":
+        return config.EXPORT_UEBERGABE_DIR
 
     return config.EXPORT_DIR / unterordner
 

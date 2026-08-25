@@ -910,6 +910,103 @@ TOPICS = [
     },
 
     # =====================================================
+    # Mehrere Geräte
+    # =====================================================
+
+    {
+        "id": "devices",
+        "title": "Mehrere Geräte",
+        "steps": [
+            {
+                "heading": "Die Kasse gehört immer einem Gerät",
+                "text": (
+                    "KiG POS darf auf mehreren Geräten liegen - zum "
+                    "Beispiel auf dem Rechner zu Hause, wo Artikel und "
+                    "Preise gepflegt werden, und auf dem Tablet, das am "
+                    "Stand kassiert.\n\n"
+                    "Damit dabei nichts verlorengeht, gilt eine feste "
+                    "Regel: Die Kasse gehört immer genau einem Gerät. "
+                    "Nur dort lässt sich buchen und ändern. Alle "
+                    "anderen zeigen dieselben Daten - aber nur zum "
+                    "Ansehen.\n\n"
+                    "Wer gerade nur zusehen darf, sieht das oben in der "
+                    "Kopfzeile: \"NUR ANSICHT - Kasse bei Tablet\"."
+                ),
+                "image": "einstellungen/04_uebergabe.png",
+            },
+            {
+                "heading": "Warum nicht einfach beide gleichzeitig",
+                "text": (
+                    "Weil zwei Geräte, die dieselben Daten ändern, sie "
+                    "auch gegenseitig überschreiben. Das fällt nicht "
+                    "auf: Es gibt keine Fehlermeldung, nur einen Abend "
+                    "voller Buchungen, der später fehlt.\n\n"
+                    "Deshalb wandert das Schreibrecht wie ein Schlüssel "
+                    "von Gerät zu Gerät. Es steht in der Datenbank "
+                    "selbst, nicht in einer Einstellung des Geräts - "
+                    "zwei Besitzer kann es damit gar nicht geben."
+                ),
+            },
+            {
+                "heading": "Übergeben",
+                "text": (
+                    "In den Einstellungen unter \"Gerät und Übergabe\" "
+                    "steht, wie dieses Gerät heißt und wo die Kasse "
+                    "gerade liegt.\n\n"
+                    "\"Kasse übergeben\" fragt nach Name und Kennung des "
+                    "anderen Geräts - beides steht dort in derselben "
+                    "Zeile. Danach schreibt das Programm eine "
+                    "Übergabedatei in den Ordner exports/uebergabe und "
+                    "gibt das Recht ab; dieses Gerät kann ab da nur "
+                    "noch zusehen."
+                ),
+            },
+            {
+                "heading": "Einspielen",
+                "text": (
+                    "Die Übergabedatei aufs andere Gerät kopieren - per "
+                    "USB-Kabel, Stick oder Cloud-Ordner - und zwar in "
+                    "dessen Ordner exports/uebergabe.\n\n"
+                    "Dort \"Übergabe einspielen\" wählen. Das Programm "
+                    "zeigt erst, was drinsteht (von wem, welcher Stand, "
+                    "wie viele Artikel und Verkäufe) und fragt nach. "
+                    "Vor dem Einspielen legt es eine Sicherung des "
+                    "bisherigen Standes an."
+                ),
+            },
+            {
+                "heading": "Wenn etwas schiefgeht",
+                "text": (
+                    "Jede Übergabe zählt einen Stand hoch. Wird eine "
+                    "ältere Datei eingespielt, lehnt das Programm ab "
+                    "und sagt warum - ihr Inhalt wäre älter als das, "
+                    "was schon da ist.\n\n"
+                    "Ist das Gerät, an das übergeben wurde, nicht mehr "
+                    "erreichbar (verloren, kaputt), lässt sich die "
+                    "Übernahme erzwingen. Das ist bewusst unbequem und "
+                    "mit einer roten Warnung versehen: Danach dürfen "
+                    "nicht plötzlich zwei Geräte weiterarbeiten.\n\n"
+                    "\"Übergaben anzeigen\" führt Buch: wer wann an wen "
+                    "übergeben hat. Wenn jemand fragt, wo die Bons vom "
+                    "Samstag sind, sieht man dort nach."
+                ),
+            },
+            {
+                "heading": "Was heute noch nicht geht",
+                "text": (
+                    "Gleichzeitig kassieren - zwei Stände auf demselben "
+                    "Fest. Dafür müssten die Buchungen beider Geräte "
+                    "hinterher zusammengeführt werden; das ist ein "
+                    "eigener Schritt und noch nicht gebaut.\n\n"
+                    "Vorbereitet ist er: Jeder Bon trägt bereits die "
+                    "Kennung des Geräts, das ihn geschrieben hat, und "
+                    "jedes Gerät zählt seine Bonnummern für sich."
+                ),
+            },
+        ],
+    },
+
+    # =====================================================
     # Statistik
     # =====================================================
 

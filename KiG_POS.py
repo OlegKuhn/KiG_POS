@@ -341,6 +341,12 @@ class KiGPOS(App):
         # Stattdessen erscheint ein verständlicher Hinweis.
         try:
             db = DatabaseManager()
+
+            # Gehört die Kasse diesem Gerät? Wenn nicht, läuft alles
+            # ab hier im Nur-Ansicht-Modus (siehe uebergabe.py).
+            # Eine frische Datenbank gehört dem, der sie anlegt.
+            db.besitz_sicherstellen()
+
             theme.set_mode(db.get_setting("theme_mode") or "light")
 
             # Ausrichtung ebenfalls VOR dem Aufbau setzen - die Screens
@@ -554,6 +560,11 @@ class KiGPOS(App):
             demo.beenden(datenordner)
 
         neue_db = DatabaseManager()
+
+        # Auch die Demo-Kopie trägt einen Besitzer - den aus dem
+        # Augenblick des Einfrierens. Gehörte die Kasse damals einem
+        # anderen Gerät, bleibt es auch in der Demo beim Zusehen.
+        neue_db.besitz_sicherstellen()
 
         theme.set_accent("demo" if aktiv else "normal")
 

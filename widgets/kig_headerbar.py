@@ -257,7 +257,7 @@ class KiGHeaderBar(KiGWidget):
                 KiGDividerVertical()
             )
 
-        # Gehoert die Kasse gerade einem anderen Geraet, steht das
+        # Gehoeren die Stammdaten einem anderen Geraet, steht das
         # hier - sonst tippt jemand eine Viertelstunde lang Artikel
         # ein und wundert sich, dass nichts gespeichert wird
         # (siehe uebergabe.py).
@@ -706,8 +706,12 @@ class KiGHeaderBar(KiGWidget):
         return behaelter
 
     def _build_besitz_hinweis(self):
-        """Streifen "Nur Ansicht", solange ein anderes Geraet die
-        Kasse hat. Liefert None, wenn dieses Geraet sie hat."""
+        """Streifen "Nebengeraet", solange die Stammdaten einem
+        anderen Geraet gehoeren. Liefert None auf dem Hauptgeraet.
+
+        Buchen darf ein Nebengeraet - nur Artikel, Preise und Rezepte
+        werden an einer Stelle gepflegt (siehe
+        database.STAMMDATEN_TABELLEN)."""
 
         from database import DatabaseManager
 
@@ -729,7 +733,7 @@ class KiGHeaderBar(KiGWidget):
             width=dp(self.BESITZ_AREA_WIDTH),
         )
 
-        titel = KiGLabel(text="NUR ANSICHT")
+        titel = KiGLabel(text="NEBENGERÄT")
         titel.set_font_size(self.BESITZ_FONT_SIZE)
         titel.set_bold(True)
         titel.set_alignment("center")
@@ -739,7 +743,7 @@ class KiGHeaderBar(KiGWidget):
 
         name = besitz["geraet_name"] if besitz else "einem anderen Geraet"
 
-        hinweis = KiGLabel(text=f"Kasse bei {name}")
+        hinweis = KiGLabel(text=f"Stammdaten bei {name}")
         hinweis.set_font_size(12)
         hinweis.set_alignment("center")
         hinweis.set_color(theme.TEXT_SECONDARY)

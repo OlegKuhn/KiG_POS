@@ -35,6 +35,7 @@ import geraet
 import storage
 import theme
 import uebergabe
+import zusammenfuehren
 
 from database import DatabaseManager
 from widgets.common.confirm_popup import ConfirmPopup
@@ -256,6 +257,22 @@ class SettingsScreen(Screen):
 
         inhalt.add_widget(uebergabe_row)
 
+        zugaenge_row = self._option_row()
+
+        self.bereitstellen_button = SettingsOptionButton(
+            "Buchungen bereitstellen", "bereitstellen",
+            lambda _wert: self.zugaenge_bereitstellen(),
+        )
+        zugaenge_row.add_widget(self.bereitstellen_button)
+
+        self.einsammeln_button = SettingsOptionButton(
+            "Buchungen einsammeln", "einsammeln",
+            lambda _wert: self.zugaenge_einsammeln(),
+        )
+        zugaenge_row.add_widget(self.einsammeln_button)
+
+        inhalt.add_widget(zugaenge_row)
+
         protokoll_row = self._option_row()
 
         self.protokoll_button = SettingsOptionButton(
@@ -273,18 +290,22 @@ class SettingsScreen(Screen):
         inhalt.add_widget(protokoll_row)
 
         uebergabe_hint = KiGLabel(text=(
-            "Die Kasse gehört immer genau einem Gerät - dem, das zuletzt "
-            "übernommen hat. Nur dort lässt sich buchen und ändern; alle "
-            "anderen zeigen dieselben Daten, aber nur zum Ansehen.\n\n"
-            "\"Kasse übergeben\" schreibt eine Übergabedatei und gibt das "
-            "Recht ab. Auf dem anderen Gerät wird sie über \"Übergabe "
-            "einspielen\" geöffnet - mit Rückfrage, was drinsteht."
+            "Artikel, Preise und Rezepte gehören dem Hauptgerät - dem, "
+            "das die Kasse zuletzt übernommen hat. Alle anderen dürfen "
+            "buchen, Listen führen und Schichten eintragen, aber die "
+            "Stammdaten nicht ändern.\n\n"
+            "\"Kasse übergeben\" reicht das Hauptgerät weiter. "
+            "\"Buchungen bereitstellen\" schreibt eine Datei mit dem "
+            "eigenen Stand, ohne etwas abzugeben; \"Buchungen "
+            "einsammeln\" holt aus so einer Datei alles heraus, was hier "
+            "noch fehlt - Verkäufe, Kassenbuch, Listen. Zweimal "
+            "eingesammelt ändert nichts."
         ))
         uebergabe_hint.set_font_size(14)
         uebergabe_hint.set_alignment("left")
         uebergabe_hint.set_color(theme.TEXT_SECONDARY)
         uebergabe_hint.size_hint_y = None
-        uebergabe_hint.height = dp(96)
+        uebergabe_hint.height = dp(150)
         inhalt.add_widget(uebergabe_hint)
 
         self.uebergabe_status = Label(
@@ -372,13 +393,13 @@ class SettingsScreen(Screen):
 
         elif besitz["geraet_id"] == db.geraet["id"]:
             zustand = (
-                f"Die Kasse liegt hier - Stand {besitz['stand']}, "
+                f"Hauptgerät - Stand {besitz['stand']}, "
                 f"seit {self._kurzes_datum(besitz['seit'])}."
             )
 
         else:
             zustand = (
-                f"Nur Ansicht: Die Kasse liegt bei "
+                f"Nebengerät: buchen ja, Stammdaten liegen bei "
                 f"{besitz['geraet_name']} - Stand {besitz['stand']}, "
                 f"seit {self._kurzes_datum(besitz['seit'])}."
             )
@@ -588,6 +609,24 @@ class SettingsScreen(Screen):
     def uebergabe_einspielen(self):
         """Öffnet eine Übergabedatei und fragt, was drinsteht."""
 
+        self._datei_waehlen(
+            titel="Übergabe einspielen",
+            weiter=self._datei_pruefen,
+            hinweis=(
+                "Die Übergabedatei vom anderen Gerät zuerst in diesen "
+                "Ordner kopieren."
+            ),
+        )
+
+    def _datei_waehlen(self, titel, weiter, hinweis):
+        """Zeigt die vorhandenen Dateien und reicht die gewählte an
+        `weiter`.
+
+        Dieselbe Auswahl für Übergabe und Einsammeln - beide holen
+        ihre Dateien aus demselben Ordner, und zwei verschiedene
+        Auswahldialoge wären nur zwei Stellen zum Auseinanderlaufen.
+        """
+
         ordner = storage.export_dir("uebergabe")
 
         dateien = sorted(
@@ -603,7 +642,7 @@ class SettingsScreen(Screen):
         )
 
         popup = KiGPopup(
-            title="Übergabe einspielen", content=inhalt,
+            title=titel, content=inhalt,
             size_hint=(0.62, None), height=dp(460), auto_dismiss=False,
         )
 
@@ -611,10 +650,8 @@ class SettingsScreen(Screen):
 
             inhalt.add_widget(Label(
                 text=(
-                    f"Keine Übergabedatei gefunden.\n\n"
-                    f"Erwartet wird sie hier:\n{ordner}\n\n"
-                    f"Die Datei vom anderen Gerät zuerst in diesen "
-                    f"Ordner kopieren."
+                    f"Keine Datei gefunden.\n\n"
+                    f"Erwartet wird sie hier:\n{ordner}\n\n{hinweis}"
                 ),
                 color=theme.TEXT_SECONDARY, font_size="14sp",
                 halign="left", valign="top",
@@ -644,7 +681,7 @@ class SettingsScreen(Screen):
 
                 knopf = self._popup_button(
                     pfad.name,
-                    lambda p=pfad: (popup.dismiss(), self._datei_pruefen(p)),
+                    lambda p=pfad: (popup.dismiss(), weiter(p)),
                 )
                 knopf.font_size = "13sp"
                 knopf.size_hint_y = None
@@ -736,6 +773,99 @@ class SettingsScreen(Screen):
         self.uebergabe_status.text = (
             f"Übernommen. Sicherung des vorherigen Standes: {sicherung.name}"
         )
+
+        app = App.get_running_app()
+
+        if app is not None and hasattr(app, "rebuild_main"):
+            app.rebuild_main()
+
+    # =====================================================
+    # Buchungen mehrerer Geräte
+    # =====================================================
+
+    def zugaenge_bereitstellen(self):
+        """Schreibt eine Datei mit dem eigenen Stand.
+
+        Anders als die Übergabe wechselt dabei nichts - dieses Gerät
+        bucht weiter.
+        """
+
+        db = DatabaseManager()
+
+        try:
+            ziel, verkaeufe = zusammenfuehren.bereitstellen(
+                db, storage.export_dir("uebergabe")
+            )
+
+        except Exception as fehler:
+            self.uebergabe_status.text = f"Fehlgeschlagen: {fehler}"
+            return
+
+        self.uebergabe_status.text = export_hinweis(
+            ziel, was=f"Bereitgestellt ({verkaeufe} Verkäufe)"
+        )
+
+    def zugaenge_einsammeln(self):
+        """Holt aus einer bereitgestellten Datei alles, was hier
+        fehlt."""
+
+        self._datei_waehlen(
+            titel="Buchungen einsammeln",
+            weiter=self._zugaenge_pruefen,
+            hinweis=(
+                "Die Datei des anderen Geräts zuerst in diesen Ordner "
+                "kopieren."
+            ),
+        )
+
+    def _zugaenge_pruefen(self, pfad):
+
+        db = DatabaseManager()
+
+        befund = zusammenfuehren.vorschau(db, pfad)
+
+        if not befund["lesbar"]:
+            self.uebergabe_status.text = befund["grund"]
+            return
+
+        if not befund["gesamt"]:
+            self.uebergabe_status.text = (
+                f"Aus \"{pfad.name}\" gibt es nichts Neues - alles war "
+                f"schon da."
+            )
+            return
+
+        aufzaehlung = "\n".join(
+            f"  {anzahl} {zusammenfuehren.BEZEICHNUNGEN.get(tabelle, tabelle)}"
+            for tabelle, anzahl in befund["neu"].items()
+        )
+
+        herkunft = befund["geraet"] or "einem anderen Gerät"
+
+        ConfirmPopup(
+            title="Buchungen einsammeln",
+            message=(
+                f"Von {herkunft} kämen dazu:\n\n{aufzaehlung}\n\n"
+                f"Nur Neues wird übernommen; Artikel und Preise bleiben "
+                f"unverändert. Der Lagerbestand wird dabei nicht "
+                f"mitgerechnet."
+            ),
+            confirm_text="Einsammeln",
+            on_confirm=lambda: self._zugaenge_uebernehmen(pfad),
+        ).open()
+
+    def _zugaenge_uebernehmen(self, pfad):
+
+        db = DatabaseManager()
+
+        try:
+            uebernommen = zusammenfuehren.einsammeln(db, pfad)
+
+        except Exception as fehler:
+            self.uebergabe_status.text = f"Einsammeln fehlgeschlagen: {fehler}"
+            return
+
+        self.uebergabe_status.text = zusammenfuehren.bericht(uebernommen)
 
         app = App.get_running_app()
 

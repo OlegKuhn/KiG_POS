@@ -63,27 +63,59 @@ import units
 BACKUP_ANZAHL = 15
 
 
+# Tabellen, deren Zeilen von mehreren Geräten zusammengeführt werden
+# (siehe zusammenfuehren.py). Reihenfolge beachtet die Verweise:
+# Eltern vor Kindern.
+#
+# Bewusst NICHT dabei: Artikel, Kategorien, Pfand und Rezepte. Die
+# ändert nur das Hauptgerät - dadurch bleiben ihre Nummern auf allen
+# Geräten dieselben, und das Zusammenführen muss sie nicht abbilden.
+MERGE_TABELLEN = (
+    "events",
+    "sales",
+    "sale_items",
+    "cash_book_entries",
+    "checklists",
+    "checklist_items",
+    "shift_plans",
+    "shifts",
+    "shift_helpers",
+)
+
+
+# Tabellen, die nur dem Hauptgerät gehören. Ein Nebengerät darf
+# buchen, aber keine Preise, Rezepte oder Kategorien ändern - sonst
+# stünden hinterher zwei Wahrheiten nebeneinander, und keine Technik
+# könnte entscheiden, welche gilt.
+STAMMDATEN_TABELLEN = (
+    "articles",
+    "categories",
+    "deposits",
+    "article_deposits",
+    "recipe_ingredients",
+)
+
+
 class NurAnsichtFehler(Exception):
     """Es wurde geschrieben, obwohl ein anderes Gerät die Kasse hat."""
 
 
 class NurAnsichtCursor:
-    """Cursor, der im Nur-Ansicht-Modus keine Änderungen durchlässt.
+    """Cursor, der einem Nebengerät die Stammdaten sperrt.
 
     Warum hier und nicht in jeder einzelnen Schreibmethode: Es gibt
     über hundert davon. Eine vergessene wäre kein auffälliger Fehler,
-    sondern eine stille Änderung an einer Datenbank, die einem anderen
-    Gerät gehört - und die beim nächsten Zusammenführen verloren geht
-    oder etwas überschreibt. Am Cursor kommt keine vorbei.
+    sondern eine stille Änderung an Daten, die einem anderen Gerät
+    gehören. Am Cursor kommt keine vorbei.
 
-    Ausgenommen sind die Einstellungen: Heller/dunkler Modus und
-    Ausrichtung sind Sache des Geräts, an dem gerade jemand sitzt.
-    Wer nur zuschauen darf, soll trotzdem das Licht anmachen können.
+    Gesperrt ist genau das, was nur einmal gepflegt werden darf:
+    Artikel, Preise, Kategorien, Pfand und Rezepte
+    (STAMMDATEN_TABELLEN). Buchen, Listen führen und Schichten
+    eintragen darf jedes Gerät - diese Zeilen kommen nur dazu und
+    lassen sich später zusammenführen (siehe zusammenfuehren.py).
     """
 
     SCHREIBBEFEHLE = ("INSERT", "UPDATE", "DELETE", "REPLACE", "DROP")
-
-    ERLAUBTE_TABELLEN = ("settings",)
 
     def __init__(self, cursor, ist_gesperrt):
 
@@ -94,19 +126,24 @@ class NurAnsichtCursor:
 
     def execute(self, sql, parameter=()):
 
-        if self._ist_gesperrt() and self._aendert(sql):
+        betroffen = self._gesperrte_tabelle(sql)
+
+        if betroffen and self._ist_gesperrt():
             raise NurAnsichtFehler(
-                "Diese Datenbank gehört gerade einem anderen Gerät. "
-                "Erst übernehmen, dann ändern."
+                f"\"{betroffen}\" gehört dem Hauptgerät. Artikel, Preise "
+                f"und Rezepte werden dort gepflegt - hier lässt sich "
+                f"buchen, aber nicht ändern."
             )
 
         return self._cursor.execute(sql, parameter)
 
     def executemany(self, sql, parameter):
 
-        if self._ist_gesperrt() and self._aendert(sql):
+        betroffen = self._gesperrte_tabelle(sql)
+
+        if betroffen and self._ist_gesperrt():
             raise NurAnsichtFehler(
-                "Diese Datenbank gehört gerade einem anderen Gerät."
+                f"\"{betroffen}\" gehört dem Hauptgerät."
             )
 
         return self._cursor.executemany(sql, parameter)
@@ -114,20 +151,34 @@ class NurAnsichtCursor:
     # -----------------------------------------------------
 
     @classmethod
-    def _aendert(cls, sql):
-        """Ändert dieser Befehl Daten, die einem anderen gehören?"""
+    def _gesperrte_tabelle(cls, sql):
+        """Welche gesperrte Tabelle ändert dieser Befehl? Sonst None.
 
-        anfang = sql.lstrip().split(None, 1)
+        Klammern und Kommas werden vorher zu Leerzeichen: Ohne das
+        stünde bei "INSERT INTO articles(name, preis)" das Wort
+        "articles(name" da, und die Sperre griffe nicht - genau so
+        ist sie beim ersten Versuch durchgerutscht.
 
-        if not anfang or anfang[0].upper() not in cls.SCHREIBBEFEHLE:
-            return False
+        Betrachtet werden nur die ersten Wörter. Das deckt
+        INSERT [OR IGNORE] INTO x, UPDATE x, DELETE FROM x und
+        REPLACE INTO x ab, ohne einen Unterabfrage-Lesezugriff auf
+        eine Stammdatentabelle fälschlich zu sperren.
+        """
 
-        kleingeschrieben = sql.lower()
+        normalisiert = sql.replace("(", " ").replace(",", " ")
 
-        return not any(
-            f" {tabelle}" in kleingeschrieben
-            for tabelle in cls.ERLAUBTE_TABELLEN
-        )
+        teile = normalisiert.split()
+
+        if not teile or teile[0].upper() not in cls.SCHREIBBEFEHLE:
+            return None
+
+        kandidaten = {wort.lower() for wort in teile[1:5]}
+
+        for tabelle in STAMMDATEN_TABELLEN:
+            if tabelle in kandidaten:
+                return tabelle
+
+        return None
 
     # Alles Übrige (fetchone, fetchall, lastrowid, ...) unverändert
     # durchreichen.
@@ -768,6 +819,68 @@ class DatabaseManager:
                 "ALTER TABLE sales ADD COLUMN device_id TEXT"
             )
             self.logger.info("Migration: device_id zu sales hinzugefügt.")
+
+        # ---------------------------------------------------------
+        # Eindeutige Kennung je Zeile
+        # ---------------------------------------------------------
+        #
+        # Nötig, sobald zwei Geräte gleichzeitig buchen: Beide vergeben
+        # die id 42, meinen aber verschiedene Bons. Die uid dagegen
+        # gilt geräteübergreifend - an ihr erkennt das
+        # Zusammenführen, was schon da ist.
+        #
+        # Bereits vorhandene Zeilen bekommen eine ABGELEITETE Kennung
+        # ("alt-sales-42") statt einer zufälligen. Der Grund: Zwei
+        # Geräte, deren Datenbanken vom selben Stand abstammen, müssen
+        # für dieselbe alte Zeile dieselbe Kennung errechnen - sonst
+        # hielte das Zusammenführen sie für zwei verschiedene und
+        # legte jeden alten Bon ein zweites Mal an.
+
+        for tabelle in MERGE_TABELLEN:
+
+            self.cursor.execute(f"PRAGMA table_info({tabelle})")
+
+            spalten = {row["name"] for row in self.cursor.fetchall()}
+
+            if "uid" in spalten:
+                continue
+
+            self.cursor.execute(
+                f"ALTER TABLE {tabelle} ADD COLUMN uid TEXT"
+            )
+
+            self.cursor.execute(
+                f"UPDATE {tabelle} SET uid = 'alt-{tabelle}-' || id "
+                f"WHERE uid IS NULL"
+            )
+
+            self.cursor.execute(
+                f"CREATE UNIQUE INDEX IF NOT EXISTS idx_{tabelle}_uid "
+                f"ON {tabelle}(uid)"
+            )
+
+            self.logger.info("Migration: uid zu %s hinzugefügt.", tabelle)
+
+        # Neue Zeilen bekommen ihre Kennung sofort - per Auslöser in
+        # der Datenbank statt in über hundert Schreibmethoden.
+        #
+        # Das ist nicht nur bequemer, sondern notwendig: Bekäme eine
+        # Zeile ihre Kennung erst später (etwa beim Bereitstellen),
+        # dann hätte dieselbe Zeile auf zwei Geräten, die sie durch
+        # eine Kopie beide besitzen, zwei verschiedene Kennungen - und
+        # das Zusammenführen legte sie ein zweites Mal an.
+        for tabelle in MERGE_TABELLEN:
+
+            self.cursor.execute(f"""
+                CREATE TRIGGER IF NOT EXISTS trg_{tabelle}_uid
+                AFTER INSERT ON {tabelle}
+                WHEN NEW.uid IS NULL
+                BEGIN
+                    UPDATE {tabelle}
+                    SET uid = lower(hex(randomblob(16)))
+                    WHERE id = NEW.id;
+                END
+            """)
 
         # ---------------------------------------------------------
         # Eigene Einheit je Rezeptzutat
@@ -3915,6 +4028,43 @@ class DatabaseManager:
         self.cursor.execute("SELECT * FROM besitz WHERE id = 1")
 
         return self.cursor.fetchone()
+
+    def uids_nachtragen(self):
+        """Gibt jeder Zeile ohne Kennung eine.
+
+        Aufgerufen, bevor eine Datei geschrieben oder eingesammelt
+        wird. Bewusst NICHT bei jedem Einfügen: Das hieße, über
+        hundert Schreibmethoden anzufassen, von denen eine vergessen
+        würde. Hier genügt ein Durchlauf an genau den zwei Stellen,
+        an denen die Kennung gebraucht wird.
+
+        Liefert die Anzahl der nachgetragenen Kennungen.
+        """
+
+        import uuid
+
+        nachgetragen = 0
+
+        for tabelle in MERGE_TABELLEN:
+
+            self.cursor.execute(
+                f"SELECT id FROM {tabelle} WHERE uid IS NULL"
+            )
+
+            zeilen = self.cursor.fetchall()
+
+            for zeile in zeilen:
+                self.cursor.execute(
+                    f"UPDATE {tabelle} SET uid = ? WHERE id = ?",
+                    (uuid.uuid4().hex, zeile["id"])
+                )
+
+            nachgetragen += len(zeilen)
+
+        if nachgetragen:
+            self.commit()
+
+        return nachgetragen
 
     def schema_sicherstellen(self):
         """Tabellen und Migrationen dieser Programmfassung anwenden.

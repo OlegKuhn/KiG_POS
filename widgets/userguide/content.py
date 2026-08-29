@@ -918,33 +918,75 @@ TOPICS = [
         "title": "Mehrere Geräte",
         "steps": [
             {
-                "heading": "Die Kasse gehört immer einem Gerät",
+                "heading": "Hauptgerät und Nebengeräte",
                 "text": (
                     "KiG POS darf auf mehreren Geräten liegen - zum "
                     "Beispiel auf dem Rechner zu Hause, wo Artikel und "
-                    "Preise gepflegt werden, und auf dem Tablet, das am "
-                    "Stand kassiert.\n\n"
-                    "Damit dabei nichts verlorengeht, gilt eine feste "
-                    "Regel: Die Kasse gehört immer genau einem Gerät. "
-                    "Nur dort lässt sich buchen und ändern. Alle "
-                    "anderen zeigen dieselben Daten - aber nur zum "
-                    "Ansehen.\n\n"
-                    "Wer gerade nur zusehen darf, sieht das oben in der "
-                    "Kopfzeile: \"NUR ANSICHT - Kasse bei Tablet\"."
+                    "Preise gepflegt werden, und auf einem oder mehreren "
+                    "Tablets, die am Stand kassieren.\n\n"
+                    "Damit dabei nichts verlorengeht, gilt eine "
+                    "Aufteilung:\n\n"
+                    "Artikel, Preise, Kategorien und Rezepte gehören dem "
+                    "Hauptgerät. Nur dort werden sie geändert.\n\n"
+                    "Buchen darf jedes Gerät: Verkäufe, Kassenbuch, "
+                    "Checklisten, Schichtpläne. Diese Zeilen kommen nur "
+                    "dazu und lassen sich hinterher einsammeln.\n\n"
+                    "Wer gerade Nebengerät ist, sieht das oben in der "
+                    "Kopfzeile: \"NEBENGERÄT - Stammdaten bei "
+                    "Computer\"."
                 ),
                 "image": "einstellungen/04_uebergabe.png",
             },
             {
-                "heading": "Warum nicht einfach beide gleichzeitig",
+                "heading": "Warum diese Aufteilung",
                 "text": (
-                    "Weil zwei Geräte, die dieselben Daten ändern, sie "
-                    "auch gegenseitig überschreiben. Das fällt nicht "
-                    "auf: Es gibt keine Fehlermeldung, nur einen Abend "
-                    "voller Buchungen, der später fehlt.\n\n"
-                    "Deshalb wandert das Schreibrecht wie ein Schlüssel "
-                    "von Gerät zu Gerät. Es steht in der Datenbank "
-                    "selbst, nicht in einer Einstellung des Geräts - "
-                    "zwei Besitzer kann es damit gar nicht geben."
+                    "Weil zwei Geräte, die dieselbe Angabe ändern, sie "
+                    "gegenseitig überschreiben. Setzt einer den "
+                    "Colapreis auf 2,50 und der andere gleichzeitig auf "
+                    "3,00 - welcher gilt? Das kann keine Technik "
+                    "entscheiden.\n\n"
+                    "Bei Verkäufen stellt sich die Frage nie: Ein Bon "
+                    "ist entweder schon da oder nicht. Deshalb dürfen "
+                    "alle buchen, während die Stammdaten an einer "
+                    "Stelle bleiben.\n\n"
+                    "Wer Hauptgerät ist, steht in der Datenbank selbst - "
+                    "nicht in einer Einstellung des Geräts. Zwei "
+                    "Hauptgeräte kann es deshalb gar nicht geben."
+                ),
+            },
+            {
+                "heading": "Buchungen einsammeln",
+                "text": (
+                    "Haben mehrere Geräte gebucht, führt man die "
+                    "Buchungen hinterher zusammen:\n\n"
+                    "Auf dem Gerät, das etwas abzugeben hat: \"Buchungen "
+                    "bereitstellen\". Das schreibt eine Datei mit dem "
+                    "eigenen Stand - abgegeben wird dabei nichts, das "
+                    "Gerät bucht weiter.\n\n"
+                    "Auf dem Gerät, das einsammelt: \"Buchungen "
+                    "einsammeln\". Es zeigt erst, was dazukäme (\"2 "
+                    "Verkäufe, 1 Kassenbuchzeile, 1 Checkliste\") und "
+                    "fragt nach.\n\n"
+                    "Übernommen wird nur, was fehlt. Dieselbe Datei "
+                    "zweimal einzusammeln ändert deshalb nichts, und die "
+                    "Richtung ist beliebig - am Ende können alle Geräte "
+                    "alles haben."
+                ),
+            },
+            {
+                "heading": "Der Bestand bleibt außen vor",
+                "text": (
+                    "Eingesammelte Verkäufe stehen in Statistik und "
+                    "Auswertung, aber sie ziehen auf dem einsammelnden "
+                    "Gerät nichts vom Lagerbestand ab.\n\n"
+                    "Der Grund: Der Bestand ist heute eine Zahl. Zwei "
+                    "Geräte, die beide daran rechnen, überschreiben sich "
+                    "gegenseitig. Damit das aufgeht, müsste er als Summe "
+                    "von Bewegungen geführt werden - das ist der nächste "
+                    "Schritt.\n\n"
+                    "Bis dahin gilt: Wer den Bestand ernst nimmt, "
+                    "korrigiert ihn nach einem Fest von Hand am "
+                    "Hauptgerät."
                 ),
             },
             {
@@ -992,15 +1034,18 @@ TOPICS = [
                 ),
             },
             {
-                "heading": "Was heute noch nicht geht",
+                "heading": "Woran das Programm die Zeilen erkennt",
                 "text": (
-                    "Gleichzeitig kassieren - zwei Stände auf demselben "
-                    "Fest. Dafür müssten die Buchungen beider Geräte "
-                    "hinterher zusammengeführt werden; das ist ein "
-                    "eigener Schritt und noch nicht gebaut.\n\n"
-                    "Vorbereitet ist er: Jeder Bon trägt bereits die "
-                    "Kennung des Geräts, das ihn geschrieben hat, und "
-                    "jedes Gerät zählt seine Bonnummern für sich."
+                    "Jede Zeile bekommt beim Anlegen eine Kennung, die "
+                    "über alle Geräte hinweg eindeutig ist. Daran "
+                    "erkennt das Einsammeln, was schon da ist - "
+                    "unabhängig davon, welche laufende Nummer sie auf "
+                    "welchem Gerät bekommen hat.\n\n"
+                    "Ebenso trägt jeder Bon die Kennung des Geräts, das "
+                    "ihn geschrieben hat, und jedes Gerät zählt seine "
+                    "Bonnummern für sich. Zwei Geräte vergeben also "
+                    "beide eine Nummer 42 - verwechseln lassen sich die "
+                    "beiden Bons trotzdem nicht."
                 ),
             },
         ],

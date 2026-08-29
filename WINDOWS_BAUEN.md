@@ -19,7 +19,60 @@ dist\KiG POS\KiG POS.exe
 
 Der ganze Ordner `dist\KiG POS` gehört zusammen — nur die .exe allein
 läuft nicht. Zum Weitergeben also den **Ordner** kopieren (oder als ZIP
-verschicken).
+verschicken) — oder gleich ein Installationsprogramm bauen, siehe
+unten.
+
+---
+
+## Das Installationsprogramm
+
+Eine einzige Datei zum Mitnehmen, die auf jedem Rechner installiert:
+
+```bash
+"%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" KiG_POS_Setup.iss
+```
+
+Fertig liegt sie in:
+
+```
+installer\KiG POS Setup 0.1.0.exe
+```
+
+**Vorher muss PyInstaller gelaufen sein** — das Installationsprogramm
+packt den Ordner `dist\KiG POS` ein.
+
+Gebraucht wird dafür einmalig Inno Setup:
+
+```bash
+winget install --id JRSoftware.InnoSetup --scope user
+```
+
+### Was die Installation tut
+
+| | |
+|---|---|
+| Zielordner | `%LOCALAPPDATA%\Programs\KiG POS` |
+| Adminrechte | keine nötig |
+| Verknüpfungen | Startmenü immer, Desktop auf Wunsch |
+| Deinstallation | über "Apps & Features" |
+
+**Warum nicht `C:\Program Files`:** Das Programm legt seine Datenbank
+neben die exe (siehe `storage.py:data_dir`). In `Program Files` darf
+ein normaler Benutzer nicht schreiben — die Kasse käme dort beim ersten
+Start nicht einmal hoch. Der Ordner unter `LocalAppData` gehört dem
+Benutzer; deshalb braucht die Installation auch kein Adminkonto und
+läuft auf einem fremden Rechner ohne Rückfrage durch.
+
+**Die Deinstallation kostet keine Buchungen.** Nachgemessen an einer
+Probeinstallation: Entfernt werden nur die Dateien, die das
+Installationsprogramm selbst hingelegt hat. `daten` (Datenbank und
+Sicherungen), `logs` und `exports` bleiben stehen. Wer wirklich alles
+loswerden will, löscht den Ordner danach von Hand.
+
+**Eine erneute Installation über eine vorhandene** ersetzt das
+Programm und lässt die Datenbank in Ruhe — dafür sorgt die feste
+`AppId` in `KiG_POS_Setup.iss`. Wer bei null anfangen will, löscht
+vorher den Ordner `daten`.
 
 ---
 

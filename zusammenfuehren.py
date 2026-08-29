@@ -30,12 +30,11 @@ Beschreibung:
     geräteübergreifend eindeutig ist. Zweimal dieselbe Datei
     einzusammeln ändert deshalb nichts.
 
-    Was hier NICHT geschieht: den Bestand mitrechnen. Die
-    eingesammelten Verkäufe stehen in Statistik und
-    Kassenbuch, der Lagerbestand des einsammelnden Geräts
-    bleibt aber unverändert. Dafür müsste er als Summe von
-    Bewegungen geführt werden statt als Zahl - das ist die
-    nächste Stufe.
+    Der Bestand wandert mit: Seit er als Summe von
+    Bewegungen geführt wird (siehe
+    database._create_stock_movements_table), ist auch er
+    etwas, das nur dazukommt. Zwei Geräte, die je einen
+    Abgang buchen, ergeben zusammen zwei Abgänge.
 
 Version:
     1.0.0
@@ -72,6 +71,7 @@ BEZEICHNUNGEN = {
     "events": "Kalendereinträge",
     "sales": "Verkäufe",
     "sale_items": "Verkaufspositionen",
+    "stock_movements": "Bestandsbewegungen",
     "cash_book_entries": "Kassenbuchzeilen",
     "checklists": "Checklisten",
     "checklist_items": "Aufgaben",

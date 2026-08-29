@@ -974,63 +974,23 @@ TOPICS = [
                 ),
             },
             {
-                "heading": "Der Bestand bleibt außen vor",
+                "heading": "Der Bestand rechnet mit",
                 "text": (
-                    "Eingesammelte Verkäufe stehen in Statistik und "
-                    "Auswertung, aber sie ziehen auf dem einsammelnden "
-                    "Gerät nichts vom Lagerbestand ab.\n\n"
-                    "Der Grund: Der Bestand ist heute eine Zahl. Zwei "
-                    "Geräte, die beide daran rechnen, überschreiben sich "
-                    "gegenseitig. Damit das aufgeht, müsste er als Summe "
-                    "von Bewegungen geführt werden - das ist der nächste "
-                    "Schritt.\n\n"
-                    "Bis dahin gilt: Wer den Bestand ernst nimmt, "
-                    "korrigiert ihn nach einem Fest von Hand am "
-                    "Hauptgerät."
-                ),
-            },
-            {
-                "heading": "Übergeben",
-                "text": (
-                    "In den Einstellungen unter \"Gerät und Übergabe\" "
-                    "steht, wie dieses Gerät heißt und wo die Kasse "
-                    "gerade liegt.\n\n"
-                    "\"Kasse übergeben\" fragt nach Name und Kennung des "
-                    "anderen Geräts - beides steht dort in derselben "
-                    "Zeile. Danach schreibt das Programm eine "
-                    "Übergabedatei in den Ordner exports/uebergabe und "
-                    "gibt das Recht ab; dieses Gerät kann ab da nur "
-                    "noch zusehen."
-                ),
-            },
-            {
-                "heading": "Einspielen",
-                "text": (
-                    "Die Übergabedatei aufs andere Gerät kopieren - per "
-                    "USB-Kabel, Stick oder Cloud-Ordner - und zwar in "
-                    "dessen Ordner exports/uebergabe.\n\n"
-                    "Dort \"Übergabe einspielen\" wählen. Das Programm "
-                    "zeigt erst, was drinsteht (von wem, welcher Stand, "
-                    "wie viele Artikel und Verkäufe) und fragt nach. "
-                    "Vor dem Einspielen legt es eine Sicherung des "
-                    "bisherigen Standes an."
-                ),
-            },
-            {
-                "heading": "Wenn etwas schiefgeht",
-                "text": (
-                    "Jede Übergabe zählt einen Stand hoch. Wird eine "
-                    "ältere Datei eingespielt, lehnt das Programm ab "
-                    "und sagt warum - ihr Inhalt wäre älter als das, "
-                    "was schon da ist.\n\n"
-                    "Ist das Gerät, an das übergeben wurde, nicht mehr "
-                    "erreichbar (verloren, kaputt), lässt sich die "
-                    "Übernahme erzwingen. Das ist bewusst unbequem und "
-                    "mit einer roten Warnung versehen: Danach dürfen "
-                    "nicht plötzlich zwei Geräte weiterarbeiten.\n\n"
-                    "\"Übergaben anzeigen\" führt Buch: wer wann an wen "
-                    "übergeben hat. Wenn jemand fragt, wo die Bons vom "
-                    "Samstag sind, sieht man dort nach."
+                    "Der Lagerbestand ist keine Zahl mehr, die "
+                    "überschrieben wird, sondern die Summe seiner "
+                    "Bewegungen:\n\n"
+                    "  Wareneingang  +100\n"
+                    "  Verkauf         -1\n"
+                    "  Inventur        -3\n\n"
+                    "Das klingt umständlich, hat aber einen Grund: "
+                    "Verkaufen zwei Geräte gleichzeitig, entstehen zwei "
+                    "Bewegungen, die sich addieren. Eine Zahl dagegen "
+                    "würde beim Einsammeln von der anderen "
+                    "überschrieben - die Hälfte der Abgänge wäre weg, "
+                    "ohne Fehlermeldung.\n\n"
+                    "Im Artikel-Dashboard steht die Geschichte wie "
+                    "gewohnt: was passiert ist, wer es war, und wie der "
+                    "Bestand vorher und nachher stand."
                 ),
             },
             {

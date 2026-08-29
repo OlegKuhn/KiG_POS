@@ -74,6 +74,7 @@ MERGE_TABELLEN = (
     "events",
     "sales",
     "sale_items",
+    "stock_movements",
     "cash_book_entries",
     "checklists",
     "checklist_items",
@@ -427,7 +428,7 @@ class DatabaseManager:
 
         self._create_articles_table()
 
-        self._create_article_stock_table()
+        self._create_stock_movements_table()
 
         self._create_article_stock_history_table()
 
@@ -575,38 +576,60 @@ class DatabaseManager:
     # Tabelle Lagerbestand
     #################################################################
 
-    def _create_article_stock_table(self):
+    def _create_stock_movements_table(self):
+        """Der Bestand als Summe seiner Bewegungen.
+
+        Früher stand er als eine Zahl in article_stock. Das ging,
+        solange ein Gerät buchte - sobald zwei es tun, überschreibt
+        beim Zusammenführen die eine Zahl die andere, und die Hälfte
+        der Abgänge ist weg, ohne dass es auffällt.
+
+        Eine Bewegung dagegen kommt nur dazu:
+
+            Wareneingang    +100
+            Verkauf           -1
+            Verkauf           -1
+            Korrektur         -3
+
+        Zwei Geräte, die je einen Verkauf buchen, erzeugen zwei
+        Bewegungen. Zusammengeführt ergeben sie zusammen -2 - egal,
+        in welcher Reihenfolge und wie oft eingesammelt wird.
+
+        Der Bestand ist damit nirgends gespeichert, sondern wird
+        gerechnet (siehe get_stock_quantity). Es gibt keine zweite
+        Wahrheit, die auseinanderlaufen könnte.
+        """
 
         self.cursor.execute("""
 
-                            CREATE TABLE IF NOT EXISTS article_stock
-                            (
+        CREATE TABLE IF NOT EXISTS stock_movements(
 
-                                article_id
-                                INTEGER
-                                PRIMARY
-                                KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-                                quantity
-                                REAL
-                                NOT
-                                NULL
-                                DEFAULT
-                                0,
+            uid TEXT,
 
-                                FOREIGN
-                                KEY
-                            (
-                                article_id
-                            )
-                                REFERENCES articles
-                            (
-                                id
-                            )
+            article_id INTEGER NOT NULL,
 
-                                )
+            delta REAL NOT NULL,
 
-                            """)
+            reason TEXT,
+
+            changed_by TEXT,
+
+            changed_at TEXT,
+
+            device_id TEXT,
+
+            FOREIGN KEY(article_id) REFERENCES articles(id)
+
+        )
+
+        """)
+
+        self.cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_stock_movements_article "
+            "ON stock_movements(article_id)"
+        )
 
     #################################################################
     # Tabelle Lagerhistorie
@@ -821,6 +844,57 @@ class DatabaseManager:
             self.logger.info("Migration: device_id zu sales hinzugefügt.")
 
         # ---------------------------------------------------------
+        # Bestand: aus der Zahl wird eine Bewegung
+        # ---------------------------------------------------------
+        #
+        # Der bisherige Bestand wird zu EINER Bewegung
+        # ("Anfangsbestand"), danach verschwindet die alte Tabelle.
+        #
+        # Die Kennung ist abgeleitet ("alt-bestand-7"), nicht
+        # zufällig: Zwei Geräte, deren Datenbanken vom selben Stand
+        # abstammen, errechnen dieselbe - sonst zählte das
+        # Zusammenführen den Anfangsbestand ein zweites Mal dazu und
+        # das Lager wäre plötzlich doppelt so voll.
+
+        self.cursor.execute(
+            "SELECT name FROM sqlite_master "
+            "WHERE type='table' AND name='article_stock'"
+        )
+
+        if self.cursor.fetchone() is not None:
+
+            self.cursor.execute(
+                "SELECT article_id, quantity FROM article_stock "
+                "WHERE quantity <> 0"
+            )
+
+            uebernommen = 0
+
+            for zeile in self.cursor.fetchall():
+
+                self.cursor.execute(
+                    "INSERT OR IGNORE INTO stock_movements"
+                    "(uid, article_id, delta, reason, changed_at) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (
+                        f"alt-bestand-{zeile['article_id']}",
+                        zeile["article_id"],
+                        zeile["quantity"],
+                        "Anfangsbestand",
+                        self.timestamp(),
+                    )
+                )
+
+                uebernommen += 1
+
+            self.cursor.execute("DROP TABLE article_stock")
+
+            self.logger.info(
+                "Migration: Bestand von %s Artikeln in Bewegungen "
+                "überführt.", uebernommen
+            )
+
+        # ---------------------------------------------------------
         # Eindeutige Kennung je Zeile
         # ---------------------------------------------------------
         #
@@ -970,26 +1044,10 @@ class DatabaseManager:
         if event_column is not None and event_column["notnull"]:
             self._migrate_sales_event_to_optional()
 
-        # ---------------------------------------------------------
-        # Fehlende Lagerbestände erzeugen
-        # ---------------------------------------------------------
-
-        self.cursor.execute(
-            """
-            INSERT INTO article_stock(article_id,
-                                      quantity)
-
-            SELECT a.id,
-                   0
-
-            FROM articles a
-
-                     LEFT JOIN article_stock s
-                               ON s.article_id = a.id
-
-            WHERE s.article_id IS NULL
-            """
-        )
+        # Fehlende Bestandszeilen gibt es nicht mehr: Ein Artikel
+        # ohne Bewegung hat schlicht den Bestand 0 (siehe
+        # get_stock_quantity). Frueher musste dafuer eine Zeile mit
+        # der Zahl 0 angelegt werden.
 
         self.commit()
 
@@ -1154,11 +1212,18 @@ class DatabaseManager:
             article_id
     ):
 
+        """Der Bestand als Summe aller Bewegungen.
+
+        Nirgends gespeichert, immer gerechnet - siehe
+        _create_stock_movements_table. Ein Artikel ohne Bewegung hat
+        den Bestand 0.
+        """
+
         self.cursor.execute(
             """
-            SELECT quantity
+            SELECT COALESCE(SUM(delta), 0) AS bestand
 
-            FROM article_stock
+            FROM stock_movements
 
             WHERE article_id = ?
             """,
@@ -1167,10 +1232,7 @@ class DatabaseManager:
 
         row = self.cursor.fetchone()
 
-        if row is None:
-            return 0
-
-        return row["quantity"]
+        return row["bestand"] if row else 0
 
     #################################################################
     # Einkaufsliste
@@ -1223,23 +1285,24 @@ class DatabaseManager:
             quantity
     ):
 
-        self.cursor.execute(
-            """
-            UPDATE article_stock
+        """Setzt den Bestand auf einen Wert.
 
-            SET quantity = ?
+        Die Aufrufer denken weiterhin in Zielwerten ("nach dem
+        Verkauf sind es 62"). Gespeichert wird aber die DIFFERENZ zum
+        jetzigen Stand - nur sie laesst sich mit den Bewegungen
+        anderer Geraete zusammenfuehren. Zwei Geraete, die je einen
+        Zielwert schreiben, wuerden sich gegenseitig ueberschreiben;
+        zwei Differenzen addieren sich.
+        """
 
-            WHERE article_id = ?
-            """,
-            (
-                quantity,
-                article_id
-            )
-        )
+        jetzt = self.get_stock_quantity(article_id)
 
-        self.commit()
+        unterschied = quantity - jetzt
 
-        return self.cursor.rowcount == 1
+        if not unterschied:
+            return True
+
+        return self.bestand_bewegen(article_id, unterschied)
 
     #################################################################
     # Kosten je Lagereinheit
@@ -1348,15 +1411,10 @@ class DatabaseManager:
         if gemischt is not None:
             self.set_cost_per_unit(article_id, gemischt)
 
-        self.update_stock(article_id, neuer_bestand)
-
-        self.add_stock_history(
-            article_id=article_id,
-            old_quantity=alter_bestand,
-            new_quantity=neuer_bestand,
-            reason=reason,
-            changed_by=changed_by,
-            changed_at=self.timestamp(),
+        # Der Zugang als eigene Bewegung - gleich mit Grund, statt
+        # ihn hinterher nachzutragen.
+        self.bestand_bewegen(
+            article_id, quantity, reason=reason, changed_by=changed_by
         )
 
         return gemischt
@@ -1438,6 +1496,64 @@ class DatabaseManager:
         self.commit()
 
     #################################################################
+    # Bestandsbewegungen
+    #################################################################
+
+    def bestand_bewegen(
+            self,
+            article_id,
+            delta,
+            reason="",
+            changed_by="",
+    ):
+        """Schreibt eine Bewegung - die einzige Art, den Bestand zu
+        ändern.
+
+        delta ist die Veränderung, nicht der neue Stand: +100 beim
+        Wareneingang, -1 beim Verkauf.
+        """
+
+        if not delta:
+            return True
+
+        self.cursor.execute(
+            """
+            INSERT INTO stock_movements(
+                article_id, delta, reason, changed_by, changed_at,
+                device_id
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                article_id,
+                delta,
+                reason,
+                changed_by,
+                self.timestamp(),
+                self.geraet["id"],
+            )
+        )
+
+        self.commit()
+
+        return True
+
+    def get_stock_movements(self, article_id, grenze=50):
+        """Die Bewegungen eines Artikels, neueste zuerst."""
+
+        self.cursor.execute(
+            """
+            SELECT * FROM stock_movements
+            WHERE article_id = ?
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (article_id, grenze)
+        )
+
+        return self.cursor.fetchall()
+
+    #################################################################
     # Historieneintrag speichern
     #################################################################
 
@@ -1450,31 +1566,40 @@ class DatabaseManager:
             changed_by,
             changed_at
     ):
+        """Beschriftet die soeben gebuchte Bewegung.
+
+        Frueher schrieb diese Methode eine eigene Zeile in eine
+        zweite Tabelle. Seit der Bestand aus Bewegungen besteht,
+        waere das dieselbe Sache zweimal aufgeschrieben - und
+        zweierlei Aufschriebe laufen frueher oder spaeter
+        auseinander.
+
+        Die Aufrufer bleiben unveraendert: Sie setzen erst den
+        Bestand (das erzeugt die Bewegung) und melden danach den
+        Grund. Genau der wird hier nachgetragen.
+        """
+
+        unterschied = (new_quantity or 0) - (old_quantity or 0)
 
         self.cursor.execute(
-            """
-            INSERT INTO article_stock_history(article_id,
-                                              old_quantity,
-                                              new_quantity,
-                                              reason,
-                                              changed_by,
-                                              changed_at)
+            "SELECT id, delta FROM stock_movements "
+            "WHERE article_id = ? ORDER BY id DESC LIMIT 1",
+            (article_id,)
+        )
 
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (
-                article_id,
+        letzte = self.cursor.fetchone()
 
-                old_quantity,
+        # Nur beschriften, wenn die letzte Bewegung tatsaechlich die
+        # gemeldete ist. Sonst bekaeme eine fremde Bewegung eine
+        # falsche Aufschrift - etwa wenn sich der Bestand gar nicht
+        # geaendert hat und deshalb keine Bewegung entstand.
+        if letzte is None or abs(letzte["delta"] - unterschied) > 0.0001:
+            return False
 
-                new_quantity,
-
-                reason,
-
-                changed_by,
-
-                changed_at
-            )
+        self.cursor.execute(
+            "UPDATE stock_movements SET reason = ?, changed_by = ?, "
+            "changed_at = ? WHERE id = ?",
+            (reason, changed_by, changed_at or self.timestamp(), letzte["id"])
         )
 
         self.commit()
@@ -1489,23 +1614,67 @@ class DatabaseManager:
             self,
             article_id
     ):
+        """Die Bestandsgeschichte eines Artikels, neueste zuerst.
+
+        Gelesen wird sie aus den Bewegungen; "vorher" und "nachher"
+        entstehen dabei durch Aufsummieren. Der Anzeige ist das
+        einerlei - sie bekommt dieselben Felder wie früher.
+
+        Angehängt werden die Zeilen aus der alten Tabelle
+        article_stock_history: Sie stammen aus der Zeit vor der
+        Umstellung und sollen nicht einfach verschwinden. Neue
+        kommen dort keine mehr dazu.
+        """
 
         self.cursor.execute(
             """
-            SELECT *
+            SELECT id, delta, reason, changed_by, changed_at
 
-            FROM article_stock_history
+            FROM stock_movements
 
             WHERE article_id = ?
 
-            -- Die ID wird beim Speichern fortlaufend vergeben und ist
-            -- damit unabhängig vom Anzeigeformat des Zeitstempels.
-            ORDER BY id DESC
+            ORDER BY id
             """,
             (article_id,)
         )
 
-        return self.cursor.fetchall()
+        laufend = 0
+        eintraege = []
+
+        for zeile in self.cursor.fetchall():
+
+            vorher = laufend
+            laufend += zeile["delta"]
+
+            eintraege.append({
+                "id": zeile["id"],
+                "old_quantity": vorher,
+                "new_quantity": laufend,
+                "reason": zeile["reason"] or "Bestandsänderung",
+                "changed_by": zeile["changed_by"] or "",
+                "changed_at": zeile["changed_at"] or "",
+            })
+
+        eintraege.reverse()
+
+        # Alte Einträge von vor der Umstellung
+        self.cursor.execute(
+            "SELECT name FROM sqlite_master "
+            "WHERE type='table' AND name='article_stock_history'"
+        )
+
+        if self.cursor.fetchone() is not None:
+
+            self.cursor.execute(
+                "SELECT * FROM article_stock_history "
+                "WHERE article_id = ? ORDER BY id DESC",
+                (article_id,)
+            )
+
+            eintraege.extend(dict(zeile) for zeile in self.cursor.fetchall())
+
+        return eintraege
 
     #################################################################
     # Tabelle Pfandarten
@@ -3033,17 +3202,8 @@ class DatabaseManager:
             )
         )
 
-        self.cursor.execute(
-            """
-            INSERT INTO article_stock(article_id,
-                                      quantity)
-            VALUES (?, ?)
-            """,
-            (
-                article_id,
-                0
-            )
-        )
+        # Kein Bestandseintrag nötig: Ohne Bewegung ist der Bestand 0
+        # (siehe get_stock_quantity).
 
         self.commit()
 
@@ -5034,20 +5194,6 @@ class DatabaseManager:
             quantity
     ):
 
-        self.cursor.execute(
-            """
-            UPDATE article_stock
+        """Bucht einen Abgang."""
 
-            SET quantity = quantity - ?
-
-            WHERE article_id = ?
-            """,
-            (
-                quantity,
-                article_id
-            )
-        )
-
-        self.commit()
-
-        return self.cursor.rowcount == 1
+        return self.bestand_bewegen(article_id, -abs(quantity))

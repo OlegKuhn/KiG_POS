@@ -847,8 +847,8 @@ class SettingsScreen(Screen):
             message=(
                 f"Von {herkunft} kämen dazu:\n\n{aufzaehlung}\n\n"
                 f"Nur Neues wird übernommen; Artikel und Preise bleiben "
-                f"unverändert. Der Lagerbestand wird dabei nicht "
-                f"mitgerechnet."
+                f"unverändert. Die Bestandsbewegungen kommen mit - der "
+                f"Bestand stimmt danach über beide Geräte."
             ),
             confirm_text="Einsammeln",
             on_confirm=lambda: self._zugaenge_uebernehmen(pfad),

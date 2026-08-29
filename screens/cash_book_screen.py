@@ -46,6 +46,7 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
 
 import config
+import geldformat
 import storage
 import theme
 
@@ -606,7 +607,7 @@ class CashBookScreen(Screen):
 
     @staticmethod
     def money(value):
-        return f"{float(value or 0):.2f} €".replace(".", ",")
+        return geldformat.geld(value)
 
     @staticmethod
     def format_date(iso_date):

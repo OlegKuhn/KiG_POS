@@ -37,6 +37,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
 
+import geldformat
 import theme
 
 from widgets.kig_label import KiGLabel
@@ -156,19 +157,9 @@ class PaymentSummary(BoxLayout):
 
     @staticmethod
     def geld(betrag):
-        """Betrag mit Komma - wie in der Warenkorbsumme, im
-        Kassenbuch und in der Statistik.
+        """Betrag mit Komma - die Regel steht in geldformat.py."""
 
-        Hier stand bisher der Punkt aus Pythons Standardformat. Auf
-        demselben Bildschirm "13,00 €" als Summe und "10.00 €"
-        daneben zu lesen, ist genau die Art Kleinigkeit, die an der
-        Bar fuer einen Wimpernschlag Unsicherheit sorgt.
-
-        (Die einzelnen Warenkorbzeilen schreiben noch mit Punkt -
-        eine alte Stelle, die hier nicht mit umgebaut wurde.)
-        """
-
-        return f"{float(betrag or 0):.2f} €".replace(".", ",")
+        return geldformat.geld(betrag)
 
     @staticmethod
     def _value_label():

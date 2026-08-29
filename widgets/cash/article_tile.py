@@ -3,6 +3,7 @@ from kivy.uix.boxlayout import BoxLayout
 
 from kivy.metrics import dp
 
+import geldformat
 import theme
 
 from widgets.kig_label import KiGLabel
@@ -201,7 +202,7 @@ class CashArticleTile(KiGTile):
 
         self.stock = self._format_stock(getattr(article, "stock", 0))
 
-        self.price = f"{price:.2f} €"
+        self.price = geldformat.geld(price)
 
         self._mark_sold_out()
 

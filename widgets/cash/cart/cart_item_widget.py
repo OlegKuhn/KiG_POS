@@ -17,6 +17,7 @@ from kivy.metrics import dp
 
 import theme
 import config
+import geldformat
 
 from widgets.kig_label import KiGLabel
 
@@ -172,9 +173,7 @@ class CartItemWidget(ButtonBehavior, BoxLayout):
         self.lbl_quantity = KiGLabel()
 
         self.lbl_quantity.text = (
-            f"{cart_item.quantity} × "
-            f"{cart_item.unit_price:.2f} "
-            f"{config.CURRENCY}"
+            f"{cart_item.quantity} × {geldformat.geld(cart_item.unit_price)}"
         )
 
         self.lbl_quantity.set_font_size(
@@ -203,10 +202,7 @@ class CartItemWidget(ButtonBehavior, BoxLayout):
 
         self.lbl_total = KiGLabel()
 
-        self.lbl_total.text = (
-            f"{cart_item.total_price:.2f} "
-            f"{config.CURRENCY}"
-        )
+        self.lbl_total.text = geldformat.geld(cart_item.total_price)
 
         self.lbl_total.set_bold(True)
 

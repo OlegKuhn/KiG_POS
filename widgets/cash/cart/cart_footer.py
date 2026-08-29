@@ -3,6 +3,7 @@ from kivy.uix.boxlayout import BoxLayout
 
 from kivy.metrics import dp
 
+import geldformat
 import theme
 
 from widgets.kig_label import KiGLabel
@@ -118,7 +119,7 @@ class CartFooter(BoxLayout):
         self._separator.points = [self.x, y, self.right, y]
 
     def set_total(self, value: float):
-        self.lbl_total.text = f"{value:.2f} €".replace(".", ",")
+        self.lbl_total.text = geldformat.geld(value)
 
     def update(self, total: float):
         self.set_total(total)

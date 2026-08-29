@@ -15,6 +15,7 @@ from kivy.uix.spinner import Spinner
 from kivy.uix.widget import Widget
 
 import config
+import geldformat
 import storage
 import theme
 from database import DatabaseManager
@@ -452,7 +453,7 @@ class StatisticsScreen(Screen):
 
     @staticmethod
     def money(value):
-        return f"{float(value or 0):.2f} €".replace(".", ",")
+        return geldformat.geld(value)
 
     @staticmethod
     def format_date(iso_date):

@@ -27,7 +27,14 @@ class UserguideTopicPanel(RoundedPanel):
     PORTRAIT_EXPORT_WIDTH = 210
     PORTRAIT_COLUMNS = 3
 
-    def __init__(self, on_select_topic, on_export_pdf=None, **kwargs):
+    # Der Teilen-Knopf bleibt schmal: Er trägt nur ein Wort und soll
+    # dem Export nicht den Platz nehmen.
+    TEILEN_WIDTH = 110
+
+    def __init__(
+            self, on_select_topic, on_export_pdf=None, on_teilen=None,
+            **kwargs
+    ):
         super().__init__(
             orientation="vertical",
             spacing=dp(theme.CARD_SPACING),
@@ -37,6 +44,7 @@ class UserguideTopicPanel(RoundedPanel):
 
         self.on_select_topic = on_select_topic
         self.on_export_pdf = on_export_pdf
+        self.on_teilen = on_teilen
         self.selected_card = None
 
         # Im Hochformat liegt die Themenliste quer ÜBER der Anleitung
@@ -63,6 +71,17 @@ class UserguideTopicPanel(RoundedPanel):
         )
         self.export_button.bind(on_release=lambda *_args: self._export_clicked())
 
+        self.teilen_button = Button(
+            text="Teilen",
+            size_hint=(None, None),
+            width=dp(self.TEILEN_WIDTH),
+            height=dp(theme.CATEGORY_TILE_HEIGHT),
+            background_normal="", background_down="",
+            background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
+            font_size="16sp", bold=True,
+        )
+        self.teilen_button.bind(on_release=lambda *_args: self._teilen_clicked())
+
         if self.hochformat:
 
             header = BoxLayout(
@@ -78,6 +97,7 @@ class UserguideTopicPanel(RoundedPanel):
             self.export_button.size_hint_x = None
             self.export_button.width = dp(self.PORTRAIT_EXPORT_WIDTH)
             header.add_widget(self.export_button)
+            header.add_widget(self.teilen_button)
 
             self.add_widget(header)
 
@@ -110,7 +130,21 @@ class UserguideTopicPanel(RoundedPanel):
         # -------------------------------------------------
 
         if not self.hochformat:
-            self.add_widget(self.export_button)
+
+            # Export und Teilen nebeneinander: Der Teilen-Knopf gehört
+            # zur eben ausgegebenen Datei und soll neben ihr stehen.
+            fusszeile = BoxLayout(
+                orientation="horizontal",
+                spacing=dp(theme.ROW_SPACING),
+                size_hint_y=None,
+                height=dp(theme.CATEGORY_TILE_HEIGHT),
+            )
+
+            self.export_button.size_hint_y = 1
+            fusszeile.add_widget(self.export_button)
+            fusszeile.add_widget(self.teilen_button)
+
+            self.add_widget(fusszeile)
 
         self.status_label = Label(
             text="", color=theme.TEXT_SECONDARY, font_size="12sp",
@@ -125,6 +159,11 @@ class UserguideTopicPanel(RoundedPanel):
 
         if callable(self.on_export_pdf):
             self.on_export_pdf()
+
+    def _teilen_clicked(self):
+
+        if callable(self.on_teilen):
+            self.on_teilen()
 
     def set_export_status(self, text):
         """Kurze Rückmeldung unter dem Export-Knopf (leerer Text

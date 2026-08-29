@@ -35,6 +35,7 @@ from kivy.uix.screenmanager import Screen
 
 import config
 import storage
+import teilen
 import theme
 
 from widgets.common.exporthinweis import (
@@ -64,6 +65,9 @@ class ChecklistScreen(Screen):
 
         self.selected_checklist_id = None
         self.checklist_buttons = {}
+
+        # Zuletzt ausgegebene Datei - sie haengt am Teilen-Knopf.
+        self.letzte_ausgabe = None
 
         # Im Hochformat stehen die Listen über den Punkten statt
         # daneben.
@@ -202,17 +206,47 @@ class ChecklistScreen(Screen):
             size_hint=(1, 0.7) if self.hochformat else (1, 1),
         )
 
-        kopf = BoxLayout(size_hint_y=None, height=dp(40),
-                         spacing=dp(theme.ROW_SPACING))
-
         self.items_title = self._title("Keine Liste gewählt")
-        self.items_title.size_hint_y = 1
-        kopf.add_widget(self.items_title)
 
         export_knopf = self._button("Excel exportieren", self.export_excel)
-        export_knopf.size_hint_x = None
-        export_knopf.width = dp(190)
-        kopf.add_widget(export_knopf)
+        teilen_knopf = self._button("Teilen", self.teilen_clicked)
+
+        if self.hochformat:
+
+            # Auf dem Telefon bliebe neben zwei Knöpfen kaum noch Platz
+            # für den Listennamen - dort stehen sie darunter.
+            kopf = BoxLayout(
+                orientation="vertical", size_hint_y=None,
+                height=dp(36 + 52 + theme.ROW_SPACING),
+                spacing=dp(theme.ROW_SPACING),
+            )
+
+            kopf.add_widget(self.items_title)
+
+            knopfreihe = BoxLayout(
+                size_hint_y=None, height=dp(52),
+                spacing=dp(theme.ROW_SPACING),
+            )
+            knopfreihe.add_widget(export_knopf)
+            knopfreihe.add_widget(teilen_knopf)
+
+            kopf.add_widget(knopfreihe)
+
+        else:
+
+            kopf = BoxLayout(size_hint_y=None, height=dp(40),
+                             spacing=dp(theme.ROW_SPACING))
+
+            self.items_title.size_hint_y = 1
+            kopf.add_widget(self.items_title)
+
+            export_knopf.size_hint_x = None
+            export_knopf.width = dp(190)
+            kopf.add_widget(export_knopf)
+
+            teilen_knopf.size_hint_x = None
+            teilen_knopf.width = dp(110)
+            kopf.add_widget(teilen_knopf)
 
         panel.add_widget(kopf)
 
@@ -617,6 +651,8 @@ class ChecklistScreen(Screen):
 
         workbook.save(ziel)
 
+        self.letzte_ausgabe = ziel
+
         self.status_label.text = export_hinweis(ziel)
         self.status_label.color = theme.TEXT_SECONDARY
 
@@ -632,6 +668,14 @@ class ChecklistScreen(Screen):
     # =====================================================
     # Hilfsmittel
     # =====================================================
+
+
+    def teilen_clicked(self):
+        """Gibt die zuletzt ausgegebene Datei weiter (siehe teilen.py)."""
+
+        erfolg, meldung = teilen.teilen(self.letzte_ausgabe)
+
+        self.status_label.text = meldung
 
     @staticmethod
     def _button(text, callback, background=None, color=None):

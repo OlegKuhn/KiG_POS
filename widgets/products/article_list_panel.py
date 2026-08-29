@@ -23,11 +23,11 @@ class ArticleListPanel(RoundedPanel):
     # Breite, die Überschrift und Schaltflächen nebeneinander
     # brauchen. Darunter wandern die Schaltflächen in eine eigene
     # Zeile.
-    HEADER_MIN_WIDTH = 620
+    HEADER_MIN_WIDTH = 740
 
     # Darunter reicht selbst die eigene Zeile nicht mehr für die
     # ausgeschriebenen Beschriftungen.
-    SHORT_LABEL_WIDTH = 380
+    SHORT_LABEL_WIDTH = 440
 
     # Breite der Schaltflächen, solange sie neben der Überschrift
     # stehen. Ohne feste Breite teilten sie sich die Zeile hälftig mit
@@ -36,18 +36,21 @@ class ArticleListPanel(RoundedPanel):
     BUTTON_WIDTHS = {
         "sort_button": 130,
         "export_button": 200,
+        "teilen_button": 110,
         "new_button": 160,
     }
 
     LANGE_BESCHRIFTUNGEN = {
         "sort_button": "Sortierung",
         "export_button": "Einkaufsliste exportieren",
+        "teilen_button": "Teilen",
         "new_button": "+ Neuer Artikel",
     }
 
     KURZE_BESCHRIFTUNGEN = {
         "sort_button": "Sortieren",
         "export_button": "Export",
+        "teilen_button": "Teilen",
         "new_button": "+ Neu",
     }
 
@@ -60,6 +63,7 @@ class ArticleListPanel(RoundedPanel):
             delete_callback,
             sort_callback,
             export_callback,
+            teilen_callback,
             **kwargs
     ):
         super().__init__(
@@ -76,6 +80,7 @@ class ArticleListPanel(RoundedPanel):
         self.delete_callback = delete_callback
         self.sort_callback = sort_callback
         self.export_callback = export_callback
+        self.teilen_callback = teilen_callback
 
         self.rows = {}
         self.title_label = None
@@ -121,6 +126,15 @@ class ArticleListPanel(RoundedPanel):
         )
         self.export_button.bind(on_release=lambda *_args: self.export_callback())
         self.header_buttons.add_widget(self.export_button)
+
+        self.teilen_button = Button(
+            text="Teilen",
+            background_normal="", background_down="",
+            background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
+            font_size="14sp", bold=True,
+        )
+        self.teilen_button.bind(on_release=lambda *_args: self.teilen_callback())
+        self.header_buttons.add_widget(self.teilen_button)
 
         self.new_button = Button(
             text="+ Neuer Artikel",
@@ -193,7 +207,7 @@ class ArticleListPanel(RoundedPanel):
     def _update_header(self, *_args):
         """Ordnet die Kopfzeile nach verfügbarer Breite.
 
-        Drei Schaltflächen neben der Überschrift brauchen rund 620 dp.
+        Vier Schaltflächen neben der Überschrift brauchen rund 740 dp.
         Auf einem Telefon sind das mehr Bildpunkte, als der Bildschirm
         breit ist - dort rücken sie in eine eigene Zeile, und wird es
         noch enger, tragen sie kürzere Beschriftungen.

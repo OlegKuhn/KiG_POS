@@ -33,6 +33,7 @@ from kivy.uix.screenmanager import Screen
 import demo
 import geraet
 import storage
+import teilen
 import theme
 import uebergabe
 import zusammenfuehren
@@ -87,6 +88,9 @@ class SettingsScreen(Screen):
     def __init__(self, **kwargs):
 
         super().__init__(**kwargs)
+
+        # Zuletzt geschriebene Datei - sie haengt am Teilen-Knopf.
+        self.letzte_ausgabe = None
 
         root = BoxLayout(padding=dp(theme.SCREEN_PADDING))
 
@@ -289,6 +293,19 @@ class SettingsScreen(Screen):
 
         inhalt.add_widget(protokoll_row)
 
+        teilen_row = self._option_row()
+
+        self.teilen_button = SettingsOptionButton(
+            "Datei teilen", "teilen", lambda _wert: self.teilen_clicked(),
+        )
+        teilen_row.add_widget(self.teilen_button)
+
+        # Der Knopf steht allein in seiner Zeile, soll aber so breit
+        # sein wie die anderen - deshalb der Platzhalter daneben.
+        teilen_row.add_widget(BoxLayout())
+
+        inhalt.add_widget(teilen_row)
+
         uebergabe_hint = KiGLabel(text=(
             "Artikel, Preise und Rezepte gehören dem Hauptgerät - dem, "
             "das die Kasse zuletzt übernommen hat. Alle anderen dürfen "
@@ -299,13 +316,15 @@ class SettingsScreen(Screen):
             "eigenen Stand, ohne etwas abzugeben; \"Buchungen "
             "einsammeln\" holt aus so einer Datei alles heraus, was hier "
             "noch fehlt - Verkäufe, Kassenbuch, Listen. Zweimal "
-            "eingesammelt ändert nichts."
+            "eingesammelt ändert nichts.\n\n"
+            "\"Datei teilen\" schickt die zuletzt geschriebene Datei "
+            "weiter - per Mail, Messenger oder wohin auch immer."
         ))
         uebergabe_hint.set_font_size(14)
         uebergabe_hint.set_alignment("left")
         uebergabe_hint.set_color(theme.TEXT_SECONDARY)
         uebergabe_hint.size_hint_y = None
-        uebergabe_hint.height = dp(150)
+        uebergabe_hint.height = dp(190)
         inhalt.add_widget(uebergabe_hint)
 
         self.uebergabe_status = Label(
@@ -596,6 +615,8 @@ class SettingsScreen(Screen):
             self.uebergabe_status.text = f"Übergabe fehlgeschlagen: {fehler}"
             return
 
+        self.letzte_ausgabe = ziel
+
         self.uebergabe_status.text = export_hinweis(
             ziel, was=f"Übergeben an {an_name} (Stand {stand})"
         )
@@ -801,9 +822,24 @@ class SettingsScreen(Screen):
             self.uebergabe_status.text = f"Fehlgeschlagen: {fehler}"
             return
 
+        self.letzte_ausgabe = ziel
+
         self.uebergabe_status.text = export_hinweis(
             ziel, was=f"Bereitgestellt ({verkaeufe} Verkäufe)"
         )
+
+    def teilen_clicked(self):
+        """Gibt die zuletzt geschriebene Datei weiter (siehe teilen.py).
+
+        Gemeint ist die Übergabe- oder Bereitstellungsdatei - genau die
+        muss ja auf das andere Gerät.
+        """
+
+        erfolg, meldung = teilen.teilen(
+            self.letzte_ausgabe, betreff="KiG POS Übergabe"
+        )
+
+        self.uebergabe_status.text = meldung
 
     def zugaenge_einsammeln(self):
         """Holt aus einer bereitgestellten Datei alles, was hier

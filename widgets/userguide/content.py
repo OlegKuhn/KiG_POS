@@ -120,7 +120,10 @@ TOPICS = [
                     "allen Screenshots als PDF-Datei - praktisch zum "
                     "Ausdrucken oder Weitergeben an neue Helfer.\n\n"
                     "Nach dem Export steht unter dem Knopf, wie die Datei "
-                    "heißt und in welchem Ordner sie liegt.\n\n"
+                    "heißt und in welchem Ordner sie liegt. Der Knopf "
+                    "\"Teilen\" daneben gibt genau diese Datei weiter - "
+                    "auf dem Tablet über die gewohnte Teilen-Auswahl, "
+                    "auf dem Rechner über den geöffneten Ordner.\n\n"
                     "Den PDF-Export gibt es nur in der Windows-Fassung; "
                     "auf dem Telefon ist der Knopf gesperrt. Das "
                     "Handbuch selbst kannst du dort natürlich trotzdem "
@@ -411,7 +414,15 @@ TOPICS = [
                     "exports/csv des Programmverzeichnisses und lässt "
                     "sich mit Excel öffnen oder direkt verschicken.\n\n"
                     "Nach dem Export steht unter dem Knopf, wie die Datei "
-                    "heißt und in welchem Ordner sie liegt."
+                    "heißt und in welchem Ordner sie liegt.\n\n"
+                    "Daneben sitzt \"Teilen\". Auf dem Tablet öffnet das "
+                    "die gewohnte Auswahl - Mail, WhatsApp, Cloud - und "
+                    "legt die Datei nebenbei in den Ordner \"Download/"
+                    "KiG POS\", wo sie auch der Dateimanager findet. Auf "
+                    "dem Rechner öffnet \"Teilen\" den Ordner mit der "
+                    "Datei bereits ausgewählt; von dort ziehst du sie in "
+                    "eine Mail. Geteilt wird immer die zuletzt "
+                    "ausgegebene Datei."
                 ),
             },
             {
@@ -721,7 +732,15 @@ TOPICS = [
                     "niemandem weiter - der Kassenprüfer sieht so "
                     "sofort, woran es liegt.\n\n"
                     "Nach dem Export steht unter dem Knopf, wie die Datei "
-                    "heißt und in welchem Ordner sie liegt."
+                    "heißt und in welchem Ordner sie liegt.\n\n"
+                    "Daneben sitzt \"Teilen\". Auf dem Tablet öffnet das "
+                    "die gewohnte Auswahl - Mail, WhatsApp, Cloud - und "
+                    "legt die Datei nebenbei in den Ordner \"Download/"
+                    "KiG POS\", wo sie auch der Dateimanager findet. Auf "
+                    "dem Rechner öffnet \"Teilen\" den Ordner mit der "
+                    "Datei bereits ausgewählt; von dort ziehst du sie in "
+                    "eine Mail. Geteilt wird immer die zuletzt "
+                    "ausgegebene Datei."
                 ),
             },
             {
@@ -818,7 +837,15 @@ TOPICS = [
                     "erledigte Punkte sind dort mit einem x "
                     "gekennzeichnet.\n\n"
                     "Nach dem Export steht unter dem Knopf, wie die Datei "
-                    "heißt und in welchem Ordner sie liegt."
+                    "heißt und in welchem Ordner sie liegt.\n\n"
+                    "Daneben sitzt \"Teilen\". Auf dem Tablet öffnet das "
+                    "die gewohnte Auswahl - Mail, WhatsApp, Cloud - und "
+                    "legt die Datei nebenbei in den Ordner \"Download/"
+                    "KiG POS\", wo sie auch der Dateimanager findet. Auf "
+                    "dem Rechner öffnet \"Teilen\" den Ordner mit der "
+                    "Datei bereits ausgewählt; von dort ziehst du sie in "
+                    "eine Mail. Geteilt wird immer die zuletzt "
+                    "ausgegebene Datei."
                 ),
             },
         ],
@@ -918,7 +945,15 @@ TOPICS = [
                     "fehlen und die Namen. So hängt der Plan am Stand, "
                     "ohne dass jemand das Tablet mit sich herumträgt.\n\n"
                     "Nach dem Export steht unter dem Knopf, wie die Datei "
-                    "heißt und in welchem Ordner sie liegt."
+                    "heißt und in welchem Ordner sie liegt.\n\n"
+                    "Daneben sitzt \"Teilen\". Auf dem Tablet öffnet das "
+                    "die gewohnte Auswahl - Mail, WhatsApp, Cloud - und "
+                    "legt die Datei nebenbei in den Ordner \"Download/"
+                    "KiG POS\", wo sie auch der Dateimanager findet. Auf "
+                    "dem Rechner öffnet \"Teilen\" den Ordner mit der "
+                    "Datei bereits ausgewählt; von dort ziehst du sie in "
+                    "eine Mail. Geteilt wird immer die zuletzt "
+                    "ausgegebene Datei."
                 ),
             },
         ],
@@ -985,7 +1020,13 @@ TOPICS = [
                     "Übernommen wird nur, was fehlt. Dieselbe Datei "
                     "zweimal einzusammeln ändert deshalb nichts, und die "
                     "Richtung ist beliebig - am Ende können alle Geräte "
-                    "alles haben."
+                    "alles haben.\n\n"
+                    "Die Datei muss dazu auf das andere Gerät. Dafür gibt "
+                    "es \"Datei teilen\": Der Knopf gibt die zuletzt "
+                    "geschriebene Übergabe- oder Bereitstellungsdatei "
+                    "weiter - auf dem Tablet über die gewohnte "
+                    "Teilen-Auswahl, auf dem Rechner über den geöffneten "
+                    "Ordner."
                 ),
             },
             {
@@ -1111,7 +1152,15 @@ TOPICS = [
                     "landet im Ordner exports/excel des "
                     "Programmverzeichnisses.\n\n"
                     "Nach dem Export steht unter dem Knopf, wie die Datei "
-                    "heißt und in welchem Ordner sie liegt."
+                    "heißt und in welchem Ordner sie liegt.\n\n"
+                    "Daneben sitzt \"Teilen\". Auf dem Tablet öffnet das "
+                    "die gewohnte Auswahl - Mail, WhatsApp, Cloud - und "
+                    "legt die Datei nebenbei in den Ordner \"Download/"
+                    "KiG POS\", wo sie auch der Dateimanager findet. Auf "
+                    "dem Rechner öffnet \"Teilen\" den Ordner mit der "
+                    "Datei bereits ausgewählt; von dort ziehst du sie in "
+                    "eine Mail. Geteilt wird immer die zuletzt "
+                    "ausgegebene Datei."
                 ),
             },
             {

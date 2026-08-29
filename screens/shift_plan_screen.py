@@ -44,6 +44,7 @@ from kivy.uix.screenmanager import Screen
 
 import config
 import storage
+import teilen
 import theme
 
 from database import DatabaseManager
@@ -74,6 +75,9 @@ class ShiftPlanScreen(Screen):
         self.selected_plan_id = None
         self.plan_buttons = {}
         self.shift_rows = {}
+
+        # Zuletzt ausgegebene Datei - sie haengt am Teilen-Knopf.
+        self.letzte_ausgabe = None
 
         # Im Hochformat stehen die Veranstaltungen über den Schichten
         # statt daneben.
@@ -226,10 +230,11 @@ class ShiftPlanScreen(Screen):
 
         uebernehmen = self._button("Schichten übernehmen", self.copy_shifts)
         export_knopf = self._button("Excel exportieren", self.export_excel)
+        teilen_knopf = self._button("Teilen", self.teilen_clicked)
 
         if self.hochformat:
 
-            # Auf dem Telefon passen Überschrift und zwei Knöpfe nicht
+            # Auf dem Telefon passen Überschrift und drei Knöpfe nicht
             # nebeneinander - dort stehen die Knöpfe darunter und
             # teilen sich die Breite.
             kopf = BoxLayout(
@@ -246,6 +251,7 @@ class ShiftPlanScreen(Screen):
             )
             knopfreihe.add_widget(uebernehmen)
             knopfreihe.add_widget(export_knopf)
+            knopfreihe.add_widget(teilen_knopf)
 
             kopf.add_widget(knopfreihe)
 
@@ -264,6 +270,10 @@ class ShiftPlanScreen(Screen):
             export_knopf.size_hint_x = None
             export_knopf.width = dp(190)
             kopf.add_widget(export_knopf)
+
+            teilen_knopf.size_hint_x = None
+            teilen_knopf.width = dp(110)
+            kopf.add_widget(teilen_knopf)
 
         panel.add_widget(kopf)
 
@@ -976,6 +986,8 @@ class ShiftPlanScreen(Screen):
 
         workbook.save(ziel)
 
+        self.letzte_ausgabe = ziel
+
         self.status_label.text = export_hinweis(ziel)
         self.status_label.color = theme.TEXT_SECONDARY
 
@@ -991,6 +1003,14 @@ class ShiftPlanScreen(Screen):
     # =====================================================
     # Hilfsmittel
     # =====================================================
+
+
+    def teilen_clicked(self):
+        """Gibt die zuletzt ausgegebene Datei weiter (siehe teilen.py)."""
+
+        erfolg, meldung = teilen.teilen(self.letzte_ausgabe)
+
+        self.status_label.text = meldung
 
     @staticmethod
     def format_date(iso_date):

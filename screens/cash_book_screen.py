@@ -48,6 +48,7 @@ from kivy.uix.widget import Widget
 import config
 import geldformat
 import storage
+import teilen
 import theme
 
 from database import DatabaseManager
@@ -176,6 +177,9 @@ class CashBookScreen(Screen):
 
         self.selected_entry_id = None
         self.selected_row = None
+
+        # Zuletzt ausgegebene Datei - sie haengt am Teilen-Knopf.
+        self.letzte_ausgabe = None
 
         self.year_buttons = {}
         self.month_buttons = {}
@@ -381,6 +385,11 @@ class CashBookScreen(Screen):
         export_knopf.size_hint_x = None
         export_knopf.width = dp(190)
         aktionen.add_widget(export_knopf)
+
+        teilen_knopf = self._action_button("Teilen", self.teilen_clicked)
+        teilen_knopf.size_hint_x = None
+        teilen_knopf.width = dp(110)
+        aktionen.add_widget(teilen_knopf)
 
         panel.add_widget(aktionen)
 
@@ -608,6 +617,14 @@ class CashBookScreen(Screen):
     @staticmethod
     def money(value):
         return geldformat.geld(value)
+
+
+    def teilen_clicked(self):
+        """Gibt die zuletzt ausgegebene Datei weiter (siehe teilen.py)."""
+
+        erfolg, meldung = teilen.teilen(self.letzte_ausgabe)
+
+        self.export_status.text = meldung
 
     @staticmethod
     def format_date(iso_date):
@@ -1032,6 +1049,8 @@ class CashBookScreen(Screen):
         ziel = storage.export_dir("excel") / dateiname
 
         workbook.save(ziel)
+
+        self.letzte_ausgabe = ziel
 
         self.export_status.text = export_hinweis(ziel)
 

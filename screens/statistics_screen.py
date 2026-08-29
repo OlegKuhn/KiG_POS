@@ -17,6 +17,7 @@ from kivy.uix.widget import Widget
 import config
 import geldformat
 import storage
+import teilen
 import theme
 from database import DatabaseManager
 from widgets.common.kig_popup import KiGPopup
@@ -124,6 +125,9 @@ class StatisticsScreen(Screen):
         self.db = DatabaseManager()
         self.revenue_changed_callback = revenue_changed_callback
         self.selected_rows = {}
+
+        # Zuletzt ausgegebene Datei - sie haengt am Teilen-Knopf.
+        self.letzte_ausgabe = None
         self.event_options = {"Alle Events": None}
 
         # Im Hochformat steht die Auswertung unter der Verkaufstabelle
@@ -181,6 +185,7 @@ class StatisticsScreen(Screen):
         actions_top = BoxLayout(size_hint_y=None, height=dp(40), spacing=dp(theme.ROW_SPACING))
         actions_top.add_widget(Widget())
         actions_top.add_widget(self._button("Excel exportieren", self.export_excel, width=dp(170)))
+        actions_top.add_widget(self._button("Teilen", self.teilen_clicked, width=dp(110)))
         panel.add_widget(actions_top)
 
         # Eigene Zeile unter den Knoepfen: Der Hinweis nennt den Ordner
@@ -450,6 +455,14 @@ class StatisticsScreen(Screen):
         label.size_hint_y = None
         label.height = dp(34)
         return label
+
+
+    def teilen_clicked(self):
+        """Gibt die zuletzt ausgegebene Datei weiter (siehe teilen.py)."""
+
+        erfolg, meldung = teilen.teilen(self.letzte_ausgabe)
+
+        self.export_status.text = meldung
 
     @staticmethod
     def money(value):
@@ -766,6 +779,8 @@ class StatisticsScreen(Screen):
         filename = datetime.now().strftime("statistik_%Y-%m-%d_%H-%M.xlsx")
         export_path = storage.export_dir("excel") / filename
         workbook.save(export_path)
+
+        self.letzte_ausgabe = export_path
 
         self.export_status.text = export_hinweis(export_path)
 

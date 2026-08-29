@@ -35,6 +35,7 @@ from kivy.uix.screenmanager import Screen
 
 import config
 import storage
+import teilen
 import theme
 
 import units
@@ -70,6 +71,9 @@ class ProductsScreen(Screen):
         self.selected_category_card = None
 
         self.selected_article = None
+
+        # Zuletzt ausgegebene Datei - sie haengt am Teilen-Knopf.
+        self.letzte_ausgabe = None
         self.order_amounts = {}
 
         self.current_price_input = None
@@ -113,6 +117,7 @@ class ProductsScreen(Screen):
             delete_callback=self.delete_article_from_list,
             sort_callback=self.open_sort_dialog,
             export_callback=self.export_order_list,
+            teilen_callback=self.teilen_clicked,
         )
 
         if self.hochformat:
@@ -353,7 +358,16 @@ class ProductsScreen(Screen):
                     item["quantity"],
                 ])
 
+        self.letzte_ausgabe = export_path
+
         self.article_list_panel.set_export_status(export_hinweis(export_path))
+
+    def teilen_clicked(self):
+        """Gibt die zuletzt ausgegebene Datei weiter (siehe teilen.py)."""
+
+        erfolg, meldung = teilen.teilen(self.letzte_ausgabe)
+
+        self.article_list_panel.set_export_status(meldung)
 
     # =====================================================
     # Liste <-> Dashboard

@@ -24,6 +24,7 @@ from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
 
+import teilen
 import theme
 
 from widgets.common.exporthinweis import export_hinweis
@@ -58,6 +59,7 @@ class UserguideScreen(Screen):
         self.topic_panel = UserguideTopicPanel(
             on_select_topic=self.select_topic,
             on_export_pdf=self.export_pdf,
+            on_teilen=self.teilen_clicked,
             size_hint=(1, 0.32) if hochformat else (0.3, 1)
         )
 
@@ -75,6 +77,9 @@ class UserguideScreen(Screen):
         self.add_widget(root)
 
         self._loaded = False
+
+        # Zuletzt ausgegebene Datei - sie haengt am Teilen-Knopf.
+        self.letzte_ausgabe = None
 
     def on_pre_enter(self, *args):
 
@@ -125,8 +130,17 @@ class UserguideScreen(Screen):
         except Exception as error:
             self.topic_panel.set_export_status(f"Export fehlgeschlagen: {error}")
         else:
+            self.letzte_ausgabe = path
+
             self.topic_panel.set_export_status(
                 export_hinweis(path, was="Gespeichert")
             )
         finally:
             self.topic_panel.set_export_busy(False)
+
+    def teilen_clicked(self):
+        """Gibt die zuletzt ausgegebene Datei weiter (siehe teilen.py)."""
+
+        erfolg, meldung = teilen.teilen(self.letzte_ausgabe, betreff="KiG POS Handbuch")
+
+        self.topic_panel.set_export_status(meldung)

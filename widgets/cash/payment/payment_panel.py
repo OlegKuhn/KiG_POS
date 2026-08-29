@@ -159,6 +159,10 @@ class PaymentPanel(SlidePanel, BoxLayout):
 
         self.summary.set_paid(0.0)
 
+        # Jeder Zahlvorgang faengt bei null an - auch die gelegten
+        # Scheine.
+        self.summary.scheine_zuruecksetzen()
+
         self.slide_open()
 
     # -----------------------------------------------------
@@ -174,6 +178,18 @@ class PaymentPanel(SlidePanel, BoxLayout):
     def set_paid_amount(self, amount):
 
         self.summary.set_paid(amount)
+
+    # -----------------------------------------------------
+
+    def schein_gelegt(self, betrag):
+
+        self.summary.schein_gelegt(betrag)
+
+    # -----------------------------------------------------
+
+    def scheine_zuruecksetzen(self):
+
+        self.summary.scheine_zuruecksetzen()
 
     # -----------------------------------------------------
 

@@ -13,9 +13,13 @@ Beschreibung:
     Anzeige und Schnellwahl beim Bezahlen.
 
     Oben die Scheine, die an der Bar tatsächlich über den
-    Tresen gehen - ein Tipp darauf setzt den gegebenen
-    Betrag. Das ist schneller als vier Tastendrücke und,
-    wichtiger, es lässt sich nicht vertippen.
+    Tresen gehen. Ein Tipp LEGT EINEN SCHEIN DAZU - wer 40
+    Euro bekommt, tippt zweimal auf 20. Genau so, wie das
+    Geld auch auf den Tresen gelegt wird.
+
+    Darunter steht, was gelegt wurde ("2 × 20 €"). Ohne
+    diese Zeile müsste man sich merken, wie oft man getippt
+    hat - und genau dabei verzählt man sich.
 
     Unten steht, was zählt: gegeben und Rückgeld.
 
@@ -74,6 +78,10 @@ class PaymentSummary(BoxLayout):
         self._paid = 0.0
         self._total = 0.0
 
+        # Welcher Schein wurde wie oft gelegt? Nur für die Anzeige -
+        # maßgeblich ist immer der Betrag im Nummernblock.
+        self._scheine = {}
+
         # =====================================================
         # Oben: Schnellwahl
         # =====================================================
@@ -115,6 +123,15 @@ class PaymentSummary(BoxLayout):
             self.shortcut_grid.add_widget(knopf)
 
         self.add_widget(self.shortcut_grid)
+
+        self.lbl_scheine = KiGLabel()
+        self.lbl_scheine.set_font_size(15)
+        self.lbl_scheine.set_alignment("left")
+        self.lbl_scheine.set_color(theme.PRIMARY_ORANGE)
+        self.lbl_scheine.size_hint_y = None
+        self.lbl_scheine.height = dp(self.CAPTION_HEIGHT)
+
+        self.add_widget(self.lbl_scheine)
 
         # =====================================================
         # Unten: gegeben und Rückgeld
@@ -202,24 +219,58 @@ class PaymentSummary(BoxLayout):
         if callable(self.shortcut_callback):
             self.shortcut_callback(betrag)
 
-    def _schnellwahl_faerben(self):
-        """Hebt hervor, welcher Schein gerade gedrückt wurde.
+    def schein_gelegt(self, betrag):
+        """Merkt sich, dass dieser Schein einmal mehr gelegt wurde."""
 
-        Nur die Farbe - der Betrag steht ohnehin darunter. Wer
-        zwischendurch am Nummernblock tippt, sieht die Hervorhebung
-        wieder verschwinden und weiß, dass jetzt sein eigener Wert
-        gilt.
+        self._scheine[betrag] = self._scheine.get(betrag, 0) + 1
+
+        self.update()
+
+    def scheine_zuruecksetzen(self):
+        """Vergisst die gelegten Scheine.
+
+        Nötig, sobald der Betrag von woanders herkommt - beim Tippen
+        am Nummernblock, beim Löschen und bei jedem neuen
+        Zahlvorgang. Sonst stünde unter der Schnellwahl "2 × 20 €",
+        während oben längst ein ganz anderer Betrag steht.
         """
+
+        if not self._scheine:
+            return
+
+        self._scheine = {}
+
+        self.update()
+
+    def _scheine_beschriften(self):
+        """Zeigt, was gelegt wurde: "2 × 20 €   1 × 5 €"."""
+
+        if not self._scheine:
+            self.lbl_scheine.text = ""
+            return
+
+        # Große Scheine zuerst - so, wie man Geld auch hinlegt.
+        teile = [
+            f"{anzahl} × {betrag} €"
+            for betrag, anzahl in sorted(
+                self._scheine.items(), reverse=True
+            )
+        ]
+
+        self.lbl_scheine.text = "   ".join(teile)
+
+    def _schnellwahl_faerben(self):
+        """Hebt die Scheine hervor, die gelegt wurden."""
 
         for knopf, betrag in zip(self.shortcut_buttons, self.SCHNELLWAHL):
 
-            gewaehlt = abs(self._paid - betrag) < 0.005
+            anzahl = self._scheine.get(betrag, 0)
 
             knopf.background_color = (
-                theme.PRIMARY_ORANGE if gewaehlt else theme.SURFACE
+                theme.PRIMARY_ORANGE if anzahl else theme.SURFACE
             )
             knopf.color = (
-                theme.TEXT_WHITE if gewaehlt else theme.TEXT_PRIMARY
+                theme.TEXT_WHITE if anzahl else theme.TEXT_PRIMARY
             )
 
     # =====================================================
@@ -290,5 +341,7 @@ class PaymentSummary(BoxLayout):
             theme.SUCCESS if self.paid >= self.total and self.paid
             else theme.TEXT_SECONDARY
         )
+
+        self._scheine_beschriften()
 
         self._schnellwahl_faerben()

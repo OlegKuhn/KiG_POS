@@ -67,6 +67,12 @@ class CashScreen(Screen):
         # Aktuell bearbeitete Position
         self.current_cart_item = None
 
+        # Läuft gerade ein Tipp aus der Schnellwahl? Siehe
+        # payment_shortcut - der Nummernblock meldet die Änderung
+        # zurück, und die Rückmeldung muss unterscheiden können,
+        # woher der Betrag kam.
+        self._schnellwahl_laeuft = False
+
         # Im Storno-Modus sammelt derselbe Warenkorb die Artikel, die
         # zurückgenommen werden sollen. Gebucht wird daraus dann eine
         # Gegenbuchung mit negativen Mengen (siehe book_storno).
@@ -802,18 +808,42 @@ class CashScreen(Screen):
 
         self.payment_panel.set_paid_amount(amount)
 
+        # Kommt der Betrag NICHT aus der Schnellwahl, sondern vom
+        # Nummernblock, stimmt die Aufstellung der gelegten Scheine
+        # nicht mehr - dann lieber keine als eine falsche.
+        if not self._schnellwahl_laeuft:
+            self.payment_panel.scheine_zuruecksetzen()
+
     def payment_shortcut(self, betrag):
         """Ein Tipp auf einen Schein in der Schnellwahl.
 
-        Gesetzt wird der Wert im Nummernblock, nicht direkt in der
-        Anzeige: Von dort kommt er auf demselben Weg zurück wie ein
+        Der Schein wird DAZUGELEGT, nicht ersetzt: Wer 40 Euro
+        bekommt, tippt zweimal auf 20 - so, wie das Geld auch auf den
+        Tresen wandert.
+
+        Gesetzt wird die Summe im Nummernblock, nicht direkt in der
+        Anzeige: Von dort kommt sie auf demselben Weg zurück wie ein
         getippter Betrag (change_callback). So gibt es nur einen Weg,
         auf dem sich der gegebene Betrag ändert - und der
         Nummernblock zeigt danach dieselbe Zahl, statt weiter auf
         seinem alten Stand zu stehen.
         """
 
-        self.numpad_panel.set_value(int(round(betrag * 100)))
+        neuer_wert = (
+            self.numpad_panel.get_value() + int(round(betrag * 100))
+        )
+
+        # Der Nummernblock meldet die Änderung sofort zurück; ohne
+        # diese Klammer hielte payment_amount_changed sie für eine
+        # Eingabe von Hand und würfe die Aufstellung weg.
+        self._schnellwahl_laeuft = True
+
+        try:
+            self.numpad_panel.set_value(neuer_wert)
+        finally:
+            self._schnellwahl_laeuft = False
+
+        self.payment_panel.schein_gelegt(betrag)
 
     def payment_cancelled(self):
 

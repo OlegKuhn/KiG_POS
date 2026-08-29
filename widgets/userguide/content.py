@@ -309,13 +309,24 @@ TOPICS = [
             {
                 "heading": "Bezahlen",
                 "text": (
-                    "\"Bezahlen\" öffnet den Zahlungsbereich. Über das "
-                    "Zahlenfeld gibst du den erhaltenen Betrag ein - das "
-                    "Rückgeld wird sofort mitgerechnet. Erst wenn der "
-                    "gegebene Betrag mindestens der Summe entspricht, "
-                    "lässt sich der Verkauf mit \"OK\" abschließen. "
-                    "\"Abbrechen\" bricht den Zahlvorgang ab, der "
-                    "Warenkorb bleibt erhalten."
+                    "\"Bezahlen\" öffnet den Zahlungsbereich: links die "
+                    "Schnellwahl mit den gängigen Scheinen, rechts das "
+                    "Zahlenfeld.\n\n"
+                    "Ein Tipp auf 5, 10, 20, 50 oder 100 € setzt den "
+                    "gegebenen Betrag sofort - das ist an der Bar "
+                    "schneller als vier Tastendrücke und lässt sich "
+                    "nicht vertippen. Der gewählte Schein wird orange "
+                    "hervorgehoben. Krumme Beträge tippst du weiterhin "
+                    "über das Zahlenfeld ein; die Hervorhebung "
+                    "verschwindet dann wieder.\n\n"
+                    "Darunter stehen die beiden Zahlen, auf die es "
+                    "ankommt: Gegeben und Rückgeld. Die Summe selbst "
+                    "steht groß im Warenkorb daneben und wird hier "
+                    "nicht wiederholt.\n\n"
+                    "Erst wenn der gegebene Betrag mindestens der Summe "
+                    "entspricht, lässt sich der Verkauf mit \"OK\" "
+                    "abschließen. \"Abbrechen\" bricht den Zahlvorgang "
+                    "ab, der Warenkorb bleibt erhalten."
                 ),
                 "image": "kasse/06_bezahlen.png",
             },

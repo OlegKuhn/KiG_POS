@@ -121,7 +121,8 @@ class CashScreen(Screen):
 
         self.payment_panel = PaymentPanel(
             cancel_callback=self.payment_cancelled,
-            ok_callback=self.payment_confirmed
+            ok_callback=self.payment_confirmed,
+            shortcut_callback=self.payment_shortcut,
         )
 
         # =====================================================
@@ -800,6 +801,19 @@ class CashScreen(Screen):
         amount = value / 100
 
         self.payment_panel.set_paid_amount(amount)
+
+    def payment_shortcut(self, betrag):
+        """Ein Tipp auf einen Schein in der Schnellwahl.
+
+        Gesetzt wird der Wert im Nummernblock, nicht direkt in der
+        Anzeige: Von dort kommt er auf demselben Weg zurück wie ein
+        getippter Betrag (change_callback). So gibt es nur einen Weg,
+        auf dem sich der gegebene Betrag ändert - und der
+        Nummernblock zeigt danach dieselbe Zahl, statt weiter auf
+        seinem alten Stand zu stehen.
+        """
+
+        self.numpad_panel.set_value(int(round(betrag * 100)))
 
     def payment_cancelled(self):
 

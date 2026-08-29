@@ -52,6 +52,7 @@ class PaymentPanel(SlidePanel, BoxLayout):
             self,
             cancel_callback=None,
             ok_callback=None,
+            shortcut_callback=None,
             **kwargs
     ):
 
@@ -118,7 +119,9 @@ class PaymentPanel(SlidePanel, BoxLayout):
         # Summary
         # =====================================================
 
-        self.summary = PaymentSummary()
+        self.summary = PaymentSummary(
+            shortcut_callback=shortcut_callback
+        )
 
         self.add_widget(
             self.summary

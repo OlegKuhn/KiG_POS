@@ -30,23 +30,20 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 
-import dateiwahl
 import demo
 import geraet
 import storage
-import teilen
 import theme
-import uebergabe
-import zusammenfuehren
 
 from database import DatabaseManager
 from widgets.common.confirm_popup import ConfirmPopup
-from widgets.common.exporthinweis import (
-    export_hinweis, hinweisfeld_vorbereiten,
-)
+from widgets.common.exporthinweis import hinweisfeld_vorbereiten
 from widgets.common.kig_popup import KiGPopup
 from widgets.common.rounded_input import RoundedInput
 from widgets.common.rounded_panel import RoundedPanel
+from widgets.common.uebertragung_dialog import (
+    EmpfangenDialog, SendenDialog,
+)
 from widgets.kig_label import KiGLabel
 
 
@@ -89,9 +86,6 @@ class SettingsScreen(Screen):
     def __init__(self, **kwargs):
 
         super().__init__(**kwargs)
-
-        # Zuletzt geschriebene Datei - sie haengt am Teilen-Knopf.
-        self.letzte_ausgabe = None
 
         root = BoxLayout(padding=dp(theme.SCREEN_PADDING))
 
@@ -251,52 +245,29 @@ class SettingsScreen(Screen):
         self.geraet_label.height = dp(52)
         inhalt.add_widget(self.geraet_label)
 
-        uebergabe_row = self._option_row()
+        # Zwei Fragen statt sechs Schaltflächen: sende ich, oder
+        # empfange ich? Alles Weitere fragt der Dialog nacheinander ab
+        # (siehe widgets/common/uebertragung_dialog.py).
+        #
+        # Vorher standen hier "Kasse übergeben", "Übergabe einspielen",
+        # "Gerät ausstatten", "Ausstattung einspielen", "Buchungen
+        # bereitstellen" und "Buchungen einsammeln" nebeneinander - man
+        # musste wissen, welche zu welcher Gegenseite gehört, und auf
+        # einem Telefon fand man sie ohnehin kaum.
+        uebertragung_row = self._option_row()
 
-        self.uebergeben_button = SettingsOptionButton(
-            "Kasse übergeben", "abgeben", lambda _wert: self.kasse_uebergeben(),
+        self.senden_button = SettingsOptionButton(
+            "Daten senden", "senden", lambda _wert: self.daten_senden(),
         )
-        uebergabe_row.add_widget(self.uebergeben_button)
+        uebertragung_row.add_widget(self.senden_button)
 
-        self.uebernehmen_button = SettingsOptionButton(
-            "Übergabe einspielen", "uebernehmen",
-            lambda _wert: self.uebergabe_einspielen(),
+        self.empfangen_button = SettingsOptionButton(
+            "Daten empfangen", "empfangen",
+            lambda _wert: self.daten_empfangen(),
         )
-        uebergabe_row.add_widget(self.uebernehmen_button)
+        uebertragung_row.add_widget(self.empfangen_button)
 
-        inhalt.add_widget(uebergabe_row)
-
-        ausstattung_row = self._option_row()
-
-        self.ausstatten_button = SettingsOptionButton(
-            "Gerät ausstatten", "ausstatten",
-            lambda _wert: self.geraet_ausstatten(),
-        )
-        ausstattung_row.add_widget(self.ausstatten_button)
-
-        self.einrichten_button = SettingsOptionButton(
-            "Ausstattung einspielen", "einrichten",
-            lambda _wert: self.ausstattung_einspielen(),
-        )
-        ausstattung_row.add_widget(self.einrichten_button)
-
-        inhalt.add_widget(ausstattung_row)
-
-        zugaenge_row = self._option_row()
-
-        self.bereitstellen_button = SettingsOptionButton(
-            "Buchungen bereitstellen", "bereitstellen",
-            lambda _wert: self.zugaenge_bereitstellen(),
-        )
-        zugaenge_row.add_widget(self.bereitstellen_button)
-
-        self.einsammeln_button = SettingsOptionButton(
-            "Buchungen einsammeln", "einsammeln",
-            lambda _wert: self.zugaenge_einsammeln(),
-        )
-        zugaenge_row.add_widget(self.einsammeln_button)
-
-        inhalt.add_widget(zugaenge_row)
+        inhalt.add_widget(uebertragung_row)
 
         protokoll_row = self._option_row()
 
@@ -314,41 +285,25 @@ class SettingsScreen(Screen):
 
         inhalt.add_widget(protokoll_row)
 
-        teilen_row = self._option_row()
-
-        self.teilen_button = SettingsOptionButton(
-            "Datei teilen", "teilen", lambda _wert: self.teilen_clicked(),
-        )
-        teilen_row.add_widget(self.teilen_button)
-
-        self.bluetooth_button = SettingsOptionButton(
-            "Per Bluetooth senden", "bluetooth",
-            lambda _wert: self.per_bluetooth_clicked(),
-        )
-        teilen_row.add_widget(self.bluetooth_button)
-
-        inhalt.add_widget(teilen_row)
-
         uebergabe_hint = KiGLabel(text=(
             "Artikel, Preise und Rezepte gehören dem Hauptgerät - dem, "
             "das die Kasse zuletzt übernommen hat. Alle anderen dürfen "
             "buchen, Listen führen und Schichten eintragen, aber die "
             "Stammdaten nicht ändern.\n\n"
-            "\"Gerät ausstatten\" schreibt eine Kopie für einen "
-            "weiteren Stand: Das andere Gerät bekommt alle Artikel und "
-            "Preise und darf buchen, die Kasse bleibt aber hier. So "
-            "arbeiten mehrere Tablets gleichzeitig.\n\n"
-            "\"Kasse übergeben\" reicht das Hauptgerät weiter. "
-            "\"Buchungen bereitstellen\" schreibt eine Datei mit dem "
-            "eigenen Stand, ohne etwas abzugeben; \"Buchungen "
-            "einsammeln\" holt aus so einer Datei alles heraus, was hier "
-            "noch fehlt - Verkäufe, Kassenbuch, Listen. Zweimal "
+            "Zum Übertragen zuerst am EMPFANGENDEN Gerät \"Daten "
+            "empfangen\" wählen - es wartet dann. Am sendenden dann "
+            "\"Daten senden\": Es sucht im WLAN, die Gegenseite nimmt "
+            "an, und erst danach wird gewählt, was hinübergeht:\n\n"
+            "Datenbank - Artikel und Preise für einen weiteren Stand. "
+            "Das andere Gerät darf mitverkaufen, die Kasse bleibt "
+            "hier.\n\n"
+            "Kasse - das Schreibrecht selbst. Danach darf das andere "
+            "Gerät ändern und dieses nur noch zusehen.\n\n"
+            "Buchungen - nur was dazugekommen ist. Zweimal "
             "eingesammelt ändert nichts.\n\n"
-            "\"Datei teilen\" schickt die zuletzt geschriebene Datei "
-            "weiter - per Mail, Messenger oder wohin auch immer. "
-            "\"Per Bluetooth senden\" nimmt den kuerzesten Weg zum "
-            "Geraet daneben: Am anderen Geraet annehmen, dann dort "
-            "ueber \"Datei suchen\" einspielen."
+            "Ohne gemeinsames WLAN führt derselbe Dialog über eine "
+            "Datei: schreiben, per Bluetooth oder Mail hinüber, dort "
+            "wieder einlesen."
         ))
         uebergabe_hint.set_font_size(14)
         uebergabe_hint.set_alignment("left")
@@ -544,593 +499,34 @@ class SettingsScreen(Screen):
 
         self._geraet_anzeigen()
 
-    def kasse_uebergeben(self):
-        """Gibt das Schreibrecht an ein anderes Gerät ab."""
-
-        db = DatabaseManager()
-
-        if db.nur_ansicht:
-            self.uebergabe_status.text = (
-                "Die Kasse liegt bereits bei einem anderen Gerät - "
-                "abgeben kann nur, wer sie hat."
-            )
-            return
-
-        inhalt = BoxLayout(
-            orientation="vertical",
-            padding=dp(theme.CARD_PADDING),
-            spacing=dp(theme.CARD_SPACING),
-        )
-
-        inhalt.add_widget(Label(
-            text=(
-                "An welches Gerät geht die Kasse?\n\n"
-                "Der Name erscheint danach auf allen Geräten als "
-                "Besitzer. Die Kennung des anderen Geräts steht dort "
-                "unter \"Gerät und Übergabe\"."
-            ),
-            color=theme.TEXT_PRIMARY, font_size="15sp",
-            size_hint_y=None, height=dp(96),
-            halign="left", valign="top",
-            text_size=(dp(420), dp(96)),
-        ))
-
-        name_feld = RoundedInput(
-            hint_text="Name, z. B. Tablet", multiline=False,
-            size_hint_y=None, height=dp(56),
-        )
-        name_feld.foreground_color = theme.INPUT_TEXT
-        name_feld.hint_text_color = theme.INPUT_HINT
-        inhalt.add_widget(name_feld)
-
-        id_feld = RoundedInput(
-            hint_text="Kennung, z. B. TAB-3f9a2c", multiline=False,
-            size_hint_y=None, height=dp(56),
-        )
-        id_feld.foreground_color = theme.INPUT_TEXT
-        id_feld.hint_text_color = theme.INPUT_HINT
-        inhalt.add_widget(id_feld)
-
-        popup = KiGPopup(
-            title="Kasse übergeben", content=inhalt,
-            size_hint=(0.6, None), height=dp(430), auto_dismiss=False,
-        )
-
-        knoepfe = BoxLayout(
-            size_hint_y=None, height=dp(52), spacing=dp(theme.ROW_SPACING)
-        )
-        knoepfe.add_widget(self._popup_button("Abbrechen", popup.dismiss))
-        knoepfe.add_widget(self._popup_button(
-            "Übergeben",
-            lambda: (
-                popup.dismiss(),
-                self._uebergabe_bestaetigen(id_feld.text, name_feld.text),
-            ),
-            hervorgehoben=True,
-        ))
-        inhalt.add_widget(knoepfe)
-
-        popup.open()
-
-    def _uebergabe_bestaetigen(self, an_id, an_name):
-
-        an_id = (an_id or "").strip()
-        an_name = (an_name or "").strip()
-
-        if not an_id or not an_name:
-            self.uebergabe_status.text = (
-                "Name und Kennung des anderen Geräts werden gebraucht."
-            )
-            return
-
-        ConfirmPopup(
-            title="Kasse übergeben",
-            message=(
-                f"Kasse an \"{an_name}\" übergeben?\n\n"
-                f"Dieses Gerät kann danach nur noch zusehen. Zum "
-                f"Weiterarbeiten muss es die Kasse zurückbekommen."
-            ),
-            confirm_text="Übergeben",
-            on_confirm=lambda: self._uebergabe_ausfuehren(an_id, an_name),
-        ).open()
-
-    def _uebergabe_ausfuehren(self, an_id, an_name):
-
-        db = DatabaseManager()
-
-        # Zweite Sicherung, direkt vor der Tat.
-        #
-        # Beim Öffnen des Dialogs wurde das schon geprüft - aber
-        # zwischen Frage und Antwort kann die Kasse längst weg sein,
-        # etwa weil die Rückfrage zweimal ausgelöst wurde. Genau das
-        # ist passiert: zwei Übergaben vier Sekunden auseinander, die
-        # zweite von "Computer" an "Computer".
-        if db.nur_ansicht:
-
-            self.uebergabe_status.text = (
-                "Die Kasse liegt bereits bei einem anderen Gerät - "
-                "abgeben kann nur, wer sie hat."
-            )
-            return
-
-        try:
-            ziel, stand = uebergabe.abgeben(
-                db, an_id, an_name, storage.export_dir("uebergabe")
-            )
-
-        except Exception as fehler:
-            self.uebergabe_status.text = f"Übergabe fehlgeschlagen: {fehler}"
-            return
-
-        self.letzte_ausgabe = ziel
-
-        self.uebergabe_status.text = export_hinweis(
-            ziel, was=f"Übergeben an {an_name} (Stand {stand})"
-        )
-
-        # Der Kopfbereich zeigt ab jetzt "Nur Ansicht".
-        app = App.get_running_app()
-
-        if app is not None and hasattr(app, "rebuild_main"):
-            app.rebuild_main()
-
-    def uebergabe_einspielen(self):
-        """Öffnet eine Übergabedatei und fragt, was drinsteht."""
-
-        self._datei_waehlen(
-            titel="Übergabe einspielen",
-            weiter=self._datei_pruefen,
-            hinweis=(
-                "Die Übergabedatei vom anderen Gerät zuerst in diesen "
-                "Ordner kopieren."
-            ),
-        )
-
-    def _datei_waehlen(self, titel, weiter, hinweis):
-        """Zeigt die vorhandenen Dateien und reicht die gewählte an
-        `weiter`.
-
-        Dieselbe Auswahl für Übergabe und Einsammeln - beide holen
-        ihre Dateien aus demselben Ordner, und zwei verschiedene
-        Auswahldialoge wären nur zwei Stellen zum Auseinanderlaufen.
-
-        Auf dem Rechner steht zusätzlich, was in Downloads, auf dem
-        Desktop oder im Bluetooth-Ordner liegt: Genau dort landet eine
-        empfangene Datei (siehe dateiwahl.uebergabedateien).
-        """
-
-        ordner = storage.export_dir("uebergabe")
-
-        dateien = dateiwahl.uebergabedateien(ordner, uebergabe.ENDUNG)
-
-        inhalt = BoxLayout(
-            orientation="vertical",
-            padding=dp(theme.CARD_PADDING),
-            spacing=dp(theme.CARD_SPACING),
-        )
-
-        popup = KiGPopup(
-            title=titel, content=inhalt,
-            size_hint=(0.62, None), height=dp(460), auto_dismiss=False,
-        )
-
-        if not dateien:
-
-            inhalt.add_widget(Label(
-                text=(
-                    f"Keine Datei gefunden.\n\n"
-                    f"Gesucht wird hier:\n{ordner}\n\n"
-                    f"und in Downloads, auf dem Desktop und im "
-                    f"Bluetooth-Ordner - dort landet, was von außen "
-                    f"kommt.\n\n{hinweis}"
-                    if not dateiwahl.verfuegbar() else
-                    f"In diesem Ordner liegt nichts:\n{ordner}\n\n"
-                    f"Kam die Datei per Mail oder Messenger, liegt sie "
-                    f"woanders - meist unter \"Download\". "
-                    f"\"Datei suchen\" öffnet die Dateiauswahl des "
-                    f"Geräts; dort ist sie zu finden."
-                ),
-                color=theme.TEXT_SECONDARY, font_size="14sp",
-                halign="left", valign="top",
-                text_size=(dp(460), dp(220)),
-            ))
-
-        else:
-
-            inhalt.add_widget(Label(
-                text="Welche Datei?",
-                color=theme.TEXT_PRIMARY, font_size="16sp",
-                size_hint_y=None, height=dp(34),
-            ))
-
-            liste = BoxLayout(
-                orientation="vertical",
-                spacing=dp(theme.SPACE_XS),
-                size_hint_y=None,
-            )
-            liste.bind(minimum_height=liste.setter("height"))
-
-            scroll = ScrollView(do_scroll_x=False, bar_width=dp(8))
-            scroll.add_widget(liste)
-            inhalt.add_widget(scroll)
-
-            for pfad, herkunft in dateien:
-
-                # Woher die Datei stammt, steht dabei - sonst wäre bei
-                # zwei gleich benannten nicht zu erkennen, welche die
-                # eben empfangene ist.
-                beschriftung = (
-                    f"{pfad.name}\n({herkunft})" if herkunft else pfad.name
-                )
-
-                knopf = self._popup_button(
-                    beschriftung,
-                    lambda p=pfad: (popup.dismiss(), weiter(p)),
-                )
-                knopf.font_size = "13sp"
-                knopf.halign = "center"
-                knopf.size_hint_y = None
-                knopf.height = dp(50)
-
-                liste.add_widget(knopf)
-
-        fusszeile = BoxLayout(
-            size_hint_y=None, height=dp(52), spacing=dp(theme.ROW_SPACING)
-        )
-
-        # Auf Android sucht die App nur in ihrem eigenen Ordner, und an
-        # den kommt kein Dateimanager heran. Eine per Mail geschickte
-        # Uebergabe liegt unter "Download" - dorthin reicht die App nur
-        # ueber die Dateiauswahl des Systems (siehe dateiwahl.py).
-        if dateiwahl.verfuegbar():
-
-            fusszeile.add_widget(self._popup_button(
-                "Datei suchen",
-                lambda: self._systemauswahl(popup, ordner, weiter),
-                hervorgehoben=True,
-            ))
-
-        fusszeile.add_widget(self._popup_button("Schließen", popup.dismiss))
-
-        inhalt.add_widget(fusszeile)
-
-        popup.open()
-
-    def _systemauswahl(self, popup, ordner, weiter):
-        """Holt eine Datei über die Dateiauswahl des Geräts.
-
-        Sie wird in den Übergabeordner kopiert; von da an ist sie eine
-        Datei wie jede andere und läuft durch dieselbe Prüfung.
-        """
-
-        popup.dismiss()
-
-        self.uebergabe_status.text = "Dateiauswahl geöffnet..."
-
-        def geholt(pfad):
-
-            self.uebergabe_status.text = f"Übernommen: {pfad.name}"
-
-            weiter(pfad)
-
-        def schiefgegangen(meldung):
-
-            self.uebergabe_status.text = meldung
-
-        dateiwahl.auswaehlen(ordner, geholt, schiefgegangen)
-
-    def _datei_pruefen(self, pfad):
-        """Zeigt, was in der Datei steht, und fragt nach."""
-
-        db = DatabaseManager()
-
-        besitz = db.get_besitz()
-        eigener_stand = besitz["stand"] if besitz else 0
-
-        befund = uebergabe.pruefen(pfad, db.geraet["id"], eigener_stand)
-
-        if not befund["lesbar"]:
-            self.uebergabe_status.text = befund["grund"]
-            return
-
-        if befund["zu_alt"]:
-            self.uebergabe_status.text = (
-                f"Abgelehnt: Diese Datei hat Stand {befund['stand']}, "
-                f"hier gilt schon Stand {eigener_stand}. Ihr Inhalt ist "
-                f"älter - einspielen würde neuere Buchungen verlieren."
-            )
-            return
-
-        beschreibung = (
-            f"Von: {befund['besitzer_name']}\n"
-            f"Stand: {befund['stand']}\n"
-            f"Enthält: {befund['artikel']} Artikel, "
-            f"{befund['verkaeufe']} Verkäufe"
-        )
-
-        if befund["letzter_verkauf"]:
-            beschreibung += f"\nLetzter Verkauf: {befund['letzter_verkauf']}"
-
-        if befund["fuer_mich"]:
-
-            ConfirmPopup(
-                title="Übergabe einspielen",
-                message=(
-                    f"{beschreibung}\n\n"
-                    f"Diese Datei ist für dieses Gerät bestimmt. Der "
-                    f"bisherige Stand hier wird ersetzt (eine Sicherung "
-                    f"wird vorher angelegt)."
-                ),
-                confirm_text="Übernehmen",
-                on_confirm=lambda: self._uebernahme_ausfuehren(pfad, False),
-            ).open()
-
-            return
-
-        ConfirmPopup(
-            title="Übernahme erzwingen",
-            message=(
-                f"{beschreibung}\n\n"
-                f"ACHTUNG: Diese Datei ist NICHT an dieses Gerät "
-                f"gerichtet, sondern an \"{befund['besitzer_name']}\". "
-                f"Übernimm sie nur, wenn jenes Gerät nicht mehr "
-                f"erreichbar ist - sonst arbeiten hinterher zwei Geräte "
-                f"an getrennten Ständen weiter."
-            ),
-            confirm_text="Trotzdem übernehmen",
-            confirm_color=theme.ERROR,
-            on_confirm=lambda: self._uebernahme_ausfuehren(pfad, True),
-        ).open()
-
-    def _uebernahme_ausfuehren(self, pfad, erzwingen):
-
-        db = DatabaseManager()
-
-        try:
-            sicherung = uebergabe.uebernehmen(db, pfad, erzwingen=erzwingen)
-
-        except Exception as fehler:
-            self.uebergabe_status.text = f"Einspielen fehlgeschlagen: {fehler}"
-            return
-
-        self.uebergabe_status.text = (
-            f"Übernommen. Sicherung des vorherigen Standes: {sicherung.name}"
-        )
+    # =====================================================
+    # Daten von Gerät zu Gerät
+    # =====================================================
+    #
+    # Der ganze Ablauf steckt in zwei Dialogen (siehe
+    # widgets/common/uebertragung_dialog.py). Hier stehen nur noch die
+    # beiden Einstiege - und die eine Regel, die vorher gilt.
+
+    def daten_senden(self):
+        """Sucht ein wartendes Gerät und schickt ihm etwas."""
+
+        SendenDialog(on_fertig=self._neu_aufbauen).open()
+
+    def daten_empfangen(self):
+        """Wartet auf ein sendendes Gerät."""
+
+        EmpfangenDialog(on_fertig=self._neu_aufbauen).open()
+
+    @staticmethod
+    def _neu_aufbauen():
+        """Nach einer Übertragung kann sich alles geändert haben -
+        Artikel, Preise, wer die Kasse hat."""
 
         app = App.get_running_app()
 
         if app is not None and hasattr(app, "rebuild_main"):
             app.rebuild_main()
 
-    # =====================================================
-    # Weitere Geräte ausstatten
-    # =====================================================
-
-    def geraet_ausstatten(self):
-        """Schreibt eine Kopie für einen weiteren Stand.
-
-        Anders als die Übergabe wechselt dabei nichts: Dieses Gerät
-        bleibt Hauptgerät und darf weiter Preise ändern.
-        """
-
-        db = DatabaseManager()
-
-        if db.nur_ansicht:
-            self.uebergabe_status.text = (
-                "Ausstatten kann nur das Hauptgerät - hier liegt die "
-                "Kasse gerade nicht."
-            )
-            return
-
-        try:
-            ziel, stand = uebergabe.ausstatten(
-                db, storage.export_dir("uebergabe")
-            )
-
-        except Exception as fehler:
-            self.uebergabe_status.text = f"Ausstatten fehlgeschlagen: {fehler}"
-            return
-
-        self.letzte_ausgabe = ziel
-
-        self.uebergabe_status.text = export_hinweis(
-            ziel, was=f"Kopie für ein weiteres Gerät (Stand {stand})"
-        )
-
-    def ausstattung_einspielen(self):
-        """Richtet dieses Gerät mit den Daten eines anderen ein."""
-
-        self._datei_waehlen(
-            titel="Ausstattung einspielen",
-            weiter=self._ausstattung_pruefen,
-            hinweis=(
-                "Die Datei \"kigpos_ausstattung_...\" vom Hauptgerät "
-                "zuerst in diesen Ordner kopieren."
-            ),
-        )
-
-    def _ausstattung_pruefen(self, pfad):
-        """Zeigt, was in der Kopie steht, und fragt nach."""
-
-        db = DatabaseManager()
-
-        besitz = db.get_besitz()
-        eigener_stand = besitz["stand"] if besitz else 0
-
-        befund = uebergabe.pruefen(pfad, db.geraet["id"], eigener_stand)
-
-        if not befund["lesbar"]:
-            self.uebergabe_status.text = befund["grund"]
-            return
-
-        # Wer nach dem Einspielen die Kasse hat, steht in der Datei -
-        # und das ist fast immer das ausstattende Gerät.
-        wird_hauptgeraet = befund["besitzer_id"] == db.geraet["id"]
-
-        rolle = (
-            "Dieses Gerät wird damit Hauptgerät."
-            if wird_hauptgeraet else
-            f"Dieses Gerät wird Nebengerät: buchen ja, Artikel und "
-            f"Preise ändern nein - die bleiben bei "
-            f"\"{befund['besitzer_name']}\"."
-        )
-
-        ConfirmPopup(
-            title="Ausstattung einspielen",
-            message=(
-                f"{befund['artikel']} Artikel, {befund['verkaeufe']} "
-                f"Verkäufe.\n\n"
-                f"ACHTUNG: Die bisherigen Daten dieses Geräts werden "
-                f"ersetzt. Eine Sicherung wird vorher angelegt.\n\n"
-                f"{rolle}"
-            ),
-            confirm_text="Einspielen",
-            on_confirm=lambda: self._ausstattung_ausfuehren(pfad),
-        ).open()
-
-    def _ausstattung_ausfuehren(self, pfad):
-
-        db = DatabaseManager()
-
-        try:
-            sicherung, nur_ansicht = uebergabe.einrichten(db, pfad)
-
-        except Exception as fehler:
-            self.uebergabe_status.text = f"Einspielen fehlgeschlagen: {fehler}"
-            return
-
-        rolle = "Nebengerät" if nur_ansicht else "Hauptgerät"
-
-        self.uebergabe_status.text = (
-            f"Eingerichtet als {rolle}. Sicherung des vorherigen "
-            f"Standes: {sicherung.name}"
-        )
-
-        app = App.get_running_app()
-
-        if app is not None and hasattr(app, "rebuild_main"):
-            app.rebuild_main()
-
-    # =====================================================
-    # Buchungen mehrerer Geräte
-    # =====================================================
-
-    def zugaenge_bereitstellen(self):
-        """Schreibt eine Datei mit dem eigenen Stand.
-
-        Anders als die Übergabe wechselt dabei nichts - dieses Gerät
-        bucht weiter.
-        """
-
-        db = DatabaseManager()
-
-        try:
-            ziel, verkaeufe = zusammenfuehren.bereitstellen(
-                db, storage.export_dir("uebergabe")
-            )
-
-        except Exception as fehler:
-            self.uebergabe_status.text = f"Fehlgeschlagen: {fehler}"
-            return
-
-        self.letzte_ausgabe = ziel
-
-        self.uebergabe_status.text = export_hinweis(
-            ziel, was=f"Bereitgestellt ({verkaeufe} Verkäufe)"
-        )
-
-    def teilen_clicked(self):
-        """Gibt die zuletzt geschriebene Datei weiter (siehe teilen.py).
-
-        Gemeint ist die Übergabe- oder Bereitstellungsdatei - genau die
-        muss ja auf das andere Gerät.
-        """
-
-        erfolg, meldung = teilen.teilen(
-            self.letzte_ausgabe, betreff="KiG POS Übergabe"
-        )
-
-        self.uebergabe_status.text = meldung
-
-    def per_bluetooth_clicked(self):
-        """Schickt die zuletzt geschriebene Datei über Bluetooth.
-
-        Der kürzeste Weg zwischen zwei Geräten, die nebeneinander
-        liegen: kein Kabel, kein Netz, kein Konto.
-        """
-
-        erfolg, meldung = teilen.per_bluetooth(
-            self.letzte_ausgabe, betreff="KiG POS Übergabe"
-        )
-
-        self.uebergabe_status.text = meldung
-
-    def zugaenge_einsammeln(self):
-        """Holt aus einer bereitgestellten Datei alles, was hier
-        fehlt."""
-
-        self._datei_waehlen(
-            titel="Buchungen einsammeln",
-            weiter=self._zugaenge_pruefen,
-            hinweis=(
-                "Die Datei des anderen Geräts zuerst in diesen Ordner "
-                "kopieren."
-            ),
-        )
-
-    def _zugaenge_pruefen(self, pfad):
-
-        db = DatabaseManager()
-
-        befund = zusammenfuehren.vorschau(db, pfad)
-
-        if not befund["lesbar"]:
-            self.uebergabe_status.text = befund["grund"]
-            return
-
-        if not befund["gesamt"]:
-            self.uebergabe_status.text = (
-                f"Aus \"{pfad.name}\" gibt es nichts Neues - alles war "
-                f"schon da."
-            )
-            return
-
-        aufzaehlung = "\n".join(
-            f"  {anzahl} {zusammenfuehren.BEZEICHNUNGEN.get(tabelle, tabelle)}"
-            for tabelle, anzahl in befund["neu"].items()
-        )
-
-        herkunft = befund["geraet"] or "einem anderen Gerät"
-
-        ConfirmPopup(
-            title="Buchungen einsammeln",
-            message=(
-                f"Von {herkunft} kämen dazu:\n\n{aufzaehlung}\n\n"
-                f"Nur Neues wird übernommen; Artikel und Preise bleiben "
-                f"unverändert. Die Bestandsbewegungen kommen mit - der "
-                f"Bestand stimmt danach über beide Geräte."
-            ),
-            confirm_text="Einsammeln",
-            on_confirm=lambda: self._zugaenge_uebernehmen(pfad),
-        ).open()
-
-    def _zugaenge_uebernehmen(self, pfad):
-
-        db = DatabaseManager()
-
-        try:
-            uebernommen = zusammenfuehren.einsammeln(db, pfad)
-
-        except Exception as fehler:
-            self.uebergabe_status.text = f"Einsammeln fehlgeschlagen: {fehler}"
-            return
-
-        self.uebergabe_status.text = zusammenfuehren.bericht(uebernommen)
-
-        app = App.get_running_app()
-
-        if app is not None and hasattr(app, "rebuild_main"):
-            app.rebuild_main()
 
     def uebergaben_anzeigen(self):
         """Das Protokoll: wer hat wann an wen übergeben?"""

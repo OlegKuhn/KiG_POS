@@ -87,11 +87,25 @@ android.presplash_color = #FFFFFF
 # Bildschirm nicht abschalten, solange die Kasse laeuft.
 android.wakelock = True
 
-# Keine Berechtigungen noetig: Die Datenbank liegt im privaten
-# App-Ordner, Ausgaben (PDF/Excel/CSV) im app-eigenen Ordner unter
-# Android/data/de.kigev.kigpos/files/exports - beides ohne
+# Fuer die Daten liegt weiterhin nichts an: Die Datenbank liegt im
+# privaten App-Ordner, Ausgaben (PDF/Excel/CSV) im app-eigenen Ordner
+# unter Android/data/de.kigev.kigpos/files/exports - beides ohne
 # Berechtigung erlaubt (siehe storage.py).
-android.permissions =
+#
+# Was hier steht, gehoert zur Uebertragung von Geraet zu Geraet
+# (siehe funk.py):
+#
+#   INTERNET                      ohne sie geht keine Verbindung auf,
+#                                 auch keine ins eigene WLAN
+#   ACCESS_NETWORK_STATE          um zu erkennen, ob ueberhaupt ein
+#                                 Netz da ist
+#   CHANGE_WIFI_MULTICAST_STATE   damit der Suchruf ankommt: Android
+#                                 verwirft Rundrufe sonst, bevor die
+#                                 App sie sieht
+#
+# Alle drei sind "normal" - Android erteilt sie bei der Installation,
+# ohne den Nutzer zu fragen.
+android.permissions = INTERNET, ACCESS_NETWORK_STATE, CHANGE_WIFI_MULTICAST_STATE
 
 # Werkzeugkette bewusst festgenagelt.
 #

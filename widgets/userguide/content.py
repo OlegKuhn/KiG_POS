@@ -1005,6 +1005,29 @@ TOPICS = [
                 ),
             },
             {
+                "heading": "Mehrere Stände ausstatten",
+                "text": (
+                    "Für ein Fest mit mehreren Ständen bekommt jedes "
+                    "Tablet dieselben Artikel und Preise, ohne dass die "
+                    "Kasse den Besitzer wechselt:\n\n"
+                    "Auf dem Hauptgerät: \"Gerät ausstatten\". Das "
+                    "schreibt eine Kopie der Datenbank - abgegeben wird "
+                    "nichts, das Hauptgerät pflegt weiter die Preise.\n\n"
+                    "Auf dem Tablet: \"Ausstattung einspielen\". Es "
+                    "zeigt, was drinsteht, und ersetzt nach Rückfrage "
+                    "seine Daten. Danach ist es Nebengerät: verkaufen, "
+                    "Kassenbuch, Listen und Schichten ja - Artikel und "
+                    "Preise nein.\n\n"
+                    "Dieselbe Kopie darf auf beliebig viele Tablets. "
+                    "Alle verkaufen gleichzeitig, jedes zählt seine "
+                    "Bonnummern selbst, und am Ende holt das Hauptgerät "
+                    "über \"Buchungen einsammeln\" alles zusammen.\n\n"
+                    "Der Unterschied zur Übergabe in einem Satz: "
+                    "Übergeben wechselt den Besitzer, Ausstatten "
+                    "vervielfältigt die Daten."
+                ),
+            },
+            {
                 "heading": "Buchungen einsammeln",
                 "text": (
                     "Haben mehrere Geräte gebucht, führt man die "

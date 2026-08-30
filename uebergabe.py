@@ -43,6 +43,23 @@ Beschreibung:
           man an eine Kasse nicht mehr heran, deren
           Empfängergerät im Bodensee liegt).
 
+    Daneben steht ein zweites Paar für den Fall mehrerer
+    Stände, die GLEICHZEITIG verkaufen:
+
+        3. Ausstatten  Schreibt dieselbe Kopie, lässt den
+                       Besitz aber, wo er ist. Das Tablet
+                       bekommt Artikel und Preise, das
+                       Hauptgerät bleibt Hauptgerät.
+
+        4. Einrichten  Spielt so eine Kopie ein, ohne die
+                       Kasse an sich zu nehmen. Wer sie
+                       einspielt, wird Nebengerät: buchen ja,
+                       Preise ändern nein.
+
+    Der Unterschied in einem Satz: Übergeben wechselt den
+    Besitzer, Ausstatten vervielfältigt die Daten. Was die
+    Nebengeräte buchen, holt zusammenfuehren.py später ein.
+
 Version:
     1.0.0
 =========================================================
@@ -57,7 +74,7 @@ from pathlib import Path
 ENDUNG = ".kigdb"
 
 
-def dateiname(geraet_name, stand):
+def dateiname(geraet_name, stand, art="uebergabe"):
     """Sprechender Name: Wer gibt ab, welcher Stand, wann."""
 
     sicher = "".join(
@@ -66,7 +83,7 @@ def dateiname(geraet_name, stand):
     ).strip().replace(" ", "_")
 
     return (
-        f"kigpos_uebergabe_{sicher or 'geraet'}_"
+        f"kigpos_{art}_{sicher or 'geraet'}_"
         f"stand{stand:03d}_{datetime.now():%Y-%m-%d_%H-%M}{ENDUNG}"
     )
 
@@ -102,6 +119,104 @@ def abgeben(db, an_id, an_name, ziel_ordner):
     db.nur_ansicht = True
 
     return ziel, stand
+
+
+def ausstatten(db, ziel_ordner):
+    """Schreibt eine vollständige Kopie, OHNE die Kasse abzugeben.
+
+    Für den zweiten, dritten, vierten Stand: Jedes Tablet braucht die
+    Artikel, Preise und Rezepte, um verkaufen zu können - aber nur
+    EIN Gerät darf sie ändern. Diese Kopie bringt die Daten mit und
+    lässt den Besitz, wo er ist:
+
+        Das ausstattende Gerät bleibt Hauptgerät und ändert weiter
+        Preise. Wer die Kopie einspielt, wird Nebengerät: buchen,
+        Listen führen und Schichten eintragen ja, Stammdaten nein.
+
+    Deshalb zählt der Stand hier NICHT hoch. Der Stand gehört zur
+    Kasse, und die wechselt gerade nicht den Besitzer - zwei Kopien
+    für zwei Stände sind keine zwei Übergaben.
+
+    Liefert (pfad, stand).
+    """
+
+    besitz = db.get_besitz()
+
+    stand = besitz["stand"] if besitz else 0
+
+    ziel_ordner = Path(ziel_ordner)
+    ziel_ordner.mkdir(parents=True, exist_ok=True)
+
+    ziel = ziel_ordner / dateiname(
+        db.geraet["name"], stand, art="ausstattung"
+    )
+
+    kopie = sqlite3.connect(ziel)
+
+    try:
+        db.connection.backup(kopie)
+    finally:
+        kopie.close()
+
+    return ziel, stand
+
+
+def einrichten(db, pfad):
+    """Spielt eine Kopie ein, ohne die Kasse an sich zu nehmen.
+
+    Der Unterschied zu uebernehmen(): Dort wird dieses Gerät zum
+    Hauptgerät. Hier bleibt der Besitzer der, der in der Datei steht -
+    dieses Gerät richtet sich nur mit denselben Daten ein.
+
+    Wessen Name in der Datei steht, entscheidet also, was dieses Gerät
+    danach darf. Steht es selbst darin (weil es doch eine Übergabe
+    war), bekommt es die Kasse; sonst wird es Nebengerät.
+
+    Liefert (sicherung, nur_ansicht).
+    """
+
+    pfad = Path(pfad)
+
+    sicherungs_ordner = db.database_path.parent / "backups"
+    sicherungs_ordner.mkdir(parents=True, exist_ok=True)
+
+    sicherung = sicherungs_ordner / (
+        f"vor_ausstattung_{datetime.now():%Y-%m-%d_%H-%M-%S}.db"
+    )
+
+    kopie = sqlite3.connect(sicherung)
+
+    try:
+        db.connection.backup(kopie)
+    finally:
+        kopie.close()
+
+    quelle = sqlite3.connect(f"file:{pfad}?mode=ro", uri=True)
+
+    try:
+        # Wie beim Einspielen einer Übergabe: Genau dieser Vorgang
+        # darf schreiben, auch wenn das Gerät sonst nur zusehen darf.
+        vorher = db.nur_ansicht
+        db.nur_ansicht = False
+
+        try:
+            quelle.backup(db.connection)
+
+            db.schema_sicherstellen()
+
+            # Kein besitz_uebernehmen: Der Besitzer steht in der Datei
+            # und bleibt, wer er ist. besitz_sicherstellen setzt daraus
+            # den Schreibschutz für dieses Gerät.
+            nur_ansicht = db.besitz_sicherstellen()
+
+        except Exception:
+            db.nur_ansicht = vorher
+            raise
+
+    finally:
+        quelle.close()
+
+    return sicherung, nur_ansicht
 
 
 def pruefen(pfad, eigene_id, eigener_stand):

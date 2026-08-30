@@ -262,6 +262,22 @@ class SettingsScreen(Screen):
 
         inhalt.add_widget(uebergabe_row)
 
+        ausstattung_row = self._option_row()
+
+        self.ausstatten_button = SettingsOptionButton(
+            "Gerät ausstatten", "ausstatten",
+            lambda _wert: self.geraet_ausstatten(),
+        )
+        ausstattung_row.add_widget(self.ausstatten_button)
+
+        self.einrichten_button = SettingsOptionButton(
+            "Ausstattung einspielen", "einrichten",
+            lambda _wert: self.ausstattung_einspielen(),
+        )
+        ausstattung_row.add_widget(self.einrichten_button)
+
+        inhalt.add_widget(ausstattung_row)
+
         zugaenge_row = self._option_row()
 
         self.bereitstellen_button = SettingsOptionButton(
@@ -312,6 +328,10 @@ class SettingsScreen(Screen):
             "das die Kasse zuletzt übernommen hat. Alle anderen dürfen "
             "buchen, Listen führen und Schichten eintragen, aber die "
             "Stammdaten nicht ändern.\n\n"
+            "\"Gerät ausstatten\" schreibt eine Kopie für einen "
+            "weiteren Stand: Das andere Gerät bekommt alle Artikel und "
+            "Preise und darf buchen, die Kasse bleibt aber hier. So "
+            "arbeiten mehrere Tablets gleichzeitig.\n\n"
             "\"Kasse übergeben\" reicht das Hauptgerät weiter. "
             "\"Buchungen bereitstellen\" schreibt eine Datei mit dem "
             "eigenen Stand, ohne etwas abzugeben; \"Buchungen "
@@ -325,7 +345,7 @@ class SettingsScreen(Screen):
         uebergabe_hint.set_alignment("left")
         uebergabe_hint.set_color(theme.TEXT_SECONDARY)
         uebergabe_hint.size_hint_y = None
-        uebergabe_hint.height = dp(190)
+        uebergabe_hint.height = dp(250)
         inhalt.add_widget(uebergabe_hint)
 
         self.uebergabe_status = Label(
@@ -853,6 +873,115 @@ class SettingsScreen(Screen):
 
         self.uebergabe_status.text = (
             f"Übernommen. Sicherung des vorherigen Standes: {sicherung.name}"
+        )
+
+        app = App.get_running_app()
+
+        if app is not None and hasattr(app, "rebuild_main"):
+            app.rebuild_main()
+
+    # =====================================================
+    # Weitere Geräte ausstatten
+    # =====================================================
+
+    def geraet_ausstatten(self):
+        """Schreibt eine Kopie für einen weiteren Stand.
+
+        Anders als die Übergabe wechselt dabei nichts: Dieses Gerät
+        bleibt Hauptgerät und darf weiter Preise ändern.
+        """
+
+        db = DatabaseManager()
+
+        if db.nur_ansicht:
+            self.uebergabe_status.text = (
+                "Ausstatten kann nur das Hauptgerät - hier liegt die "
+                "Kasse gerade nicht."
+            )
+            return
+
+        try:
+            ziel, stand = uebergabe.ausstatten(
+                db, storage.export_dir("uebergabe")
+            )
+
+        except Exception as fehler:
+            self.uebergabe_status.text = f"Ausstatten fehlgeschlagen: {fehler}"
+            return
+
+        self.letzte_ausgabe = ziel
+
+        self.uebergabe_status.text = export_hinweis(
+            ziel, was=f"Kopie für ein weiteres Gerät (Stand {stand})"
+        )
+
+    def ausstattung_einspielen(self):
+        """Richtet dieses Gerät mit den Daten eines anderen ein."""
+
+        self._datei_waehlen(
+            titel="Ausstattung einspielen",
+            weiter=self._ausstattung_pruefen,
+            hinweis=(
+                "Die Datei \"kigpos_ausstattung_...\" vom Hauptgerät "
+                "zuerst in diesen Ordner kopieren."
+            ),
+        )
+
+    def _ausstattung_pruefen(self, pfad):
+        """Zeigt, was in der Kopie steht, und fragt nach."""
+
+        db = DatabaseManager()
+
+        besitz = db.get_besitz()
+        eigener_stand = besitz["stand"] if besitz else 0
+
+        befund = uebergabe.pruefen(pfad, db.geraet["id"], eigener_stand)
+
+        if not befund["lesbar"]:
+            self.uebergabe_status.text = befund["grund"]
+            return
+
+        # Wer nach dem Einspielen die Kasse hat, steht in der Datei -
+        # und das ist fast immer das ausstattende Gerät.
+        wird_hauptgeraet = befund["besitzer_id"] == db.geraet["id"]
+
+        rolle = (
+            "Dieses Gerät wird damit Hauptgerät."
+            if wird_hauptgeraet else
+            f"Dieses Gerät wird Nebengerät: buchen ja, Artikel und "
+            f"Preise ändern nein - die bleiben bei "
+            f"\"{befund['besitzer_name']}\"."
+        )
+
+        ConfirmPopup(
+            title="Ausstattung einspielen",
+            message=(
+                f"{befund['artikel']} Artikel, {befund['verkaeufe']} "
+                f"Verkäufe.\n\n"
+                f"ACHTUNG: Die bisherigen Daten dieses Geräts werden "
+                f"ersetzt. Eine Sicherung wird vorher angelegt.\n\n"
+                f"{rolle}"
+            ),
+            confirm_text="Einspielen",
+            on_confirm=lambda: self._ausstattung_ausfuehren(pfad),
+        ).open()
+
+    def _ausstattung_ausfuehren(self, pfad):
+
+        db = DatabaseManager()
+
+        try:
+            sicherung, nur_ansicht = uebergabe.einrichten(db, pfad)
+
+        except Exception as fehler:
+            self.uebergabe_status.text = f"Einspielen fehlgeschlagen: {fehler}"
+            return
+
+        rolle = "Nebengerät" if nur_ansicht else "Hauptgerät"
+
+        self.uebergabe_status.text = (
+            f"Eingerichtet als {rolle}. Sicherung des vorherigen "
+            f"Standes: {sicherung.name}"
         )
 
         app = App.get_running_app()

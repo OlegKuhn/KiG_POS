@@ -1030,6 +1030,26 @@ TOPICS = [
                 ),
             },
             {
+                "heading": "Wo die Datei ankommt",
+                "text": (
+                    "Auf dem Rechner liegen die Dateien offen im Ordner "
+                    "exports\\uebergabe - dorthin kopierst du eine "
+                    "empfangene Datei einfach im Explorer, dann steht sie "
+                    "in der Auswahl.\n\n"
+                    "Auf dem Tablet geht das nicht: Der Ordner der App "
+                    "lässt sich mit keinem Dateimanager öffnen, und eine "
+                    "per Mail oder Messenger geschickte Datei landet "
+                    "stattdessen unter \"Download\". Dorthin darf die App "
+                    "von sich aus nicht sehen - so ist Android seit "
+                    "Version 10 gebaut.\n\n"
+                    "Deshalb steht in der Auswahl der Knopf \"Datei "
+                    "suchen\". Er öffnet die Dateiauswahl des Geräts; du "
+                    "zeigst auf die Datei, wo immer sie liegt, und die App "
+                    "holt sie sich. Ein Leserecht bekommt sie dabei nur "
+                    "für genau diese eine Datei."
+                ),
+            },
+            {
                 "heading": "Der Bestand rechnet mit",
                 "text": (
                     "Der Lagerbestand ist keine Zahl mehr, die "

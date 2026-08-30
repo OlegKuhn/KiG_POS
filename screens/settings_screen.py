@@ -30,6 +30,7 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 
+import dateiwahl
 import demo
 import geraet
 import storage
@@ -606,6 +607,21 @@ class SettingsScreen(Screen):
 
         db = DatabaseManager()
 
+        # Zweite Sicherung, direkt vor der Tat.
+        #
+        # Beim Öffnen des Dialogs wurde das schon geprüft - aber
+        # zwischen Frage und Antwort kann die Kasse längst weg sein,
+        # etwa weil die Rückfrage zweimal ausgelöst wurde. Genau das
+        # ist passiert: zwei Übergaben vier Sekunden auseinander, die
+        # zweite von "Computer" an "Computer".
+        if db.nur_ansicht:
+
+            self.uebergabe_status.text = (
+                "Die Kasse liegt bereits bei einem anderen Gerät - "
+                "abgeben kann nur, wer sie hat."
+            )
+            return
+
         try:
             ziel, stand = uebergabe.abgeben(
                 db, an_id, an_name, storage.export_dir("uebergabe")
@@ -673,6 +689,12 @@ class SettingsScreen(Screen):
                 text=(
                     f"Keine Datei gefunden.\n\n"
                     f"Erwartet wird sie hier:\n{ordner}\n\n{hinweis}"
+                    if not dateiwahl.verfuegbar() else
+                    f"In diesem Ordner liegt nichts:\n{ordner}\n\n"
+                    f"Kam die Datei per Mail oder Messenger, liegt sie "
+                    f"woanders - meist unter \"Download\". "
+                    f"\"Datei suchen\" öffnet die Dateiauswahl des "
+                    f"Geräts; dort ist sie zu finden."
                 ),
                 color=theme.TEXT_SECONDARY, font_size="14sp",
                 halign="left", valign="top",
@@ -710,12 +732,50 @@ class SettingsScreen(Screen):
 
                 liste.add_widget(knopf)
 
-        schliessen = self._popup_button("Schließen", popup.dismiss)
-        schliessen.size_hint_y = None
-        schliessen.height = dp(52)
-        inhalt.add_widget(schliessen)
+        fusszeile = BoxLayout(
+            size_hint_y=None, height=dp(52), spacing=dp(theme.ROW_SPACING)
+        )
+
+        # Auf Android sucht die App nur in ihrem eigenen Ordner, und an
+        # den kommt kein Dateimanager heran. Eine per Mail geschickte
+        # Uebergabe liegt unter "Download" - dorthin reicht die App nur
+        # ueber die Dateiauswahl des Systems (siehe dateiwahl.py).
+        if dateiwahl.verfuegbar():
+
+            fusszeile.add_widget(self._popup_button(
+                "Datei suchen",
+                lambda: self._systemauswahl(popup, ordner, weiter),
+                hervorgehoben=True,
+            ))
+
+        fusszeile.add_widget(self._popup_button("Schließen", popup.dismiss))
+
+        inhalt.add_widget(fusszeile)
 
         popup.open()
+
+    def _systemauswahl(self, popup, ordner, weiter):
+        """Holt eine Datei über die Dateiauswahl des Geräts.
+
+        Sie wird in den Übergabeordner kopiert; von da an ist sie eine
+        Datei wie jede andere und läuft durch dieselbe Prüfung.
+        """
+
+        popup.dismiss()
+
+        self.uebergabe_status.text = "Dateiauswahl geöffnet..."
+
+        def geholt(pfad):
+
+            self.uebergabe_status.text = f"Übernommen: {pfad.name}"
+
+            weiter(pfad)
+
+        def schiefgegangen(meldung):
+
+            self.uebergabe_status.text = meldung
+
+        dateiwahl.auswaehlen(ordner, geholt, schiefgegangen)
 
     def _datei_pruefen(self, pfad):
         """Zeigt, was in der Datei steht, und fragt nach."""

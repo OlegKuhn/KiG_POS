@@ -46,6 +46,17 @@ class ConfirmPopup(KiGPopup):
         self.title = title
         self.on_confirm = on_confirm
 
+        # Ein Ja bleibt ein Ja - auch bei zwei Tipps.
+        #
+        # dismiss() blendet den Dialog nicht sofort aus, sondern
+        # animiert ihn weg. In dieser knappen Zeitspanne nimmt der
+        # Knopf noch Berührungen an. Auf einem E-Ink-Schirm, der dem
+        # Finger ohnehin hinterherhinkt, tippt man dort fast
+        # zwangsläufig ein zweites Mal - und die Aktion lief zweimal.
+        # Nachgewiesen an einer doppelten Kassenübergabe: zwei
+        # Einträge im Protokoll, vier Sekunden auseinander.
+        self._beantwortet = False
+
         self.size_hint = (0.45, None)
         self.height = dp(200)
 
@@ -101,6 +112,11 @@ class ConfirmPopup(KiGPopup):
         return button
 
     def _confirmed(self):
+
+        if self._beantwortet:
+            return
+
+        self._beantwortet = True
 
         # Erst schließen, dann handeln - sonst bliebe der Dialog bei
         # einer Aktion stehen, die den Bildschirm wechselt oder das

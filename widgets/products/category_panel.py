@@ -38,6 +38,13 @@ class CategoryPanel(RoundedPanel):
     PORTRAIT_ACTION_WIDTH = 130
     PORTRAIT_COLUMNS = 3
 
+    # Telefon: zwei statt drei Kategorien nebeneinander, und die
+    # Schaltflaechen daneben schmaler - sonst blieben fuer die
+    # Ueberschrift "Kategorien" keine 90 dp mehr uebrig, und sie brach
+    # mitten im Wort um.
+    NARROW_ACTION_WIDTH = 96
+    NARROW_COLUMNS = 2
+
     def __init__(
             self,
             on_new,
@@ -91,7 +98,7 @@ class CategoryPanel(RoundedPanel):
             text="Kategorien"
         )
 
-        title.set_font_size(26)
+        title.set_font_size(18 if theme.is_narrow() else 26)
         title.set_bold(True)
         title.set_alignment("left")
         title.set_color(theme.PRIMARY_ORANGE)
@@ -131,7 +138,10 @@ class CategoryPanel(RoundedPanel):
                 # Breite und Höhe erst NACH der Konstruktion setzen -
                 # KiGActionTile überschreibt übergebene Werte.
                 button.size_hint = (None, None)
-                button.width = dp(self.PORTRAIT_ACTION_WIDTH)
+                button.width = dp(
+                    self.NARROW_ACTION_WIDTH if theme.is_narrow()
+                    else self.PORTRAIT_ACTION_WIDTH
+                )
                 button.height = dp(theme.CATEGORY_TILE_HEIGHT)
 
                 self.header.add_widget(button)
@@ -193,7 +203,7 @@ class CategoryPanel(RoundedPanel):
         # -------------------------------------------------
 
         self.category_grid = GridLayout(
-            cols=self.PORTRAIT_COLUMNS if self.hochformat else 1,
+            cols=self._spalten(),
             spacing=dp(theme.ROW_SPACING),
             size_hint_y=None
         )
@@ -208,6 +218,17 @@ class CategoryPanel(RoundedPanel):
 
         self.add_widget(
             self.scroll
+        )
+
+    def _spalten(self):
+        """Wie viele Kategorien nebeneinander?"""
+
+        if not self.hochformat:
+            return 1
+
+        return (
+            self.NARROW_COLUMNS if theme.is_narrow()
+            else self.PORTRAIT_COLUMNS
         )
 
     # =====================================================

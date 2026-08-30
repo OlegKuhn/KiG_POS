@@ -56,7 +56,10 @@ TOPICS = [
                     "Ein Tipp auf eine Kachel öffnet den jeweiligen "
                     "Bereich. Wie viele Kacheln nebeneinander stehen, "
                     "richtet sich nach dem Bildschirm - am Rechner vier, "
-                    "auf dem Telefon eine untereinander."
+                    "auf dem Telefon zwei.\n\n"
+                    "Auf einem Telefon sind die drei Gruppen außerdem "
+                    "klappbar: Ein Tipp auf die Überschrift macht eine "
+                    "Gruppe zu und schafft Platz für die anderen."
                 ),
                 "image": "start/01_startseite.png",
             },
@@ -166,7 +169,16 @@ TOPICS = [
                     "Kategorie hebt den Filter wieder auf und zeigt alle "
                     "Artikel. Kategorien, in denen kein einziger an der "
                     "Kasse verkäuflicher Artikel liegt (z. B. reine "
-                    "Zutaten), tauchen hier gar nicht erst auf."
+                    "Zutaten), tauchen hier gar nicht erst auf.\n\n"
+                    "Auf einem Telefon sieht das anders aus: Dort ist für "
+                    "eine Liste neben den Artikeln kein Platz. Die "
+                    "Kategorien stehen deshalb als klappbare Überschriften "
+                    "übereinander, mit der Anzahl ihrer Artikel rechts. "
+                    "Ein Tipp klappt eine auf und die anderen zu - die "
+                    "Artikel erscheinen darunter als kleinere Kacheln, "
+                    "zwei nebeneinander. Wer sucht, tippt oben ins "
+                    "Suchfeld; dann treten die Kategorien zurück und die "
+                    "Treffer stehen quer durch alle."
                 ),
                 "image": "kasse/02_kategorie_filter.png",
             },

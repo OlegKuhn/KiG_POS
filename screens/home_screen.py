@@ -31,6 +31,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
 
 
+from widgets.common.klappkopf import Klappkopf
 from widgets.common.senkrechte_beschriftung import SenkrechteBeschriftung
 from widgets.home.home_tile import HomeTile
 
@@ -51,6 +52,13 @@ class HomeScreen(Screen):
     # Gruppenüberschrift hochkant steht. Waagerecht kostete sie eine
     # ganze Zeile Höhe - und Höhe ist auf dem Tablet das knappere Gut.
     GROUP_TITLE_WIDTH = 30
+
+    # Auf dem Telefon steht die Überschrift stattdessen waagerecht über
+    # ihrer Gruppe und lässt sich antippen: Der schmale Streifen kostet
+    # dort 38 der ohnehin knappen 412 dp Breite - und mit zwei Kacheln
+    # je Reihe zählt jeder Punkt. Zugeklappt schafft die Überschrift
+    # ausserdem Luft für die Gruppe, die gerade gebraucht wird.
+    NARROW_TITLE_HEIGHT = 34
 
     # =====================================================
     # Konstruktor
@@ -372,6 +380,9 @@ class HomeScreen(Screen):
         beides später, um die Spaltenzahl anzupassen.
         """
 
+        if theme.is_narrow():
+            return self._add_group_schmal(ueberschrift, kacheln)
+
         zeile = BoxLayout(
             orientation="horizontal",
             spacing=dp(theme.SPACE_S),
@@ -416,6 +427,67 @@ class HomeScreen(Screen):
 
         return titel, raster, tuple(kacheln)
 
+    def _add_group_schmal(self, ueberschrift, kacheln):
+        """Eine Gruppe auf dem Telefon: Überschrift darüber, klappbar.
+
+        Ein Tipp auf die Überschrift klappt die Gruppe zu. Zugeklappt
+        bleibt nur ihre Zeile stehen - so passt der Rest ohne Scrollen
+        auf den Schirm, wenn gerade nur ein Bereich gebraucht wird.
+        """
+
+        spalte = BoxLayout(
+            orientation="vertical",
+            spacing=dp(theme.SPACE_XS),
+            size_hint=(None, None),
+        )
+
+        titel = Klappkopf(text=ueberschrift, offen=True, size_hint=(1, None))
+        titel.height = dp(self.NARROW_TITLE_HEIGHT)
+
+        raster = GridLayout(
+            cols=len(kacheln),
+            spacing=dp(theme.TILE_SPACING),
+            size_hint=(None, None),
+        )
+
+        raster.bind(minimum_size=raster.setter("size"))
+
+        for kachel in kacheln:
+            raster.add_widget(kachel)
+
+        spalte.add_widget(titel)
+        spalte.add_widget(raster)
+
+        def anpassen(_instanz=None, _groesse=None):
+
+            offen = raster.parent is not None
+
+            spalte.width = max(raster.width, dp(HomeTile.masse()[0]))
+            spalte.height = (
+                titel.height + dp(theme.SPACE_XS) + raster.height
+                if offen else titel.height
+            )
+
+        raster.bind(size=anpassen)
+
+        def klappen(offen):
+
+            if offen and raster.parent is None:
+                spalte.add_widget(raster)
+
+            elif not offen and raster.parent is not None:
+                spalte.remove_widget(raster)
+
+            anpassen()
+
+        titel.on_klapp = klappen
+
+        anpassen()
+
+        self.groups_layout.add_widget(spalte)
+
+        return titel, raster, tuple(kacheln)
+
     def _update_columns(self, *_args):
         """Passt an, wie viele Kacheln je Gruppe nebeneinander stehen.
 
@@ -428,13 +500,17 @@ class HomeScreen(Screen):
         Kacheln hat: Sonst stünden die Reihen versetzt untereinander.
         """
 
-        kachel_breite = dp(HomeTile.WIDTH)
+        kachel_breite = dp(HomeTile.masse()[0])
         abstand = dp(theme.TILE_SPACING)
         rand = dp(theme.SCREEN_PADDING)
 
         # Der Streifen mit der hochkanten Überschrift geht vom Platz
-        # für die Kacheln ab.
-        streifen = dp(self.GROUP_TITLE_WIDTH) + dp(theme.SPACE_S)
+        # für die Kacheln ab - auf dem Telefon steht sie darüber und
+        # kostet keine Breite.
+        streifen = (
+            0 if theme.is_narrow()
+            else dp(self.GROUP_TITLE_WIDTH) + dp(theme.SPACE_S)
+        )
 
         verfuegbar = self.width - 2 * rand - streifen
 

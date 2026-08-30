@@ -105,7 +105,11 @@ class ProductsScreen(Screen):
         )
 
         if self.hochformat:
-            self.category_panel.size_hint = (1, 0.26)
+            # Telefon: etwas mehr, damit zwei Reihen Kategorien
+            # ganz hineinpassen statt halb abgeschnitten zu sein.
+            self.category_panel.size_hint = (
+                (1, 0.30) if theme.is_narrow() else (1, 0.26)
+            )
         else:
             self.category_panel.size_hint_x = 0.22
 
@@ -121,7 +125,9 @@ class ProductsScreen(Screen):
         )
 
         if self.hochformat:
-            self.article_list_panel.size_hint = (1, 0.74)
+            self.article_list_panel.size_hint = (
+                (1, 0.70) if theme.is_narrow() else (1, 0.74)
+            )
         else:
             self.article_list_panel.size_hint_x = 0.78
 

@@ -19,10 +19,13 @@ class CategoryCard(Button):
         self.callback = callback
 
         self.size_hint = (1, None)
-        self.height = dp(64)
+        self.height = dp(52) if theme.is_narrow() else dp(64)
 
         self.text = category["name"]
-        self.font_size = "19sp"
+
+        # Auf dem Telefon stehen zwei Karten nebeneinander - mit 19 sp
+        # brach "Alkoholfrei" dort dreizeilig um.
+        self.font_size = "15sp" if theme.is_narrow() else "19sp"
         self.bold = True
 
         self.halign = "left"

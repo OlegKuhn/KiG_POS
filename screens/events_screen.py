@@ -103,7 +103,7 @@ class EventsScreen(Screen):
         )
 
         title = KiGLabel(text="Kalender")
-        title.set_font_size(26)
+        title.set_font_size(18 if theme.is_narrow() else 26)
         title.set_bold(True)
         title.set_alignment("left")
         title.set_color(theme.PRIMARY_ORANGE)

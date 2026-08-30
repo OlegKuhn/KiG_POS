@@ -352,6 +352,46 @@ def is_portrait():
 
 
 # =========================================================
+# SCHMALE BILDSCHIRME
+# =========================================================
+#
+# Quer und hoch reichen nicht: Ein Telefon im Hochformat bekam bisher
+# dieselbe Anordnung wie das 10-Zoll-Tablet im Hochformat, nur auf
+# einem Drittel der Fläche. Kategorienamen brachen mitten im Wort um,
+# und von neun Startkacheln waren fünf zu sehen.
+#
+# Deshalb eine dritte Frage neben der Ausrichtung: Ist überhaupt Platz
+# nebeneinander? Sie hängt an der wirklichen Breite in dp, nicht an
+# einer Geräteliste - ein schmales Fenster am Rechner ist genauso
+# schmal wie ein Telefon.
+
+# Ab hier gilt ein Bildschirm als schmal. 500 dp liegt zwischen den
+# üblichen Telefonen (360-430 dp) und den kleinen Tablets (ab 600 dp).
+NARROW_MAX_WIDTH = 500
+
+CURRENT_WIDTH = None
+
+
+def set_breite(breite_dp):
+    """Merkt sich die Bildschirmbreite in dp.
+
+    Wird beim Start gesetzt (siehe KiGPOS.build). Ohne Angabe bleibt
+    es beim Normalfall breit - ein Skript ohne Fenster soll nicht
+    versehentlich die Telefonanordnung bekommen.
+    """
+
+    global CURRENT_WIDTH
+
+    CURRENT_WIDTH = breite_dp
+
+
+def is_narrow():
+    """True, wenn nebeneinander kein Platz mehr ist."""
+
+    return CURRENT_WIDTH is not None and CURRENT_WIDTH < NARROW_MAX_WIDTH
+
+
+# =========================================================
 # RADIUS
 # =========================================================
 
@@ -529,6 +569,13 @@ ARTICLE_TILE_HEIGHT = 120
 # Artikelbereich die Höhe mit dem Warenkorb darunter.
 PORTRAIT_ARTICLE_TILE_WIDTH = 165
 PORTRAIT_ARTICLE_TILE_HEIGHT = 100
+
+# Telefon: zwei Kacheln nebeneinander. Bei 412 dp Bildschirmbreite
+# bleiben innerhalb der Karte rund 364 dp - zwei mal 168 plus Abstand
+# passen hinein, 165 mal zwei wären zu knapp gewesen, sobald die
+# Karte einmal etwas mehr Rand bekommt.
+NARROW_ARTICLE_TILE_WIDTH = 168
+NARROW_ARTICLE_TILE_HEIGHT = 88
 
 # ----------------------------------------------------
 # Warenkorb

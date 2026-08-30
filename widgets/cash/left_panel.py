@@ -4,6 +4,7 @@ from kivy.uix.boxlayout import BoxLayout
 import theme
 
 from widgets.cash.article_panel import CashArticlePanel
+from widgets.cash.schmales_artikelpanel import SchmalesArtikelpanel
 from widgets.products.category_panel import CategoryPanel
 
 
@@ -48,6 +49,28 @@ class CashLeftPanel(BoxLayout):
 
         self.orientation = "horizontal"
         self.spacing = dp(theme.SCREEN_SPACING)
+
+        # Auf dem Telefon ist für zwei Spalten kein Platz - dort stehen
+        # die Kategorien als Klappköpfe über ihren Artikeln (siehe
+        # widgets/cash/schmales_artikelpanel.py). Nach außen sieht
+        # dieses Panel gleich aus, deshalb merkt der Kassenbildschirm
+        # nichts davon.
+        self.schmal = theme.is_narrow()
+
+        if self.schmal:
+
+            self.category_panel_widget = None
+
+            self.article_panel_widget = SchmalesArtikelpanel(
+                article_callback=self.article_callback,
+                category_callback=self.category_articles_callback,
+            )
+
+            self.add_widget(self.article_panel_widget)
+
+            self.set_categories(categories or [])
+
+            return
 
         # =====================================================
         # Kategorien
@@ -94,6 +117,9 @@ class CashLeftPanel(BoxLayout):
 
     def _update_category_width(self, *_args):
 
+        if self.category_panel_widget is None:
+            return
+
         self.category_panel_widget.width = max(
             dp(self.CATEGORY_MIN_WIDTH),
             self.width * self.CATEGORY_WIDTH_SHARE,
@@ -129,12 +155,21 @@ class CashLeftPanel(BoxLayout):
     def selected_category(self):
         """Die gewählte Kategorie - oder None für "alle"."""
 
+        if self.schmal:
+            return self.article_panel_widget.selected_category
+
         if self._selected_card is None:
             return None
 
         return self._selected_card.category
 
     def clear_selection(self):
+
+        if self.schmal:
+            # Zugeklappt zeigte die Kasse gar keine Artikel mehr -
+            # deshalb rueckt hier die erste Kategorie nach.
+            self.article_panel_widget.erste_oeffnen()
+            return
 
         if self._selected_card is not None:
             self._selected_card.unselect()
@@ -146,6 +181,10 @@ class CashLeftPanel(BoxLayout):
     # =====================================================
 
     def set_categories(self, categories):
+
+        if self.schmal:
+            self.article_panel_widget.set_categories(categories)
+            return
 
         self.clear_selection()
 

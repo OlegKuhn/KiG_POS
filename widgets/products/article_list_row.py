@@ -35,6 +35,9 @@ class ArticleListRow(BoxLayout):
 
     PORTRAIT_HEIGHT = 92
 
+    # Telefon: eine Zeile weniger Inhalt, also flacher.
+    NARROW_HEIGHT = 90
+
     def __init__(
             self,
             article,
@@ -68,6 +71,10 @@ class ArticleListRow(BoxLayout):
                 pos=self.pos, size=self.size, radius=[dp(10)]
             )
         self.bind(pos=self._update_canvas, size=self._update_canvas)
+
+        if theme.is_narrow():
+            self._build_schmal(article, order_amount, is_mix)
+            return
 
         if theme.is_portrait():
             self._build_portrait(article, order_amount, is_mix)
@@ -183,6 +190,124 @@ class ArticleListRow(BoxLayout):
     # =====================================================
     # Hochformat
     # =====================================================
+
+    def _build_schmal(self, article, order_amount, is_mix):
+        """Fassung fürs Telefon: nur Name und die Schaltflächen.
+
+        VK, EK und Bestand fallen hier weg. Auf 412 dp Breite blieben
+        den drei Angaben zusammen rund 100 dp - jede zeigte am Ende nur
+        noch "…", also drei Spalten Platzverbrauch für keine einzige
+        lesbare Zahl. Wer sie braucht, öffnet den Artikel; dort stehen
+        sie vollständig.
+        """
+
+        self.orientation = "vertical"
+        self.spacing = dp(theme.SPACE_XS)
+        self.height = dp(self.NARROW_HEIGHT)
+
+        # -------------------------------------------------
+        # Obere Zeile: Name, Kategorie, Löschen
+        # -------------------------------------------------
+
+        obere_zeile = BoxLayout(
+            spacing=dp(theme.ROW_SPACING), size_hint_y=None, height=dp(44)
+        )
+
+        name_column = BoxLayout(
+            orientation="vertical", spacing=dp(theme.LABEL_SPACING)
+        )
+
+        name_label = Label(
+            text=article["name"], color=theme.TEXT_PRIMARY, bold=True,
+            font_size="16sp", halign="left", valign="bottom",
+            shorten=True, shorten_from="right",
+        )
+        name_label.bind(
+            size=lambda instance, value: setattr(instance, "text_size", value)
+        )
+        name_column.add_widget(name_label)
+
+        kategorie_text = article["category_name"] or "-"
+
+        if is_mix:
+            kategorie_text += "  ·  Mix / Rezept"
+
+        category_label = Label(
+            text=kategorie_text, color=theme.TEXT_SECONDARY, font_size="12sp",
+            halign="left", valign="top", shorten=True, shorten_from="right",
+        )
+        category_label.bind(
+            size=lambda instance, value: setattr(instance, "text_size", value)
+        )
+        name_column.add_widget(category_label)
+
+        obere_zeile.add_widget(name_column)
+
+        delete_button = KiGSymbolButton(
+            symbol=KREUZ, symbol_color=theme.TEXT_WHITE,
+            size_hint_x=None, width=dp(44),
+            background_color=theme.ERROR, color=theme.TEXT_WHITE,
+        )
+        delete_button.bind(
+            on_release=lambda *_args: self.delete_callback(self.article)
+        )
+        obere_zeile.add_widget(delete_button)
+
+        self.add_widget(obere_zeile)
+
+        # -------------------------------------------------
+        # Untere Zeile: Menge, Buchen, Bearbeiten
+        # -------------------------------------------------
+        #
+        # Die Menge bleibt: Ohne sie wüsste "Buchen" nicht, wie viel
+        # zugehen soll.
+
+        untere_zeile = BoxLayout(
+            spacing=dp(theme.ROW_SPACING), size_hint_y=None, height=dp(38)
+        )
+
+        self.amount_button = Button(
+            text=str(order_amount) if not is_mix else "–",
+            size_hint_x=None, width=dp(58),
+            background_normal="", background_down="",
+            background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
+            font_size="15sp", bold=True,
+            disabled=is_mix,
+        )
+        links_ausrichten(self.amount_button)
+
+        if not is_mix:
+            self.amount_button.bind(
+                on_release=lambda *_args: self.amount_callback(self.article)
+            )
+        untere_zeile.add_widget(self.amount_button)
+
+        confirm_button = Button(
+            text="Buchen",
+            background_normal="", background_down="",
+            background_color=theme.SUCCESS, color=theme.TEXT_WHITE,
+            font_size="13sp", bold=True,
+            disabled=is_mix,
+        )
+        if not is_mix:
+            # on_press statt on_release: siehe Querformat-Fassung oben.
+            confirm_button.bind(
+                on_press=lambda *_args: self.confirm_callback(self.article)
+            )
+        untere_zeile.add_widget(confirm_button)
+
+        edit_button = Button(
+            text="Bearbeiten",
+            background_normal="", background_down="",
+            background_color=theme.PRIMARY_ORANGE, color=theme.TEXT_WHITE,
+            font_size="13sp", bold=True,
+        )
+        edit_button.bind(
+            on_release=lambda *_args: self.edit_callback(self.article)
+        )
+        untere_zeile.add_widget(edit_button)
+
+        self.add_widget(untere_zeile)
 
     def _build_portrait(self, article, order_amount, is_mix):
         """Zweizeilige Fassung derselben Zeile für schmale Fenster."""

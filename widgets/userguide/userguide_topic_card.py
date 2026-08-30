@@ -15,10 +15,12 @@ class UserguideTopicCard(Button):
         self.callback = callback
 
         self.size_hint = (1, None)
-        self.height = dp(56)
+        self.height = dp(50) if theme.is_narrow() else dp(56)
 
         self.text = topic["title"]
-        self.font_size = "18sp"
+        # Telefon: zwei Karten nebeneinander statt drei, und mit
+        # 18 sp brach schon "Kasse" mittendrin um.
+        self.font_size = "13sp" if theme.is_narrow() else "18sp"
         self.bold = True
 
         self.halign = "left"

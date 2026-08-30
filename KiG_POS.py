@@ -354,6 +354,15 @@ class KiGPOS(App):
             theme.set_orientation(_ausrichtung_bestimmen(db))
             apply_window_orientation(theme.get_orientation())
 
+            # Und die Breite: Ein Telefon braucht eine andere
+            # Anordnung als ein Tablet, auch wenn beide hochkant
+            # stehen (siehe theme.is_narrow).
+            #
+            # Über dp(1) statt über Metrics.density - dieser Weg ist
+            # auf allen Geräten schon geradegerückt (siehe
+            # _umrechnung_sicherstellen).
+            theme.set_breite(Window.width / dp(1))
+
         except Exception as error:
             traceback.print_exc()
             return self._build_error_screen(error)

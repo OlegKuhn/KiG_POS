@@ -141,7 +141,7 @@ class ShiftPlanScreen(Screen):
 
         if not plaene:
 
-            self.list_box.add_widget(Label(
+            hinweis = Label(
                 text=(
                     "Noch kein Schichtplan.\n"
                     "Beim Anlegen einer Veranstaltung im Kalender "
@@ -149,8 +149,19 @@ class ShiftPlanScreen(Screen):
                 ),
                 color=theme.TEXT_SECONDARY, font_size="14sp",
                 size_hint_y=None, height=dp(90),
-                halign="left", valign="top", text_size=(None, dp(90)),
-            ))
+                halign="left", valign="top",
+            )
+
+            # Umbruch an der Panelbreite statt an einer festen Zahl -
+            # auf einem Telefon lief der Text sonst links und rechts
+            # aus der Karte heraus.
+            hinweis.bind(
+                size=lambda instanz, groesse: setattr(
+                    instanz, "text_size", groesse
+                )
+            )
+
+            self.list_box.add_widget(hinweis)
 
             self.selected_plan_id = None
 
@@ -228,8 +239,17 @@ class ShiftPlanScreen(Screen):
 
         self.shifts_title = self._title("Keine Veranstaltung gewählt")
 
-        uebernehmen = self._button("Schichten übernehmen", self.copy_shifts)
-        export_knopf = self._button("Excel exportieren", self.export_excel)
+        # Drei Beschriftungen nebeneinander passen auf ein Telefon nur
+        # gekuerzt - ausgeschrieben ueberlappten sie sich.
+        schmal = theme.is_narrow()
+
+        uebernehmen = self._button(
+            "Übernehmen" if schmal else "Schichten übernehmen",
+            self.copy_shifts,
+        )
+        export_knopf = self._button(
+            "Export" if schmal else "Excel exportieren", self.export_excel
+        )
         teilen_knopf = self._button("Teilen", self.teilen_clicked)
 
         if self.hochformat:
@@ -363,7 +383,8 @@ class ShiftPlanScreen(Screen):
 
             self.shifts_title.text = "Keine Veranstaltung gewählt"
             self.status_label.text = (
-                "Links über \"Plan anlegen\" einen Schichtplan anlegen."
+                f"{'Oben' if self.hochformat else 'Links'} über "
+                f"\"Plan anlegen\" einen Schichtplan anlegen."
             )
             self.status_label.color = theme.TEXT_SECONDARY
             self.shifts_header.opacity = 0

@@ -33,12 +33,26 @@ class CashArticleTile(KiGTile):
     TITLE_SIZE = 24
     PRICE_SIZE = 18
 
+    # Telefon: kleinere Kachel, kleinere Schrift. Mit 24 sp blieb von
+    # "Apfelschorle" auf 168 dp Breite nur noch "Apfel…" übrig.
+    NARROW_TITLE_SIZE = 16
+    NARROW_PRICE_SIZE = 14
+    NARROW_STOCK_SIZE = 11
+
+    STOCK_SIZE = 13
+
     def __init__(
             self,
             article,
             callback=None,
             **kwargs
     ):
+
+        if theme.is_narrow():
+            self.TITLE_SIZE = self.NARROW_TITLE_SIZE
+            self.PRICE_SIZE = self.NARROW_PRICE_SIZE
+            self.STOCK_SIZE = self.NARROW_STOCK_SIZE
+            self.PADDING = theme.SPACE_S
 
         super().__init__(**kwargs)
 
@@ -56,6 +70,9 @@ class CashArticleTile(KiGTile):
         self.size_hint = (None, None)
 
         self.size = (
+            dp(theme.NARROW_ARTICLE_TILE_WIDTH),
+            dp(theme.NARROW_ARTICLE_TILE_HEIGHT)
+        ) if theme.is_narrow() else (
             dp(theme.ARTICLE_TILE_WIDTH),
             dp(theme.ARTICLE_TILE_HEIGHT)
         )
@@ -117,7 +134,7 @@ class CashArticleTile(KiGTile):
         )
 
         self.lbl_stock = KiGLabel(size_hint=(1, 0.18))
-        self.lbl_stock.set_font_size(13)
+        self.lbl_stock.set_font_size(self.STOCK_SIZE)
         self.lbl_stock.set_color(theme.TEXT_SECONDARY)
         self.lbl_stock.horizontal_alignment = "left"
         self.lbl_stock.vertical_alignment = "middle"

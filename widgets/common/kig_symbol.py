@@ -22,12 +22,15 @@ Beschreibung:
         haken         Erledigt-Häkchen
         kreuz         Löschen / Entfernen
         pfeil_links   Zurück
+        pfeil_unten   Aufgeklappt (siehe Klappkopf)
+        pfeil_rechts  Zugeklappt
 
 Version:
     1.0.0
 =========================================================
 """
 
+from kivy.clock import Clock
 from kivy.graphics import Color, Line
 from kivy.metrics import dp
 from kivy.uix.button import Button
@@ -39,6 +42,8 @@ import theme
 HAKEN = "haken"
 KREUZ = "kreuz"
 PFEIL_LINKS = "pfeil_links"
+PFEIL_UNTEN = "pfeil_unten"
+PFEIL_RECHTS = "pfeil_rechts"
 
 
 def _punkte(symbol, x, y, groesse):
@@ -63,6 +68,22 @@ def _punkte(symbol, x, y, groesse):
             x + groesse * 0.20, y + groesse * 0.50,
         ]
 
+    if symbol == PFEIL_UNTEN:
+        # Winkel nach unten: aufgeklappt, der Inhalt steht darunter.
+        return [
+            x + groesse * 0.24, y + groesse * 0.62,
+            x + groesse * 0.50, y + groesse * 0.36,
+            x + groesse * 0.76, y + groesse * 0.62,
+        ]
+
+    if symbol == PFEIL_RECHTS:
+        # Winkel nach rechts: zugeklappt.
+        return [
+            x + groesse * 0.38, y + groesse * 0.24,
+            x + groesse * 0.64, y + groesse * 0.50,
+            x + groesse * 0.38, y + groesse * 0.76,
+        ]
+
     return []
 
 
@@ -77,9 +98,27 @@ class KiGSymbol(Widget):
         self.symbol_color = color or theme.TEXT_PRIMARY
         self.line_width = line_width
 
-        self.bind(pos=self._zeichnen, size=self._zeichnen)
+        # Erst im nächsten Frame zeichnen, nicht sofort beim
+        # Verschieben: Ein Symbol in einer Liste, die gerade umgebaut
+        # wird, wandert während eines Layoutdurchgangs mehrmals.
+        # Zeichnete es bei jedem Zwischenschritt, bliebe am Ende die
+        # Fassung von einer Zwischenstellung stehen - nachgemessen an
+        # den Klappköpfen der Kasse, deren Winkel 26 Bildpunkte über
+        # ihrer Zeile hingen.
+        self._nachzeichnen = Clock.create_trigger(self._zeichnen, -1)
+
+        self.bind(pos=self._nachzeichnen, size=self._nachzeichnen)
 
         self._zeichnen()
+
+    def neu_zeichnen(self):
+        """Zeichnet im nächsten Frame neu.
+
+        Für Fälle, in denen sich nicht das Symbol selbst bewegt,
+        sondern das, worin es sitzt.
+        """
+
+        self._nachzeichnen()
 
     def set_color(self, color):
 

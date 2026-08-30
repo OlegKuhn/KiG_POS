@@ -337,7 +337,8 @@ class ChecklistScreen(Screen):
 
             self.items_title.text = "Keine Liste gewählt"
             self.status_label.text = (
-                "Links über \"Neue Liste\" eine Checkliste anlegen."
+                f"{'Oben' if self.hochformat else 'Links'} über "
+                f"\"Neue Liste\" eine Checkliste anlegen."
             )
             self.items_header.opacity = 0
 

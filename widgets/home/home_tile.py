@@ -23,15 +23,45 @@ class HomeTile(KiGTile):
     WIDTH = 210
     HEIGHT = 140
 
+    # Auf dem Telefon: zwei nebeneinander statt einer. Bei 210 dp
+    # Breite passte nur eine Kachel in die Zeile, und von neun waren
+    # fünf zu sehen - der Rest lag unter dem Falz.
+    NARROW_WIDTH = 172
+    NARROW_HEIGHT = 104
+
     PADDING = theme.SPACE_M
     SPACING = theme.LABEL_SPACING
 
     ICON_SIZE = 56
+    NARROW_ICON_SIZE = 38
 
     TITLE_SIZE = 17
     SUBTITLE_SIZE = 12
 
+    NARROW_TITLE_SIZE = 14
+    NARROW_SUBTITLE_SIZE = 10
+
+    @classmethod
+    def masse(cls):
+        """Breite und Höhe der Kachel auf diesem Bildschirm."""
+
+        if theme.is_narrow():
+            return cls.NARROW_WIDTH, cls.NARROW_HEIGHT
+
+        return cls.WIDTH, cls.HEIGHT
+
     def __init__(self, **kwargs):
+
+        schmal = theme.is_narrow()
+
+        if schmal:
+            # Vor super(): KiGTile nimmt die Maße aus diesen Feldern.
+            self.WIDTH = self.NARROW_WIDTH
+            self.HEIGHT = self.NARROW_HEIGHT
+            self.ICON_SIZE = self.NARROW_ICON_SIZE
+            self.TITLE_SIZE = self.NARROW_TITLE_SIZE
+            self.SUBTITLE_SIZE = self.NARROW_SUBTITLE_SIZE
+            self.PADDING = theme.SPACE_S
 
         super().__init__(**kwargs)
 

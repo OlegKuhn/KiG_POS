@@ -189,8 +189,10 @@ class SettingsScreen(Screen):
         hint.set_font_size(14)
         hint.set_alignment("left")
         hint.set_color(theme.TEXT_SECONDARY)
-        hint.size_hint_y = None
-        hint.height = dp(46)
+        # Waechst mit dem Text: Auf einem Telefon braucht
+        # derselbe Satz doppelt so viele Zeilen wie am Rechner,
+        # und eine feste Hoehe schnitt den Rest einfach ab.
+        hinweisfeld_vorbereiten(hint, dp(46))
         inhalt.add_widget(hint)
 
         #
@@ -229,8 +231,10 @@ class SettingsScreen(Screen):
         demo_hint.set_font_size(14)
         demo_hint.set_alignment("left")
         demo_hint.set_color(theme.TEXT_SECONDARY)
-        demo_hint.size_hint_y = None
-        demo_hint.height = dp(76)
+        # Waechst mit dem Text: Auf einem Telefon braucht
+        # derselbe Satz doppelt so viele Zeilen wie am Rechner,
+        # und eine feste Hoehe schnitt den Rest einfach ab.
+        hinweisfeld_vorbereiten(demo_hint, dp(76))
         inhalt.add_widget(demo_hint)
 
         #
@@ -344,8 +348,10 @@ class SettingsScreen(Screen):
         uebergabe_hint.set_font_size(14)
         uebergabe_hint.set_alignment("left")
         uebergabe_hint.set_color(theme.TEXT_SECONDARY)
-        uebergabe_hint.size_hint_y = None
-        uebergabe_hint.height = dp(250)
+        # Waechst mit dem Text: Auf einem Telefon braucht
+        # derselbe Satz doppelt so viele Zeilen wie am Rechner,
+        # und eine feste Hoehe schnitt den Rest einfach ab.
+        hinweisfeld_vorbereiten(uebergabe_hint, dp(250))
         inhalt.add_widget(uebergabe_hint)
 
         self.uebergabe_status = Label(

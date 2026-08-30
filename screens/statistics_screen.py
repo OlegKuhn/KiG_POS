@@ -60,16 +60,30 @@ class SaleRow(ButtonBehavior, BoxLayout):
         if self.ist_storno:
             artikel = f"Storno: {artikel}"
 
-        values = (
-            sale["event_name"],
-            StatisticsScreen.format_date(sale["business_date"]),
-            sale["category_name"],
-            artikel,
-            StatisticsScreen.money(sale["unit_price"]),
-            StatisticsScreen.money(sale["purchase_price"]),
-            StatisticsScreen.money(sale["profit"]),
-        )
-        widths = (0.20, 0.12, 0.15, 0.20, 0.11, 0.11, 0.11)
+        if theme.is_narrow():
+
+            values = (
+                StatisticsScreen.format_date(sale["business_date"]),
+                artikel,
+                StatisticsScreen.money(sale["unit_price"]),
+                StatisticsScreen.money(sale["profit"]),
+            )
+
+        else:
+
+            values = (
+                sale["event_name"],
+                StatisticsScreen.format_date(sale["business_date"]),
+                sale["category_name"],
+                artikel,
+                StatisticsScreen.money(sale["unit_price"]),
+                StatisticsScreen.money(sale["purchase_price"]),
+                StatisticsScreen.money(sale["profit"]),
+            )
+
+        # Dieselbe Aufteilung wie die Kopfzeile - beide kommen aus
+        # StatisticsScreen.spalten().
+        widths = StatisticsScreen.spalten()[1]
 
         for spalte, (value, width) in enumerate(zip(values, widths)):
             # Nur der Gewinn wird rot - der Betrag selbst bleibt lesbar,
@@ -148,7 +162,10 @@ class StatisticsScreen(Screen):
             orientation="vertical",
             padding=dp(theme.CARD_PADDING),
             spacing=dp(theme.CARD_SPACING),
-            size_hint=(1, 0.62) if self.hochformat else (0.64, 1),
+            size_hint=(
+                (1, 0.54 if theme.is_narrow() else 0.62)
+                if self.hochformat else (0.64, 1)
+            ),
         )
 
         title = KiGLabel(text="Verkäufe")
@@ -160,26 +177,51 @@ class StatisticsScreen(Screen):
         title.height = dp(38)
         panel.add_widget(title)
 
-        filters = BoxLayout(size_hint_y=None, height=dp(48), spacing=dp(theme.ROW_SPACING))
+        # Auf dem Telefon passen Ereignisauswahl, zwei Datumsfelder und
+        # "Aktualisieren" nicht in eine Zeile - dort brechen sie um.
+        schmal = theme.is_narrow()
+
+        filters = BoxLayout(
+            orientation="vertical" if schmal else "horizontal",
+            size_hint_y=None,
+            height=dp(48 * 2 + theme.ROW_SPACING) if schmal else dp(48),
+            spacing=dp(theme.ROW_SPACING),
+        )
+
+        obere = BoxLayout(spacing=dp(theme.ROW_SPACING)) if schmal else filters
+        untere = BoxLayout(spacing=dp(theme.ROW_SPACING)) if schmal else filters
+
+        if schmal:
+            filters.add_widget(obere)
+            filters.add_widget(untere)
+
         self.event_filter = Spinner(
             text="Alle Events", values=("Alle Events",),
             font_size="15sp", size_hint_x=1.15,
         )
         links_ausrichten(self.event_filter)
         self.event_filter.bind(text=lambda *_args: self.refresh())
-        filters.add_widget(self.event_filter)
+        obere.add_widget(self.event_filter)
 
         self.date_from_value = None
         self.date_to_value = None
 
-        filters.add_widget(self._build_date_filter(
+        untere.add_widget(self._build_date_filter(
             "Von", lambda: self.open_date_picker("from"), lambda: self.clear_date_filter("from"),
         ))
-        filters.add_widget(self._build_date_filter(
+        untere.add_widget(self._build_date_filter(
             "Bis", lambda: self.open_date_picker("to"), lambda: self.clear_date_filter("to"),
         ))
 
-        filters.add_widget(self._button("Aktualisieren", self.refresh, width=dp(130)))
+        aktualisieren = self._button("Aktualisieren", self.refresh, width=dp(130))
+
+        if schmal:
+            # In der oberen Zeile neben der Ereignisauswahl - unten
+            # brauchen die beiden Datumsfelder den ganzen Platz.
+            aktualisieren.width = dp(120)
+            obere.add_widget(aktualisieren)
+        else:
+            filters.add_widget(aktualisieren)
         panel.add_widget(filters)
 
         actions_top = BoxLayout(size_hint_y=None, height=dp(40), spacing=dp(theme.ROW_SPACING))
@@ -207,10 +249,7 @@ class StatisticsScreen(Screen):
         # ebenfalls kein spacing), sonst stehen Überschrift und Wert
         # nicht mehr übereinander. Beide Stellen also nur gemeinsam ändern.
         header = BoxLayout(size_hint_y=None, height=dp(34), spacing=0)
-        for title_text, width in zip(
-            ("Event", "Datum", "Kategorie", "Artikel", "Verkauf", "Einkauf", "Gewinn"),
-            (0.20, 0.12, 0.15, 0.20, 0.11, 0.11, 0.11),
-        ):
+        for title_text, width in zip(*self.spalten()):
             label = Label(
                 text=title_text, bold=True, color=theme.TEXT_PRIMARY,
                 font_size="13sp", halign="left", valign="middle",
@@ -230,6 +269,28 @@ class StatisticsScreen(Screen):
         actions.add_widget(self._button("Zeitraum löschen", self.delete_period))
         panel.add_widget(actions)
         return panel
+
+    @staticmethod
+    def spalten():
+        """Ueberschriften und Breiten der Verkaufstabelle.
+
+        Auf dem Telefon vier statt sieben: Sieben Ueberschriften ergaben
+        auf 412 dp einen einzigen Streifen, in dem "VerkaufEinkaufGewinn"
+        uebereinanderlag. Event, Kategorie und Einkauf entfallen dort -
+        wer sie braucht, sieht sie in der Ausgabe nach Excel.
+        """
+
+        if theme.is_narrow():
+            return (
+                ("Datum", "Artikel", "Verkauf", "Gewinn"),
+                (0.22, 0.40, 0.19, 0.19),
+            )
+
+        return (
+            ("Event", "Datum", "Kategorie", "Artikel",
+             "Verkauf", "Einkauf", "Gewinn"),
+            (0.20, 0.12, 0.15, 0.20, 0.11, 0.11, 0.11),
+        )
 
     # =====================================================
     # Fehlende Einkaufspreise nachtragen
@@ -327,10 +388,18 @@ class StatisticsScreen(Screen):
         Streifen übrig.
         """
 
+        # Auf dem Telefon aber wieder untereinander: 180 dp je Karte
+        # reichen nicht einmal fuer die Ueberschrift
+        # "Gesamtverkaufszahlen".
+        nebeneinander = self.hochformat and not theme.is_narrow()
+
         panel = BoxLayout(
-            orientation="horizontal" if self.hochformat else "vertical",
+            orientation="horizontal" if nebeneinander else "vertical",
             spacing=dp(theme.SCREEN_SPACING),
-            size_hint=(1, 0.38) if self.hochformat else (0.36, 1),
+            size_hint=(
+                (1, 0.46 if theme.is_narrow() else 0.38)
+                if self.hochformat else (0.36, 1)
+            ),
         )
 
         panel.add_widget(self._build_totals_panel())
@@ -346,7 +415,10 @@ class StatisticsScreen(Screen):
             orientation="vertical",
             padding=dp(theme.CARD_PADDING),
             spacing=dp(theme.CARD_SPACING),
-            size_hint=(0.5, 1) if self.hochformat else (1, 0.58),
+            size_hint=(
+                (0.5, 1) if self.hochformat and not theme.is_narrow()
+                else (1, 0.58)
+            ),
         )
 
         panel.add_widget(self._title("Gesamtverkaufszahlen"))
@@ -411,7 +483,10 @@ class StatisticsScreen(Screen):
             orientation="vertical",
             padding=dp(theme.CARD_PADDING),
             spacing=dp(theme.CARD_SPACING),
-            size_hint=(0.5, 1) if self.hochformat else (1, 0.42),
+            size_hint=(
+                (0.5, 1) if self.hochformat and not theme.is_narrow()
+                else (1, 0.42)
+            ),
         )
 
         panel.add_widget(self._title("Top-Artikel"))
@@ -447,13 +522,15 @@ class StatisticsScreen(Screen):
 
     @staticmethod
     def _title(text):
+        schmal = theme.is_narrow()
+
         label = KiGLabel(text=text)
-        label.set_font_size(22)
+        label.set_font_size(17 if schmal else 22)
         label.set_bold(True)
         label.set_alignment("left")
         label.set_color(theme.PRIMARY_ORANGE)
         label.size_hint_y = None
-        label.height = dp(34)
+        label.height = dp(26 if schmal else 34)
         return label
 
 

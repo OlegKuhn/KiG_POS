@@ -9,7 +9,9 @@ import theme
 
 from widgets.kig_label import KiGLabel
 from widgets.common.kig_action_tile import KiGActionTile
-from widgets.common.kig_symbol import KiGSymbol, PFEIL_UNTEN
+from widgets.common.kig_symbol import (
+    KiGSymbol, PFEIL_OBEN, PFEIL_UNTEN,
+)
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.cash.cart.cart_item_widget import CartItemWidget
 from widgets.cash.cart.cart_footer import CartFooter
@@ -39,7 +41,7 @@ class _Warenkorbleiste(BoxLayout):
 
         self.btn_bezahlen = Button(
             text="Bezahlen",
-            size_hint=(None, 1), width=dp(96),
+            size_hint=(None, 1), width=dp(82),
             background_normal="", background_down="",
             background_color=theme.PRIMARY_ORANGE, color=theme.TEXT_WHITE,
             font_size="17sp", bold=True,
@@ -99,7 +101,7 @@ class _LeistenZeile(ButtonBehavior, BoxLayout):
         self.lbl_summe.set_alignment("right")
         self.lbl_summe.set_color(theme.PRIMARY_ORANGE)
         self.lbl_summe.size_hint_x = None
-        self.lbl_summe.width = dp(84)
+        self.lbl_summe.width = dp(72)
         self.lbl_summe.max_lines = 1
         self.lbl_summe.bind(
             size=lambda instanz, groesse: setattr(
@@ -116,13 +118,54 @@ class _LeistenZeile(ButtonBehavior, BoxLayout):
 
     def setzen(self, anzahl, summe):
 
-        # Kurz halten: In dieser Zeile stehen rund 55 dp zur Verfügung,
-        # "Warenkorb" braucht schon 68 und wurde zu "Waren…".
+        # Kurz halten: Neben Summe und "Bezahlen" bleiben rund 98
+        # Bildpunkte - genug für "3 Posten" (72), nicht für mehr.
         self.lbl_posten.set_text(
             "leer" if not anzahl else f"{anzahl:g} Posten"
         )
 
         self.lbl_summe.set_text(geldformat.geld(summe))
+
+
+class _Zuklappzeile(ButtonBehavior, BoxLayout):
+    """Ueberschrift des aufgeklappten Warenkorbs - antippbar.
+
+    Traegt den Winkel nach oben, damit man ihm ansieht, wohin er
+    fuehrt.
+    """
+
+    def __init__(self, text, on_zu, **kwargs):
+
+        super().__init__(**kwargs)
+
+        self.orientation = "horizontal"
+        self.spacing = dp(theme.SPACE_S)
+
+        self.symbol = KiGSymbol(
+            symbol=PFEIL_OBEN,
+            color=theme.PRIMARY_ORANGE,
+            size_hint=(None, 1),
+            width=dp(20),
+        )
+        self.add_widget(self.symbol)
+
+        self.beschriftung = KiGLabel()
+        self.beschriftung.set_text(text)
+        self.beschriftung.set_font_size(17)
+        self.beschriftung.set_bold(True)
+        self.beschriftung.set_alignment("left")
+        self.beschriftung.set_color(theme.PRIMARY_ORANGE)
+        self.beschriftung.max_lines = 1
+        self.beschriftung.bind(
+            size=lambda instanz, groesse: setattr(
+                instanz, "text_size", groesse
+            )
+        )
+        self.add_widget(self.beschriftung)
+
+        self.bind(
+            on_release=lambda *_args: on_zu() if callable(on_zu) else None
+        )
 
 
 class CartPanel(RoundedPanel):
@@ -210,9 +253,22 @@ class CartPanel(RoundedPanel):
             setattr(instance, "text_size", value)
         )
 
-        self.header.add_widget(
-            self.lbl_title
-        )
+        # Auf dem Telefon fuehrt die Ueberschrift wieder zurueck: Der
+        # Warenkorb liess sich aufklappen, aber nicht mehr zuklappen -
+        # es gab schlicht nichts zum Antippen.
+        if theme.is_narrow():
+
+            self.zuklapp_knopf = _Zuklappzeile(
+                text="Warenkorb", on_zu=self.zuklappen
+            )
+
+            self.header.add_widget(self.zuklapp_knopf)
+
+        else:
+
+            self.header.add_widget(
+                self.lbl_title
+            )
 
         # -------------------------------------------------
         # Schaltflächen "Storno" und "Leeren"
@@ -236,11 +292,18 @@ class CartPanel(RoundedPanel):
         # übergebenes width. Zwei solche Kacheln würden vom Kopfbereich
         # nichts mehr für die Überschrift übrig lassen - deshalb hier
         # NACH der Konstruktion schmaler setzen.
+        # Auf dem Telefon noch einmal schmaler: Bei 84 dp je Schaltfläche
+        # blieben der Überschrift 114 Bildpunkte - "Warenkorb" wurde zu
+        # "Waren" abgeschnitten. Nachgemessen bei 339 dp Breite.
+        knopfbreite = 70 if theme.is_narrow() else self.HEADER_BUTTON_WIDTH
+
         for schaltflaeche in (self.btn_storno, self.btn_clear):
             schaltflaeche.size_hint = (None, None)
-            schaltflaeche.width = dp(self.HEADER_BUTTON_WIDTH)
+            schaltflaeche.width = dp(knopfbreite)
             schaltflaeche.height = dp(theme.CATEGORY_TILE_HEIGHT)
-            schaltflaeche.lbl_title.set_font_size(15)
+            schaltflaeche.lbl_title.set_font_size(
+                13 if theme.is_narrow() else 15
+            )
             self.header.add_widget(schaltflaeche)
 
         self.add_widget(

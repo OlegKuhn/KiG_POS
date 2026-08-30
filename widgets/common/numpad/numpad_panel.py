@@ -38,6 +38,10 @@ class NumpadPanel(SlidePanel, BoxLayout):
 
         self._value = 0
 
+        # Wurde der Wert von aussen gesetzt und noch nicht angetippt?
+        # Dann ersetzt die naechste Ziffer ihn (siehe _digit_pressed).
+        self._unberuehrt = False
+
         self.orientation = "vertical"
 
         self.init_slide(dp(theme.NUMPAD_PANEL_WIDTH))
@@ -353,6 +357,13 @@ class NumpadPanel(SlidePanel, BoxLayout):
 
     def _digit_pressed(self, digit, *args):
 
+        # Der Nummernblock oeffnet mit dem bisherigen Wert. Wer dann
+        # tippt, will ihn ERSETZEN, nicht anhaengen: Aus 2,50 und
+        # "3", "5", "0" wurde sonst 2503,50 Euro.
+        if self._unberuehrt:
+            self._value = 0
+            self._unberuehrt = False
+
         self._value = self._value * 10 + digit
 
         self.display.set_value(
@@ -368,6 +379,7 @@ class NumpadPanel(SlidePanel, BoxLayout):
     def _clear(self, *args):
 
         self._value = 0
+        self._unberuehrt = False
 
         self.display.set_value(
             self._value,
@@ -380,6 +392,10 @@ class NumpadPanel(SlidePanel, BoxLayout):
     # -----------------------------------------------------
 
     def _backspace(self, *args):
+
+        # Wer korrigiert, will den Vorschlag behalten und daran
+        # weiterarbeiten.
+        self._unberuehrt = False
 
         self._value //= 10
 
@@ -401,6 +417,10 @@ class NumpadPanel(SlidePanel, BoxLayout):
             0,
             int(value)
         )
+
+        # Von aussen gesetzt heisst: ein Vorschlag. Die naechste
+        # Ziffer ersetzt ihn.
+        self._unberuehrt = True
 
         self.display.set_value(
             self._value,
@@ -428,23 +448,33 @@ class NumpadPanel(SlidePanel, BoxLayout):
 
     def _confirm(self, *args):
 
+        # Erst merken, dann schliessen.
+        #
+        # close() raeumt die Rueckrufe auf - im Querformat erst nach
+        # der Animation, im HOCHFORMAT aber sofort (siehe
+        # SlidePanel.slide_close: dort gibt es nichts zu animieren).
+        # Wer erst schloss und dann den Rueckruf aufrief, rief ins
+        # Leere: Auf jedem hochkant betriebenen Geraet kam kein
+        # eingetippter Preis und kein Bestand jemals an.
+        rueckruf = self.confirm_callback
+        wert = self.get_value()
+
         self.close()
 
-        if callable(self.confirm_callback):
-
-            self.confirm_callback(
-                self.get_value()
-            )
+        if callable(rueckruf):
+            rueckruf(wert)
 
     # -----------------------------------------------------
 
     def _cancel(self, *args):
 
+        # Aus demselben Grund wie oben: erst merken, dann schliessen.
+        rueckruf = self.cancel_callback
+
         self.close()
 
-        if callable(self.cancel_callback):
-
-            self.cancel_callback()
+        if callable(rueckruf):
+            rueckruf()
 
     # =====================================================
     # Öffnen

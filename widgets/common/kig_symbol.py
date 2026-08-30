@@ -24,6 +24,7 @@ Beschreibung:
         pfeil_links   Zurück
         pfeil_unten   Aufgeklappt (siehe Klappkopf)
         pfeil_rechts  Zugeklappt
+        pfeil_oben    Zuklappen (siehe Warenkorb)
 
 Version:
     1.0.0
@@ -44,6 +45,7 @@ KREUZ = "kreuz"
 PFEIL_LINKS = "pfeil_links"
 PFEIL_UNTEN = "pfeil_unten"
 PFEIL_RECHTS = "pfeil_rechts"
+PFEIL_OBEN = "pfeil_oben"
 
 
 def _punkte(symbol, x, y, groesse):
@@ -74,6 +76,14 @@ def _punkte(symbol, x, y, groesse):
             x + groesse * 0.24, y + groesse * 0.62,
             x + groesse * 0.50, y + groesse * 0.36,
             x + groesse * 0.76, y + groesse * 0.62,
+        ]
+
+    if symbol == PFEIL_OBEN:
+        # Winkel nach oben: zuklappen.
+        return [
+            x + groesse * 0.24, y + groesse * 0.38,
+            x + groesse * 0.50, y + groesse * 0.64,
+            x + groesse * 0.76, y + groesse * 0.38,
         ]
 
     if symbol == PFEIL_RECHTS:

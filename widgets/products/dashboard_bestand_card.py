@@ -46,15 +46,22 @@ class BestandCard(RoundedPanel):
 
         stock_row = BoxLayout(size_hint_y=None, height=dp(56), spacing=dp(theme.CARD_SPACING))
 
+        schmal = theme.is_narrow()
+
         self.stock_label = KiGLabel(text="- Stück")
-        self.stock_label.set_font_size(26)
+
+        # Auf dem Telefon kleiner: Neben "Bestand anpassen" blieben
+        # der Zahl sonst keine 100 dp, und "55 Stück" brach um.
+        self.stock_label.set_font_size(18 if schmal else 26)
         self.stock_label.set_bold(True)
         self.stock_label.set_alignment("left")
         self.stock_label.set_color(theme.TEXT_PRIMARY)
         stock_row.add_widget(self.stock_label)
 
         adjust_button = Button(
-            text="Bestand anpassen", size_hint=(None, None), size=(dp(180), dp(50)),
+            text="Bestand anpassen",
+            size_hint=(None, None),
+            size=(dp(150 if schmal else 180), dp(50)),
             background_normal="", background_down="",
             background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
             font_size="15sp", bold=True,

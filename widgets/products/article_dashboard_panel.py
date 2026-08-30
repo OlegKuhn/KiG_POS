@@ -8,9 +8,11 @@ verfügbare Höhe und scrollt bei Bedarf intern (z. B. die
 Bestandshistorie).
 """
 
+from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
+from kivy.uix.scrollview import ScrollView
 
 import theme
 
@@ -71,11 +73,40 @@ class ArticleDashboardPanel(BoxLayout):
         self.add_widget(header)
 
         # -------------------------------------------------
-        # Karten - nebeneinander, jede füllt die volle Höhe
+        # Karten
         # -------------------------------------------------
+        #
+        # Am Rechner und auf dem Tablet nebeneinander, jede fuellt die
+        # volle Hoehe.
+        #
+        # Auf dem Telefon untereinander in einem Rollbereich: Drei
+        # Karten nebeneinander liessen der Stammdatenkarte dort 103
+        # von 384 Punkten - die Eingabefelder waren 32 Punkte breit
+        # und damit unbenutzbar. Untereinander bekommt jede die ganze
+        # Breite.
+        self.schmal = theme.is_narrow()
 
-        self.cards_layout = BoxLayout(orientation="horizontal", spacing=dp(theme.SCREEN_SPACING))
-        self.add_widget(self.cards_layout)
+        self.cards_layout = BoxLayout(
+            orientation="vertical" if self.schmal else "horizontal",
+            spacing=dp(theme.SCREEN_SPACING),
+        )
+
+        if self.schmal:
+
+            self.cards_layout.size_hint_y = None
+            self.cards_layout.bind(
+                minimum_height=self.cards_layout.setter("height")
+            )
+
+            self.karten_rollbereich = ScrollView(
+                do_scroll_x=False, bar_width=dp(8)
+            )
+            self.karten_rollbereich.add_widget(self.cards_layout)
+
+            self.add_widget(self.karten_rollbereich)
+
+        else:
+            self.add_widget(self.cards_layout)
 
         self.stammdaten_card = StammdatenCard(
             on_save=on_save, on_numpad=on_numpad,         )
@@ -108,6 +139,11 @@ class ArticleDashboardPanel(BoxLayout):
         self.stammdaten_card.clear(category_id=category_id)
 
         self.cards_layout.clear_widgets()
+
+        if self.schmal:
+            self._untereinander([(self.stammdaten_card, 430)])
+            return
+
         self.stammdaten_card.size_hint_x = 0.5
         self.cards_layout.add_widget(self.stammdaten_card)
         self.cards_layout.add_widget(BoxLayout(size_hint_x=0.5))
@@ -118,6 +154,23 @@ class ArticleDashboardPanel(BoxLayout):
         self.stammdaten_card.load_article(article)
 
         self.cards_layout.clear_widgets()
+
+        if self.schmal:
+
+            if article["article_type"] == "MIX":
+                self._untereinander([
+                    (self.stammdaten_card, 430),
+                    (self.rezept_card, 380),
+                ])
+
+            else:
+                self._untereinander([
+                    (self.stammdaten_card, 430),
+                    (self.bestand_card, 320),
+                    (self.bestellmenge_card, 220),
+                ])
+
+            return
 
         if article["article_type"] == "MIX":
             self.stammdaten_card.size_hint_x = 0.35
@@ -131,3 +184,30 @@ class ArticleDashboardPanel(BoxLayout):
             self.cards_layout.add_widget(self.stammdaten_card)
             self.cards_layout.add_widget(self.bestand_card)
             self.cards_layout.add_widget(self.bestellmenge_card)
+
+    def _untereinander(self, karten):
+        """Stellt die Karten auf dem Telefon untereinander.
+
+        Jede bekommt die ganze Breite und eine eigene Hoehe - sonst
+        teilten sie sich die Hoehe des Rollbereichs und waeren alle
+        drei zu flach.
+        """
+
+        for karte, hoehe in karten:
+
+            karte.size_hint_x = 1
+            karte.size_hint_y = None
+            karte.height = dp(hoehe)
+
+            self.cards_layout.add_widget(karte)
+
+        # Nach oben rollen - sonst steht der Bereich dort, wo er beim
+        # letzten Mal stand, und beim ersten Oeffnen ganz unten: Die
+        # erste Karte lag dann oberhalb des Sichtfensters, der
+        # Bildschirm wirkte leer.
+        Clock.schedule_once(self._nach_oben, 0)
+
+    def _nach_oben(self, *_args):
+
+        if getattr(self, "karten_rollbereich", None) is not None:
+            self.karten_rollbereich.scroll_y = 1

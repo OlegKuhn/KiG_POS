@@ -409,14 +409,23 @@ class KiGPOS(App):
             theme.set_orientation(_ausrichtung_bestimmen(db))
             apply_window_orientation(theme.get_orientation())
 
-            # Und die Breite: Ein Telefon braucht eine andere
-            # Anordnung als ein Tablet, auch wenn beide hochkant
-            # stehen (siehe theme.is_narrow).
+            # Und die Größe: Ein Telefon braucht eine andere Anordnung
+            # als ein Tablet, auch wenn beide hochkant stehen (siehe
+            # theme.is_narrow).
+            #
+            # Gemessen wird die KÜRZERE Seite, nicht die aktuelle
+            # Breite. Sonst hinge die Anordnung daran, wie das Gerät
+            # beim Start gerade in der Hand lag: Ein Telefon, quer
+            # gestartet, bekäme die Tabletanordnung auf einem
+            # handtellergroßen Schirm. Die kürzere Seite ändert sich
+            # beim Drehen nicht - ein Telefon bleibt ein Telefon.
             #
             # Über dp(1) statt über Metrics.density - dieser Weg ist
             # auf allen Geräten schon geradegerückt (siehe
             # _umrechnung_sicherstellen).
-            theme.set_breite(Window.width / dp(1))
+            theme.set_breite(
+                min(Window.width, Window.height) / dp(1)
+            )
 
         except Exception as error:
             traceback.print_exc()

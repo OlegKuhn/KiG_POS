@@ -373,11 +373,14 @@ CURRENT_WIDTH = None
 
 
 def set_breite(breite_dp):
-    """Merkt sich die Bildschirmbreite in dp.
+    """Merkt sich die kürzere Bildschirmseite in dp.
 
-    Wird beim Start gesetzt (siehe KiGPOS.build). Ohne Angabe bleibt
-    es beim Normalfall breit - ein Skript ohne Fenster soll nicht
-    versehentlich die Telefonanordnung bekommen.
+    Wird beim Start gesetzt (siehe KiGPOS.build). Bewusst die kürzere
+    Seite: Sie ändert sich beim Drehen nicht, und damit bleibt ein
+    Telefon auch quer ein Telefon.
+
+    Ohne Angabe bleibt es beim Normalfall breit - ein Skript ohne
+    Fenster soll nicht versehentlich die Telefonanordnung bekommen.
     """
 
     global CURRENT_WIDTH

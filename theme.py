@@ -535,11 +535,18 @@ SPLASH_VERSION_CENTER_Y = 0.045
 
 HEADER_HEIGHT = 90
 
+# Telefon: Kopf- und Fusszeile kosten dort zusammen 150 dp von 730 -
+# ein Fuenftel des Bildschirms fuer Logo und Versionsnummer. Beide
+# ruecken deshalb zusammen (siehe widgets/kig_headerbar.py).
+NARROW_HEADER_HEIGHT = 54
+
 # ----------------------------------------------------
 # Footer
 # ----------------------------------------------------
 
 FOOTER_HEIGHT = 60
+
+NARROW_FOOTER_HEIGHT = 34
 
 
 # ----------------------------------------------------
@@ -573,12 +580,37 @@ ARTICLE_TILE_HEIGHT = 120
 PORTRAIT_ARTICLE_TILE_WIDTH = 165
 PORTRAIT_ARTICLE_TILE_HEIGHT = 100
 
-# Telefon: zwei Kacheln nebeneinander. Bei 412 dp Bildschirmbreite
-# bleiben innerhalb der Karte rund 364 dp - zwei mal 168 plus Abstand
-# passen hinein, 165 mal zwei wären zu knapp gewesen, sobald die
-# Karte einmal etwas mehr Rand bekommt.
+# Telefon: zwei Kacheln nebeneinander - wie breit, rechnet
+# narrow_article_tile() aus der wirklichen Bildschirmbreite aus. Ein
+# festes Mass ging schief: gebaut fuer 412 dp, auf einem S24 dann 339
+# dp - und schon passte nur noch eine Kachel in die Reihe.
 NARROW_ARTICLE_TILE_WIDTH = 168
 NARROW_ARTICLE_TILE_HEIGHT = 88
+
+NARROW_ARTICLE_SPALTEN = 2
+NARROW_ARTICLE_MIN_WIDTH = 120
+NARROW_ARTICLE_VERHAELTNIS = 0.56
+
+
+def narrow_article_tile():
+    """Breite und Hoehe einer Artikelkachel auf dem Telefon.
+
+    Abgezogen werden Bildschirmrand, Kartenrand und der Abstand
+    zwischen den beiden Spalten - was bleibt, teilen sie sich.
+    """
+
+    verfuegbar = (
+        (CURRENT_WIDTH or NARROW_ARTICLE_TILE_WIDTH * 2)
+        - 2 * SCREEN_PADDING
+        - 2 * CARD_PADDING
+        - (NARROW_ARTICLE_SPALTEN - 1) * TILE_SPACING
+    )
+
+    breite = max(
+        NARROW_ARTICLE_MIN_WIDTH, verfuegbar / NARROW_ARTICLE_SPALTEN
+    )
+
+    return breite, round(breite * NARROW_ARTICLE_VERHAELTNIS)
 
 # ----------------------------------------------------
 # Warenkorb

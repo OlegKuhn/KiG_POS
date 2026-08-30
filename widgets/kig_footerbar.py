@@ -90,7 +90,14 @@ class KiGFooterBar(KiGWidget):
         #
 
         self.size_hint_y = None
-        self.height = dp(theme.FOOTER_HEIGHT)
+        # Telefon: Programmname und Version sind dort Beiwerk - sie
+        # bekommen eine schmale Leiste statt einer ganzen Zeile.
+        self.schmal = theme.is_narrow()
+
+        self.height = dp(
+            theme.NARROW_FOOTER_HEIGHT if self.schmal
+            else theme.FOOTER_HEIGHT
+        )
 
         #
         # Hintergrund
@@ -218,7 +225,7 @@ class KiGFooterBar(KiGWidget):
             spacing=2,
             size_hint=(None, None),
             width=dp(220),
-            height=dp(40)
+            height=dp(24 if theme.is_narrow() else 40)
         )
 
         #
@@ -229,7 +236,7 @@ class KiGFooterBar(KiGWidget):
 
         self.lbl_program.text = "KiG POS"
 
-        self.lbl_program.font_size = 18
+        self.lbl_program.font_size = 12 if self.schmal else 18
 
         self.lbl_program.bold = True
 
@@ -254,7 +261,7 @@ class KiGFooterBar(KiGWidget):
             f"Build {self.build}"
         )
 
-        self.lbl_version.font_size = 13
+        self.lbl_version.font_size = 9 if self.schmal else 13
 
         self.lbl_version.color = (
             0.35,
@@ -284,7 +291,7 @@ class KiGFooterBar(KiGWidget):
 
         self.lbl_exit.text = "Programm beenden"
 
-        self.lbl_exit.font_size = 22
+        self.lbl_exit.font_size = 14 if self.schmal else 22
 
         self.lbl_exit.bold = True
 

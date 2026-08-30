@@ -69,9 +69,8 @@ class CashArticleTile(KiGTile):
 
         self.size_hint = (None, None)
 
-        self.size = (
-            dp(theme.NARROW_ARTICLE_TILE_WIDTH),
-            dp(theme.NARROW_ARTICLE_TILE_HEIGHT)
+        self.size = tuple(
+            dp(wert) for wert in theme.narrow_article_tile()
         ) if theme.is_narrow() else (
             dp(theme.ARTICLE_TILE_WIDTH),
             dp(theme.ARTICLE_TILE_HEIGHT)

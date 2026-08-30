@@ -157,11 +157,23 @@ class CategoryPiePanel(BoxLayout):
         gesamt = sum(betrag for _name, betrag, _farbe in anteile if betrag > 0)
 
         if gesamt <= 0:
-            self.legende.add_widget(Label(
+
+            hinweis = Label(
                 text="Keine Einnahmen im gewählten Zeitraum.",
                 color=theme.TEXT_SECONDARY, font_size="13sp",
                 halign="left", valign="middle",
-            ))
+            )
+
+            # Umbruch an der eigenen Breite - auf einem Telefon lief
+            # der Satz sonst rechts aus der Karte heraus.
+            hinweis.bind(
+                size=lambda instanz, groesse: setattr(
+                    instanz, "text_size", groesse
+                )
+            )
+
+            self.legende.add_widget(hinweis)
+
             return
 
         for position, (name, betrag, farbe) in enumerate(anteile):

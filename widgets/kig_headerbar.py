@@ -108,6 +108,35 @@ class KiGHeaderBar(KiGWidget):
 
     CONTENT_SPACING = 15
 
+    # ---------------------------------------------------
+    # Telefon
+    # ---------------------------------------------------
+    #
+    # Nachgemessen auf einem S24: 339 dp Breite. Logo (140) und
+    # Statusblock (160) allein sind 300, dazu Raender und Trenner -
+    # der Veranstaltungsname bekam null Breite und brach Buchstabe
+    # fuer Buchstabe um, der Umsatz stand halb ausserhalb des
+    # Bildschirms.
+    #
+    # Hier zaehlt jeder Punkt: kleineres Logo, schmalerer Status,
+    # kleinere Schrift, keine Trennstriche.
+
+    NARROW_LOGO_SIZE = 44
+    NARROW_LOGO_AREA_WIDTH = 52
+    NARROW_STATUS_AREA_WIDTH = 104
+    NARROW_PADDING = 8
+    NARROW_SPACING = 8
+
+    NARROW_EVENT_FONT_SIZE = 15
+    NARROW_EVENT_INFO_FONT_SIZE = 11
+    NARROW_DATE_FONT_SIZE = 11
+    NARROW_REVENUE_TITLE_SIZE = 9
+    NARROW_REVENUE_FONT_SIZE = 15
+    NARROW_BESITZ_AREA_WIDTH = 96
+    NARROW_BESITZ_FONT_SIZE = 11
+    NARROW_DEMO_AREA_WIDTH = 62
+    NARROW_DEMO_FONT_SIZE = 18
+
     SHADOW_HEIGHT = 2
 
     SEPARATOR_HEIGHT = 1
@@ -127,6 +156,34 @@ class KiGHeaderBar(KiGWidget):
     # =====================================================
 
     def __init__(self, **kwargs):
+
+        # Auf einem Telefon gilt derselbe Aufbau, nur in klein - die
+        # Werte werden vor dem Bauen ausgetauscht, damit unten nichts
+        # doppelt steht.
+        if theme.is_narrow():
+
+            self.HEADER_HEIGHT = theme.NARROW_HEADER_HEIGHT
+
+            self.LOGO_SIZE = self.NARROW_LOGO_SIZE
+            self.LOGO_AREA_WIDTH = self.NARROW_LOGO_AREA_WIDTH
+            self.STATUS_AREA_WIDTH = self.NARROW_STATUS_AREA_WIDTH
+
+            self.PADDING_LEFT = self.NARROW_PADDING
+            self.PADDING_RIGHT = self.NARROW_PADDING
+            self.PADDING_TOP = 4
+            self.PADDING_BOTTOM = 4
+            self.CONTENT_SPACING = self.NARROW_SPACING
+
+            self.EVENT_FONT_SIZE = self.NARROW_EVENT_FONT_SIZE
+            self.EVENT_INFO_FONT_SIZE = self.NARROW_EVENT_INFO_FONT_SIZE
+            self.DATE_FONT_SIZE = self.NARROW_DATE_FONT_SIZE
+            self.REVENUE_TITLE_SIZE = self.NARROW_REVENUE_TITLE_SIZE
+            self.REVENUE_FONT_SIZE = self.NARROW_REVENUE_FONT_SIZE
+
+            self.BESITZ_AREA_WIDTH = self.NARROW_BESITZ_AREA_WIDTH
+            self.BESITZ_FONT_SIZE = self.NARROW_BESITZ_FONT_SIZE
+            self.DEMO_AREA_WIDTH = self.NARROW_DEMO_AREA_WIDTH
+            self.DEMO_FONT_SIZE = self.NARROW_DEMO_FONT_SIZE
 
         super().__init__(**kwargs)
 
@@ -241,9 +298,12 @@ class KiGHeaderBar(KiGWidget):
         #
         self.content.add_widget(self.logo_container)
 
-        self.content.add_widget(
-            KiGDividerVertical()
-        )
+        # Auf dem Telefon ohne Trennstriche: Jeder kostet Breite, die
+        # dem Veranstaltungsnamen fehlt.
+        if not theme.is_narrow():
+            self.content.add_widget(
+                KiGDividerVertical()
+            )
 
         # Im Demo-Modus steht hier gross DEMO. Zusammen mit der gruenen
         # Akzentfarbe soll auf einen Blick klar sein, dass gerade auf
@@ -253,9 +313,10 @@ class KiGHeaderBar(KiGWidget):
 
             self.content.add_widget(self._build_demo_badge())
 
-            self.content.add_widget(
-                KiGDividerVertical()
-            )
+            if not theme.is_narrow():
+                self.content.add_widget(
+                    KiGDividerVertical()
+                )
 
         # Gehoeren die Stammdaten einem anderen Geraet, steht das
         # hier - sonst tippt jemand eine Viertelstunde lang Artikel
@@ -267,15 +328,17 @@ class KiGHeaderBar(KiGWidget):
 
             self.content.add_widget(besitzstreifen)
 
-            self.content.add_widget(
-                KiGDividerVertical()
-            )
+            if not theme.is_narrow():
+                self.content.add_widget(
+                    KiGDividerVertical()
+                )
 
         self.content.add_widget(self.event_container)
 
-        self.content.add_widget(
-            KiGDividerVertical()
-        )
+        if not theme.is_narrow():
+            self.content.add_widget(
+                KiGDividerVertical()
+            )
 
         self.content.add_widget(self.status_container)
 
@@ -348,7 +411,7 @@ class KiGHeaderBar(KiGWidget):
 
             width=dp(self.EVENT_AREA_WIDTH),
 
-            height=dp(58)
+            height=dp(38 if theme.is_narrow() else 58)
 
         )
 
@@ -432,7 +495,7 @@ class KiGHeaderBar(KiGWidget):
 
             size_hint=(1, None),
 
-            height=dp(70)
+            height=dp(44 if theme.is_narrow() else 70)
 
         )
 
@@ -444,7 +507,7 @@ class KiGHeaderBar(KiGWidget):
 
         self.lbl_datetime.set_text("--.-- | --:--")
 
-        self.lbl_datetime.set_font_size(15)
+        self.lbl_datetime.set_font_size(self.DATE_FONT_SIZE)
 
         self.lbl_datetime.set_bold(True)
 
@@ -453,7 +516,7 @@ class KiGHeaderBar(KiGWidget):
         )
 
         self.lbl_datetime.size_hint_y = None
-        self.lbl_datetime.height = dp(22)
+        self.lbl_datetime.height = dp(16 if theme.is_narrow() else 22)
 
         self.lbl_datetime.halign = "right"
         self.lbl_datetime.valign = "middle"

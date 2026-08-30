@@ -41,14 +41,37 @@ class HomeTile(KiGTile):
     NARROW_TITLE_SIZE = 14
     NARROW_SUBTITLE_SIZE = 10
 
+    # Zwei Kacheln je Reihe - aber wie breit, entscheidet der
+    # Bildschirm. Ein festes Mass ging schief: Gebaut fuer 412 dp,
+    # gemessen auf einem S24 dann 339 dp - und schon passte nur noch
+    # eine Kachel in die Reihe, mit viel Luft daneben.
+    NARROW_SPALTEN = 2
+
+    # Unter dieser Breite lohnt keine zweite Spalte mehr.
+    NARROW_MIN_WIDTH = 130
+
+    # Hoehe im Verhaeltnis zur Breite: Symbol, Titel und Untertitel
+    # brauchen etwa zwei Drittel der Breite an Hoehe.
+    NARROW_SEITENVERHAELTNIS = 0.64
+
     @classmethod
     def masse(cls):
         """Breite und Höhe der Kachel auf diesem Bildschirm."""
 
-        if theme.is_narrow():
-            return cls.NARROW_WIDTH, cls.NARROW_HEIGHT
+        if not theme.is_narrow():
+            return cls.WIDTH, cls.HEIGHT
 
-        return cls.WIDTH, cls.HEIGHT
+        verfuegbar = (
+            (theme.CURRENT_WIDTH or cls.NARROW_WIDTH * 2)
+            - 2 * theme.SCREEN_PADDING
+            - (cls.NARROW_SPALTEN - 1) * theme.TILE_SPACING
+        )
+
+        breite = max(
+            cls.NARROW_MIN_WIDTH, verfuegbar / cls.NARROW_SPALTEN
+        )
+
+        return breite, round(breite * cls.NARROW_SEITENVERHAELTNIS)
 
     def __init__(self, **kwargs):
 
@@ -56,8 +79,7 @@ class HomeTile(KiGTile):
 
         if schmal:
             # Vor super(): KiGTile nimmt die Maße aus diesen Feldern.
-            self.WIDTH = self.NARROW_WIDTH
-            self.HEIGHT = self.NARROW_HEIGHT
+            self.WIDTH, self.HEIGHT = self.masse()
             self.ICON_SIZE = self.NARROW_ICON_SIZE
             self.TITLE_SIZE = self.NARROW_TITLE_SIZE
             self.SUBTITLE_SIZE = self.NARROW_SUBTITLE_SIZE
@@ -128,6 +150,15 @@ class HomeTile(KiGTile):
         # haben einen längeren Untertitel, der auf zwei Zeilen umbricht -
         # sonst würde er über den unteren Rand der Kachel hinausragen.
         self.lbl_subtitle.size_hint = (1, 0.30)
+
+        # Auf dem Telefon ist die Kachel schmal: Ein langer Untertitel
+        # ("Artikel, Bestand, Einkauf & Rezepte") braucht dort mehr
+        # Zeilen, als die Kachel hoch ist - ab der dritten wird
+        # abgeschnitten statt hinauszuwachsen.
+        if theme.is_narrow():
+            self.lbl_subtitle.max_lines = 2
+            self.lbl_subtitle.shorten = True
+            self.lbl_subtitle.shorten_from = "right"
 
         self.lbl_subtitle.bind(
             size=lambda instance, value:

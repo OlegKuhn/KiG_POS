@@ -96,11 +96,14 @@ class Klappkopf(ButtonBehavior, BoxLayout):
         )
         self.add_widget(self.beschriftung)
 
+        # Nur so breit, wie es etwas anzuzeigen gibt: Auf der
+        # Startseite steht hier nichts, und die 64 dp fehlten dort der
+        # Überschrift - aus "Administrativ" wurde "Adminis/trativ".
         self.zusatz = Label(
             text=zusatz, color=theme.TEXT_SECONDARY,
             font_size="13sp",
             halign="right", valign="middle",
-            size_hint_x=None, width=dp(64),
+            size_hint_x=None, width=dp(40) if zusatz else 0,
         )
         self.zusatz.bind(
             size=lambda instanz, groesse: setattr(
@@ -144,6 +147,7 @@ class Klappkopf(ButtonBehavior, BoxLayout):
         """Kleine Angabe rechts - etwa die Anzahl der Einträge."""
 
         self.zusatz.text = text
+        self.zusatz.width = dp(40) if text else 0
 
     def hervorheben(self, aktiv):
         """Färbt den Kopf ein, solange seine Gruppe die gewählte ist."""

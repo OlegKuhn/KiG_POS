@@ -43,6 +43,19 @@ class RoundedInput(TextInput):
 
         self.kig_keyboard_mode = kig_keyboard_mode
 
+        # Zahlenfelder holen ihre Eingabe vom Nummernblock der
+        # Anwendung. Trotzdem bekam das Feld beim Antippen den Fokus,
+        # und Android klappte darauf SEINE Tastatur auf - beide
+        # standen dann uebereinander, und der Nummernblock lag
+        # darunter.
+        #
+        # "managed" heisst: Der Fokus bleibt, die Systemtastatur
+        # erscheint aber nur, wenn sie ausdruecklich angefordert wird
+        # (siehe Kivy TextInput.keyboard_mode). Hier fordert sie
+        # niemand an.
+        if kig_keyboard_mode == "numpad":
+            self.keyboard_mode = "managed"
+
         # -------------------------------------------------
         # Standard TextInput Hintergrund deaktivieren
         # -------------------------------------------------

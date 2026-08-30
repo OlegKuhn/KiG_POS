@@ -84,8 +84,12 @@ class MainLayout(BoxLayout):
             "KiG POS"
         )
 
+        # Der Wahlspruch steht auf dem Telefon nicht: Dort bricht er
+        # zweizeilig um und drückt den Namen an den oberen Rand. Auf
+        # den zwei Zeilen, die er kostet, steht sonst eine Kachelreihe.
         self.header.set_event_info(
-            "Gemeinsam feiern. Gemeinsam stark."
+            "" if theme.is_narrow()
+            else "Gemeinsam feiern. Gemeinsam stark."
         )
 
         self.header.set_revenue(self.db.get_daily_revenue())

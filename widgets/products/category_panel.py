@@ -43,7 +43,7 @@ class CategoryPanel(RoundedPanel):
     # Schaltflaechen daneben schmaler - sonst blieben fuer die
     # Ueberschrift "Kategorien" keine 90 dp mehr uebrig, und sie brach
     # mitten im Wort um.
-    NARROW_ACTION_WIDTH = 96
+    NARROW_ACTION_WIDTH = 88
     NARROW_COLUMNS = 2
 
     def __init__(
@@ -99,7 +99,7 @@ class CategoryPanel(RoundedPanel):
             text="Kategorien"
         )
 
-        title.set_font_size(18 if theme.is_narrow() else 26)
+        title.set_font_size(15 if theme.is_narrow() else 26)
         title.set_bold(True)
         title.set_alignment("left")
         title.set_color(theme.PRIMARY_ORANGE)

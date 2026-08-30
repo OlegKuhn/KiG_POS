@@ -206,7 +206,9 @@ class CashBookScreen(Screen):
     ZEILENHOEHE = 52
 
     YEAR_BUTTON_HEIGHT = 48
+    NARROW_YEAR_BUTTON_HEIGHT = 40
     MONTH_BUTTON_HEIGHT = 42
+    NARROW_MONTH_BUTTON_HEIGHT = 34
     SELECTION_WIDTH = 190
 
     def __init__(self, **kwargs):
@@ -222,6 +224,8 @@ class CashBookScreen(Screen):
 
         if theme.is_narrow():
             self.ZEILENHOEHE = 46
+            self.YEAR_BUTTON_HEIGHT = self.NARROW_YEAR_BUTTON_HEIGHT
+            self.MONTH_BUTTON_HEIGHT = self.NARROW_MONTH_BUTTON_HEIGHT
 
         self.selected_entry_id = None
         self.selected_row = None
@@ -259,7 +263,7 @@ class CashBookScreen(Screen):
             padding=dp(theme.CARD_PADDING),
             spacing=dp(theme.CARD_SPACING),
             size_hint=(
-                (1, 0.20 if theme.is_narrow() else 0.16)
+                (1, 0.22 if theme.is_narrow() else 0.16)
                 if self.hochformat else (None, 1)
             ),
         )
@@ -417,7 +421,7 @@ class CashBookScreen(Screen):
             padding=dp(theme.CARD_PADDING),
             spacing=dp(theme.CARD_SPACING),
             size_hint=(
-                (1, 0.42 if theme.is_narrow() else 0.52)
+                (1, 0.40 if theme.is_narrow() else 0.52)
                 if self.hochformat else (1, 1)
             ),
         )
@@ -433,17 +437,29 @@ class CashBookScreen(Screen):
 
         aktionen.add_widget(Widget())
 
-        export_knopf = self._action_button(
-            "Excel exportieren", self.export_excel
-        )
-        export_knopf.size_hint_x = None
-        export_knopf.width = dp(190)
-        aktionen.add_widget(export_knopf)
+        schmal = theme.is_narrow()
 
+        export_knopf = self._action_button(
+            "Export" if schmal else "Excel exportieren", self.export_excel
+        )
         teilen_knopf = self._action_button("Teilen", self.teilen_clicked)
-        teilen_knopf.size_hint_x = None
-        teilen_knopf.width = dp(110)
-        aktionen.add_widget(teilen_knopf)
+
+        if schmal:
+            # 190 + 110 dp passen auf ein Telefon nicht neben den
+            # Platzhalter - dort teilen sich beide, was da ist.
+            aktionen.clear_widgets()
+            aktionen.add_widget(export_knopf)
+            aktionen.add_widget(teilen_knopf)
+
+        else:
+
+            export_knopf.size_hint_x = None
+            export_knopf.width = dp(190)
+            aktionen.add_widget(export_knopf)
+
+            teilen_knopf.size_hint_x = None
+            teilen_knopf.width = dp(110)
+            aktionen.add_widget(teilen_knopf)
 
         panel.add_widget(aktionen)
 

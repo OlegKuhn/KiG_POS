@@ -137,9 +137,11 @@ class SchmalesArtikelpanel(RoundedPanel):
     @staticmethod
     def _raster():
 
+        breite, hoehe = theme.narrow_article_tile()
+
         return KiGAdaptiveGrid(
-            tile_width=dp(theme.NARROW_ARTICLE_TILE_WIDTH),
-            tile_height=dp(theme.NARROW_ARTICLE_TILE_HEIGHT),
+            tile_width=dp(breite),
+            tile_height=dp(hoehe),
         )
 
     # =====================================================

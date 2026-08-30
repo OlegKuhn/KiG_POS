@@ -1,14 +1,128 @@
 from kivy.metrics import dp
+from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
 
+import geldformat
 import theme
 
 from widgets.kig_label import KiGLabel
 from widgets.common.kig_action_tile import KiGActionTile
+from widgets.common.kig_symbol import KiGSymbol, PFEIL_UNTEN
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.cash.cart.cart_item_widget import CartItemWidget
 from widgets.cash.cart.cart_footer import CartFooter
+
+
+class _Warenkorbleiste(BoxLayout):
+    """Der zugeklappte Warenkorb: eine Zeile, zwei Ziele.
+
+    Links, antippbar: wie viele Posten und was sie kosten - ein Tipp
+    holt den Warenkorb hoch. Rechts "Bezahlen", damit der übliche Weg
+    nicht über das Aufklappen führt.
+    """
+
+    def __init__(self, on_auf, on_bezahlen, **kwargs):
+
+        super().__init__(**kwargs)
+
+        self.orientation = "horizontal"
+        self.spacing = dp(theme.ROW_SPACING)
+        self.size_hint_y = None
+        self.height = dp(CartPanel.SCHMAL_LEISTE_HOEHE - 2 * theme.CARD_PADDING)
+
+        self.on_auf = on_auf
+
+        self.zusammenfassung = _LeistenZeile(on_auf)
+        self.add_widget(self.zusammenfassung)
+
+        self.btn_bezahlen = Button(
+            text="Bezahlen",
+            size_hint=(None, 1), width=dp(96),
+            background_normal="", background_down="",
+            background_color=theme.PRIMARY_ORANGE, color=theme.TEXT_WHITE,
+            font_size="17sp", bold=True,
+        )
+
+        if callable(on_bezahlen):
+            self.btn_bezahlen.bind(
+                on_release=lambda *_args: on_bezahlen()
+            )
+
+        self.add_widget(self.btn_bezahlen)
+
+    def setzen(self, anzahl, summe):
+
+        self.zusammenfassung.setzen(anzahl, summe)
+
+
+class _LeistenZeile(ButtonBehavior, BoxLayout):
+    """Der antippbare Teil der Leiste."""
+
+    def __init__(self, on_auf, **kwargs):
+
+        super().__init__(**kwargs)
+
+        self.orientation = "horizontal"
+        self.spacing = dp(theme.SPACE_S)
+
+        self.symbol = KiGSymbol(
+            symbol=PFEIL_UNTEN,
+            color=theme.PRIMARY_ORANGE,
+            size_hint=(None, 1),
+            width=dp(18),
+        )
+        self.add_widget(self.symbol)
+
+        # Einzeilig und notfalls gekuerzt: In dieser Zeile ist kein
+        # Platz fuer einen Umbruch - "Warenkorb" wurde sonst zu
+        # "Warenk/orb".
+        self.lbl_posten = KiGLabel()
+        self.lbl_posten.set_font_size(14)
+        self.lbl_posten.set_bold(True)
+        self.lbl_posten.set_alignment("left")
+        self.lbl_posten.set_color(theme.TEXT_SECONDARY)
+        self.lbl_posten.max_lines = 1
+        self.lbl_posten.shorten = True
+        self.lbl_posten.shorten_from = "right"
+        self.lbl_posten.bind(
+            size=lambda instanz, groesse: setattr(
+                instanz, "text_size", groesse
+            )
+        )
+        self.add_widget(self.lbl_posten)
+
+        self.lbl_summe = KiGLabel()
+        self.lbl_summe.set_font_size(19)
+        self.lbl_summe.set_bold(True)
+        self.lbl_summe.set_alignment("right")
+        self.lbl_summe.set_color(theme.PRIMARY_ORANGE)
+        self.lbl_summe.size_hint_x = None
+        self.lbl_summe.width = dp(84)
+        self.lbl_summe.max_lines = 1
+        self.lbl_summe.bind(
+            size=lambda instanz, groesse: setattr(
+                instanz, "text_size", groesse
+            )
+        )
+        self.add_widget(self.lbl_summe)
+
+        self.bind(
+            on_release=lambda *_args: on_auf() if callable(on_auf) else None
+        )
+
+        self.setzen(0, 0.0)
+
+    def setzen(self, anzahl, summe):
+
+        # Kurz halten: In dieser Zeile stehen rund 55 dp zur Verfügung,
+        # "Warenkorb" braucht schon 68 und wurde zu "Waren…".
+        self.lbl_posten.set_text(
+            "leer" if not anzahl else f"{anzahl:g} Posten"
+        )
+
+        self.lbl_summe.set_text(geldformat.geld(summe))
 
 
 class CartPanel(RoundedPanel):
@@ -32,6 +146,11 @@ class CartPanel(RoundedPanel):
 
     PADDING = theme.CARD_PADDING
     SPACING = theme.CARD_SPACING
+
+    # Telefon: Der Warenkorb belegte dort fast die halbe Hoehe - meist,
+    # um "Summe 0,00" anzuzeigen. Zugeklappt bleibt eine Zeile stehen;
+    # ein Tipp darauf holt ihn hoch.
+    SCHMAL_LEISTE_HOEHE = 62
 
     def __init__(
             self,
@@ -205,6 +324,70 @@ class CartPanel(RoundedPanel):
             self.footer
         )
 
+        # -------------------------------------------------
+        # Telefon: die zugeklappte Zeile
+        # -------------------------------------------------
+
+        self.schmal = theme.is_narrow()
+        self.aufgeklappt = not self.schmal
+
+        self.on_klapp = None
+
+        if self.schmal:
+
+            self._volle_kinder = list(reversed(self.children))
+
+            self.leiste = _Warenkorbleiste(
+                on_auf=self._aufklappen,
+                on_bezahlen=pay_callback,
+            )
+
+            self._nur_leiste()
+
+    # =====================================================
+    # Zugeklappt / aufgeklappt (nur Telefon)
+    # =====================================================
+
+    def _nur_leiste(self):
+
+        self.clear_widgets()
+        self.add_widget(self.leiste)
+
+        self.aufgeklappt = False
+
+    def _volle_ansicht(self):
+
+        self.clear_widgets()
+
+        for kind in self._volle_kinder:
+            self.add_widget(kind)
+
+        self.aufgeklappt = True
+
+    def _aufklappen(self):
+
+        self._volle_ansicht()
+
+        if callable(self.on_klapp):
+            self.on_klapp(True)
+
+    def zuklappen(self):
+        """Klappt den Warenkorb wieder zur Zeile zusammen."""
+
+        if not self.schmal or not self.aufgeklappt:
+            return
+
+        self._nur_leiste()
+
+        if callable(self.on_klapp):
+            self.on_klapp(False)
+
+    def leiste_aktualisieren(self, anzahl, summe):
+        """Traegt Postenzahl und Summe in die zugeklappte Zeile ein."""
+
+        if self.schmal:
+            self.leiste.setzen(anzahl, summe)
+
     # =====================================================
     # Eigenschaften
     # =====================================================
@@ -321,3 +504,8 @@ class CartPanel(RoundedPanel):
             self.items_container.add_widget(widget)
 
         self.footer.update(total=cart.total())
+
+        # Die zugeklappte Zeile zeigt dasselbe in klein.
+        self.leiste_aktualisieren(
+            sum(item.quantity for item in cart.items), cart.total()
+        )

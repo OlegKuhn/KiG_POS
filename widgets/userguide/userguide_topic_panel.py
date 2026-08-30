@@ -102,11 +102,19 @@ class UserguideTopicPanel(RoundedPanel):
                 title.size_hint_y = 1
                 header.add_widget(title)
 
-            self.export_button.size_hint_x = None
-            self.export_button.width = (
-                dp(200) if theme.is_narrow()
-                else dp(self.PORTRAIT_EXPORT_WIDTH)
-            )
+            if theme.is_narrow():
+
+                # 200 + 110 dp passen auf ein Telefon nicht - dort
+                # teilen sich beide, was da ist.
+                self.export_button.size_hint_x = 1
+                self.teilen_button.size_hint = (1, None)
+                self.teilen_button.height = dp(theme.CATEGORY_TILE_HEIGHT)
+
+            else:
+
+                self.export_button.size_hint_x = None
+                self.export_button.width = dp(self.PORTRAIT_EXPORT_WIDTH)
+
             header.add_widget(self.export_button)
             header.add_widget(self.teilen_button)
 

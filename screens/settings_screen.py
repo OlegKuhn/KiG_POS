@@ -148,10 +148,21 @@ class SettingsScreen(Screen):
         #
         # Bildschirmausrichtung
         #
-        # Auf jedem Gerät vorhanden: Ein Tablet im Ständer ist quer
-        # ebenso sinnvoll wie ein Telefon hochkant.
+        # Auf dem Tablet und am Rechner zur Wahl: Ein Tablet im Ständer
+        # ist quer ebenso sinnvoll wie hochkant.
+        #
+        # Auf einem Telefon nicht. Quer blieben dort von 915 dp Höhe
+        # noch 412 - abzüglich Kopf- und Fußzeile keine 300, und darin
+        # sollen Kategorien, Artikel und Warenkorb untereinander Platz
+        # finden. Die Wahl wird deshalb gar nicht erst angeboten (und
+        # das Gerät selbst festgehalten, siehe
+        # KiGPOS._drehung_festhalten).
 
-        inhalt.add_widget(self._section_label("Bildschirmausrichtung"))
+        self.schmal = theme.is_narrow()
+
+        if not self.schmal:
+
+            inhalt.add_widget(self._section_label("Bildschirmausrichtung"))
 
         orientation_row = self._option_row()
 
@@ -169,7 +180,6 @@ class SettingsScreen(Screen):
 
         orientation_row.add_widget(self.landscape_button)
         orientation_row.add_widget(self.portrait_button)
-        inhalt.add_widget(orientation_row)
 
         # Ohne diesen Hinweis wirkt es wie ein Fehler, wenn nach dem
         # Umschalten plötzlich das ganze Fenster seine Größe ändert.
@@ -187,7 +197,10 @@ class SettingsScreen(Screen):
         # derselbe Satz doppelt so viele Zeilen wie am Rechner,
         # und eine feste Hoehe schnitt den Rest einfach ab.
         hinweisfeld_vorbereiten(hint, dp(46))
-        inhalt.add_widget(hint)
+
+        if not self.schmal:
+            inhalt.add_widget(orientation_row)
+            inhalt.add_widget(hint)
 
         #
         # Demo-Modus

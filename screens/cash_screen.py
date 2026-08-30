@@ -154,6 +154,11 @@ class CashScreen(Screen):
             storno_cancel_callback=lambda *_args: self.cancel_storno()
         )
 
+        # Klappt der Warenkorb auf dem Telefon auf oder zu, ändert sich
+        # seine Höhe - und damit der Platz für die Artikel.
+        if getattr(self.right_panel, "schmal", False):
+            self.right_panel.on_klapp = lambda _offen: self._update_cart_height()
+
         # =====================================================
         # Layout
         # =====================================================
@@ -298,6 +303,19 @@ class CashScreen(Screen):
             - dp(theme.SCREEN_PADDING) * 2
             - dp(theme.SCREEN_SPACING)
         )
+
+        # Auf dem Telefon ist der Warenkorb zugeklappt nur eine Zeile -
+        # den ganzen Rest bekommen die Artikel. Aufgeklappt nimmt er
+        # sich mehr als am Tablet: Wer ihn öffnet, will hineinsehen.
+        if getattr(self.right_panel, "schmal", False):
+
+            self.right_panel.height = (
+                verfuegbar * 0.62
+                if self.right_panel.aufgeklappt
+                else dp(self.right_panel.SCHMAL_LEISTE_HOEHE)
+            )
+
+            return
 
         self.right_panel.height = max(
             dp(self.PORTRAIT_CART_MIN_HEIGHT),

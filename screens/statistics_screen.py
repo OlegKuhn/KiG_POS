@@ -133,6 +133,7 @@ class StatisticsScreen(Screen):
 
     # Höhe einer Kennzahlenzeile (Einnahmen, Ausgaben, Gewinn)
     TOTAL_ROW_HEIGHT = 34
+    NARROW_TOTAL_ROW_HEIGHT = 28
 
     def __init__(self, revenue_changed_callback=None, **kwargs):
         super().__init__(**kwargs)
@@ -148,6 +149,9 @@ class StatisticsScreen(Screen):
         # statt daneben (siehe theme.set_orientation).
         self.hochformat = theme.is_portrait()
 
+        if theme.is_narrow():
+            self.TOTAL_ROW_HEIGHT = self.NARROW_TOTAL_ROW_HEIGHT
+
         root = BoxLayout(
             orientation="vertical" if self.hochformat else "horizontal",
             padding=dp(theme.SCREEN_PADDING),
@@ -158,12 +162,18 @@ class StatisticsScreen(Screen):
         self.add_widget(root)
 
     def _build_sales_panel(self):
+        schmal = theme.is_narrow()
+
+        # Auf dem Telefon ruecken die Zeilen enger zusammen: Sonst
+        # brauchen Ueberschrift, Filter, Kopfzeile und die beiden
+        # Loeschknoepfe zusammen mehr Hoehe, als die Karte hat - und
+        # die Ueberschrift wurde oben aus ihr hinausgedrueckt.
         panel = RoundedPanel(
             orientation="vertical",
-            padding=dp(theme.CARD_PADDING),
-            spacing=dp(theme.CARD_SPACING),
+            padding=dp(theme.SPACE_S if schmal else theme.CARD_PADDING),
+            spacing=dp(theme.SPACE_XS if schmal else theme.CARD_SPACING),
             size_hint=(
-                (1, 0.54 if theme.is_narrow() else 0.62)
+                (1, 0.56 if schmal else 0.62)
                 if self.hochformat else (0.64, 1)
             ),
         )
@@ -184,7 +194,7 @@ class StatisticsScreen(Screen):
         filters = BoxLayout(
             orientation="vertical" if schmal else "horizontal",
             size_hint_y=None,
-            height=dp(48 * 2 + theme.ROW_SPACING) if schmal else dp(48),
+            height=dp(44 * 2 + theme.ROW_SPACING) if schmal else dp(48),
             spacing=dp(theme.ROW_SPACING),
         )
 
@@ -224,10 +234,26 @@ class StatisticsScreen(Screen):
             filters.add_widget(aktualisieren)
         panel.add_widget(filters)
 
-        actions_top = BoxLayout(size_hint_y=None, height=dp(40), spacing=dp(theme.ROW_SPACING))
-        actions_top.add_widget(Widget())
-        actions_top.add_widget(self._button("Excel exportieren", self.export_excel, width=dp(170)))
-        actions_top.add_widget(self._button("Teilen", self.teilen_clicked, width=dp(110)))
+        actions_top = BoxLayout(
+            size_hint_y=None, height=dp(36 if schmal else 40),
+            spacing=dp(theme.ROW_SPACING),
+        )
+
+        if schmal:
+            # 170 + 110 dp neben einem Platzhalter passen auf ein
+            # Telefon nicht - dort teilen sich beide, was da ist.
+            actions_top.add_widget(
+                self._button("Export", self.export_excel)
+            )
+            actions_top.add_widget(
+                self._button("Teilen", self.teilen_clicked)
+            )
+
+        else:
+            actions_top.add_widget(Widget())
+            actions_top.add_widget(self._button("Excel exportieren", self.export_excel, width=dp(170)))
+            actions_top.add_widget(self._button("Teilen", self.teilen_clicked, width=dp(110)))
+
         panel.add_widget(actions_top)
 
         # Eigene Zeile unter den Knoepfen: Der Hinweis nennt den Ordner
@@ -397,7 +423,7 @@ class StatisticsScreen(Screen):
             orientation="horizontal" if nebeneinander else "vertical",
             spacing=dp(theme.SCREEN_SPACING),
             size_hint=(
-                (1, 0.46 if theme.is_narrow() else 0.38)
+                (1, 0.44 if theme.is_narrow() else 0.38)
                 if self.hochformat else (0.36, 1)
             ),
         )
@@ -411,12 +437,14 @@ class StatisticsScreen(Screen):
         """Gesamteinnahmen, Gesamtausgaben, Gewinn - und darunter, wie
         sich die Einnahmen auf die Kategorien verteilen."""
 
+        schmal = theme.is_narrow()
+
         panel = RoundedPanel(
             orientation="vertical",
-            padding=dp(theme.CARD_PADDING),
-            spacing=dp(theme.CARD_SPACING),
+            padding=dp(theme.SPACE_S if schmal else theme.CARD_PADDING),
+            spacing=dp(theme.SPACE_XS if schmal else theme.CARD_SPACING),
             size_hint=(
-                (0.5, 1) if self.hochformat and not theme.is_narrow()
+                (0.5, 1) if self.hochformat and not schmal
                 else (1, 0.58)
             ),
         )
@@ -451,7 +479,13 @@ class StatisticsScreen(Screen):
         panel.add_widget(self.period_label)
 
         self.category_pie = CategoryPiePanel()
-        panel.add_widget(self.category_pie)
+
+        # Auf dem Telefon bleibt das Tortendiagramm weg: In den rund
+        # 150 dp, die der Karte dort bleiben, ist es nicht zu lesen -
+        # und seine Legende legte sich ueber die Zeile darueber. Die
+        # drei Zahlen sagen auf dem kleinen Schirm genug.
+        if not theme.is_narrow():
+            panel.add_widget(self.category_pie)
 
         return panel
 

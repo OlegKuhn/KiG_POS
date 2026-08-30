@@ -40,7 +40,9 @@ import theme
 
 import units
 
+from widgets.common import schreibschutz
 from widgets.common.exporthinweis import export_hinweis
+from widgets.common.hinweis_popup import HinweisPopup
 
 from database import DatabaseManager
 
@@ -272,7 +274,35 @@ class ProductsScreen(Screen):
         self.selected_category = category
         self.refresh_articles()
 
+    def _nur_ansicht(self):
+        """True, wenn dieses Gerät nur zusehen darf - und sagt es auch.
+
+        Die Schaltflächen sind bereits gesperrt (siehe
+        widgets/common/schreibschutz.py). Diese Frage steht zusätzlich
+        vor jeder Aktion, die in die Stammdaten schreibt: Ein Weg, der
+        dabei übersehen wurde, endet dann in einem Hinweis statt in
+        einer Ausnahme.
+        """
+
+        if not schreibschutz.nur_ansicht():
+            return False
+
+        HinweisPopup(
+            title="Nur Ansicht",
+            message=(
+                f"{schreibschutz.HINWEIS}\n\n"
+                f"Dieses Gerät darf verkaufen, buchen und Listen "
+                f"führen. Zum Ändern muss es die Kasse übernehmen "
+                f"(Einstellungen)."
+            ),
+        ).open()
+
+        return True
+
     def new_category(self):
+
+        if self._nur_ansicht():
+            return
 
         CategoryDialog(on_save=self.save_category).open()
 
@@ -286,6 +316,9 @@ class ProductsScreen(Screen):
         self.refresh_articles()
 
     def edit_category(self):
+
+        if self._nur_ansicht():
+            return
 
         if self.selected_category is None:
             self.message("Keine Kategorie gewählt", "Bitte zuerst eine Kategorie auswählen.")
@@ -331,6 +364,9 @@ class ProductsScreen(Screen):
         self.message("Gelöscht", "Die Kategorie wurde erfolgreich gelöscht.")
 
     def open_sort_dialog(self):
+
+        if self._nur_ansicht():
+            return
 
         ProductSortDialog().open()
 
@@ -380,6 +416,9 @@ class ProductsScreen(Screen):
     # =====================================================
 
     def new_article(self):
+
+        if self._nur_ansicht():
+            return
 
         self.selected_article = None
         self.mode = "dashboard"
@@ -509,6 +548,9 @@ class ProductsScreen(Screen):
     # =====================================================
 
     def save_stammdaten(self):
+
+        if self._nur_ansicht():
+            return
 
         data = self.dashboard_panel.stammdaten_card.get_data()
 
@@ -788,6 +830,9 @@ class ProductsScreen(Screen):
         da der Bestand intern immer in ml geführt wird.
         """
 
+        if self._nur_ansicht():
+            return
+
         article_id = article["id"]
         amount = self.order_amounts.get(article_id, 0)
 
@@ -869,6 +914,9 @@ class ProductsScreen(Screen):
 
     def delete_article_from_list(self, article):
 
+        if self._nur_ansicht():
+            return
+
         self.confirm(
             f"\"{article['name']}\" wirklich löschen?",
             lambda: self._delete_article_confirmed(article),
@@ -913,6 +961,9 @@ class ProductsScreen(Screen):
         """Bucht den Wareneingang im Dashboard. Bei Einheit "Flasche"
         wird vorher die Flaschengröße erfragt, da der Bestand intern
         immer in ml geführt wird."""
+
+        if self._nur_ansicht():
+            return
 
         if self.selected_article is None:
             return
@@ -1011,6 +1062,9 @@ class ProductsScreen(Screen):
 
     def add_ingredient_clicked(self):
 
+        if self._nur_ansicht():
+            return
+
         if self.selected_article is None:
             return
 
@@ -1026,6 +1080,9 @@ class ProductsScreen(Screen):
         self._refresh_recipe_ingredients()
 
     def edit_ingredient_quantity(self, ingredient):
+
+        if self._nur_ansicht():
+            return
 
         if self.selected_article is None:
             return
@@ -1078,6 +1135,9 @@ class ProductsScreen(Screen):
 
     def change_ingredient_unit(self, ingredient, unit):
 
+        if self._nur_ansicht():
+            return
+
         if self.selected_article is None:
             return
 
@@ -1088,6 +1148,9 @@ class ProductsScreen(Screen):
         self._refresh_recipe_ingredients()
 
     def remove_recipe_ingredient(self, ingredient):
+
+        if self._nur_ansicht():
+            return
 
         if self.selected_article is None:
             return
@@ -1122,6 +1185,9 @@ class ProductsScreen(Screen):
         self.dashboard_panel.rezept_card.set_add_free_text_amount(value)
 
     def add_free_text_ingredient_clicked(self):
+
+        if self._nur_ansicht():
+            return
 
         if self.selected_article is None:
             return

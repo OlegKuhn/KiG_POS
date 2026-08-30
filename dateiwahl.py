@@ -73,6 +73,62 @@ def verfuegbar() -> bool:
     return IS_ANDROID
 
 
+# Wo auf dem Rechner ankommt, was von außen kommt. Eine per Bluetooth
+# empfangene Datei landet in dem Ordner, den Windows beim Empfangen
+# vorschlägt - das ist der Download-Ordner oder der Desktop, nie der
+# App-Ordner. Ohne diese Liste müsste man sie von Hand umkopieren.
+EMPFANGSORDNER = ("Downloads", "Desktop", "Bluetooth")
+
+
+def uebergabedateien(ordner, endung=".kigdb", anzahl=12):
+    """Alle Dateien, die zum Einspielen in Frage kommen.
+
+    Zuerst der eigene Ausgabeordner, danach - nur auf dem Rechner -
+    die Orte, an denen Empfangenes liegt. Neueste zuerst.
+
+    Liefert Paare (pfad, herkunft); herkunft ist leer für den eigenen
+    Ordner und sonst der Ordnername ("Downloads").
+    """
+
+    ordner = Path(ordner)
+
+    gefunden = []
+    gesehen = set()
+
+    def einsammeln(quelle, herkunft):
+
+        try:
+            dateien = sorted(
+                quelle.glob(f"*{endung}"),
+                key=lambda pfad: pfad.stat().st_mtime,
+                reverse=True,
+            )
+
+        except OSError:
+            return
+
+        for pfad in dateien:
+
+            schluessel = str(pfad).lower()
+
+            if schluessel in gesehen:
+                continue
+
+            gesehen.add(schluessel)
+            gefunden.append((pfad, herkunft))
+
+    einsammeln(ordner, "")
+
+    if not IS_ANDROID:
+
+        heimat = Path.home()
+
+        for name in EMPFANGSORDNER:
+            einsammeln(heimat / name, name)
+
+    return gefunden[:anzahl]
+
+
 def auswaehlen(zielordner, fertig, fehler=None):
     """Öffnet die Dateiauswahl des Systems.
 

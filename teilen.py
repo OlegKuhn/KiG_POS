@@ -66,6 +66,38 @@ def dateityp(pfad):
     return DATEITYPEN.get(Path(pfad).suffix.lower(), "application/octet-stream")
 
 
+def per_bluetooth(pfad, betreff="KiG POS"):
+    """Gibt die Datei über Bluetooth weiter. Liefert (erfolg, meldung).
+
+    Derselbe Weg wie teilen(), nur ohne Auswahl: Die Absicht geht
+    direkt an die Bluetooth-Übertragung des Geräts.
+
+    Warum kein eigener Bluetooth-Kanal? Zwei Geräte selbst zu
+    verbinden hieße: koppeln, Berechtigungen ab Android 12, ein
+    lauschender Dienst auf der Gegenseite und eine Anwendung, die
+    dafür offen sein muss. Die Übertragung, die jedes Android schon
+    mitbringt (OPP), braucht davon nichts - sie fragt am anderen
+    Gerät nach und legt die Datei ab. Genau das wird hier benutzt.
+
+    Auf der Gegenseite landet sie im Ordner "Bluetooth" bzw.
+    "Download" und wird über "Datei suchen" eingespielt (siehe
+    dateiwahl.py).
+    """
+
+    if not pfad:
+        return False, "Erst eine Datei erzeugen, dann senden."
+
+    pfad = Path(pfad)
+
+    if not pfad.is_file():
+        return False, f"Die Datei gibt es nicht mehr: {pfad.name}"
+
+    if not IS_ANDROID:
+        return _rechner_bluetooth(pfad)
+
+    return _android_bluetooth(pfad, betreff)
+
+
 def teilen(pfad, betreff="KiG POS"):
     """Gibt die Datei weiter. Liefert (erfolg, meldung).
 
@@ -129,6 +161,102 @@ def _android_teilen(pfad, betreff):
 
     except Exception as fehler:
         return False, f"Teilen nicht möglich: {fehler}"
+
+
+def _android_bluetooth(pfad, betreff):
+    """Schickt die Datei an die Bluetooth-Übertragung des Systems."""
+
+    try:
+        from jnius import autoclass, cast
+
+        PythonActivity = autoclass("org.kivy.android.PythonActivity")
+        activity = PythonActivity.mActivity
+
+        uri = _in_downloads_kopieren(pfad, activity)
+
+        if uri is None:
+            return False, (
+                "Die Datei ließ sich nicht in den Download-Ordner "
+                "legen - Senden nicht möglich."
+            )
+
+        Intent = autoclass("android.content.Intent")
+        String = autoclass("java.lang.String")
+
+        absicht = Intent()
+        absicht.setAction(Intent.ACTION_SEND)
+        absicht.setType(dateityp(pfad))
+        absicht.putExtra(
+            Intent.EXTRA_SUBJECT, cast("java.lang.CharSequence", String(betreff))
+        )
+        absicht.putExtra(Intent.EXTRA_STREAM, cast("android.os.Parcelable", uri))
+        absicht.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+        paket = _bluetooth_paket(activity, absicht)
+
+        if paket is None:
+            # Kein Bluetooth-Empfänger - dann wenigstens die gewohnte
+            # Auswahl, statt gar nichts zu tun.
+            return teilen(pfad, betreff)
+
+        absicht.setPackage(paket)
+        absicht.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+        activity.startActivity(absicht)
+
+        return True, (
+            f"{pfad.name} an Bluetooth übergeben - am anderen Gerät "
+            f"annehmen."
+        )
+
+    except Exception as fehler:
+        return False, f"Bluetooth nicht möglich: {fehler}"
+
+
+def _bluetooth_paket(activity, absicht):
+    """Sucht die App, die Dateien über Bluetooth verschickt.
+
+    Nicht über einen festen Namen: Der ist je nach Hersteller
+    "com.android.bluetooth", "com.mediatek.bluetooth" oder etwas
+    anderes. Gefragt wird deshalb das System, wer die Absicht
+    annehmen würde, und davon der Eintrag mit "bluetooth" im Namen.
+    """
+
+    from jnius import autoclass
+
+    PackageManager = autoclass("android.content.pm.PackageManager")
+
+    verwalter = activity.getPackageManager()
+
+    for eintrag in verwalter.queryIntentActivities(absicht, 0).toArray():
+
+        name = eintrag.activityInfo.packageName
+
+        if "bluetooth" in name.lower():
+            return name
+
+    return None
+
+
+def _rechner_bluetooth(pfad):
+    """Auf Windows gibt es keinen Weg, eine Datei aus dem Programm
+    heraus per Bluetooth zu verschicken.
+
+    Windows hat den Assistenten, aber er nimmt keine Datei als
+    Argument entgegen - der Weg führt über das Kontextmenü. Statt
+    etwas vorzutäuschen, führt der Knopf genau dorthin: Ordner auf,
+    Datei ausgewählt.
+    """
+
+    erfolg, _meldung = _rechner_teilen(pfad)
+
+    if not erfolg:
+        return False, "Ordner ließ sich nicht öffnen."
+
+    return True, (
+        f"{pfad.name} ist ausgewählt - Rechtsklick, \"Senden an\", "
+        f"\"Bluetooth-Gerät\"."
+    )
 
 
 def _in_downloads_kopieren(pfad, activity):

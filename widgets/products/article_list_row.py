@@ -9,6 +9,7 @@ from kivy.uix.label import Label
 import config
 import theme
 
+from widgets.common import schreibschutz
 from widgets.common.feldausrichtung import links_ausrichten
 
 from widgets.common.kig_symbol import KiGSymbolButton, KREUZ
@@ -64,6 +65,11 @@ class ArticleListRow(BoxLayout):
         self.delete_callback = delete_callback
 
         is_mix = article["article_type"] == "MIX"
+
+        # Auf einem Nebengeraet bleiben Bearbeiten, Loeschen und
+        # Wareneingang gesperrt - sie schreiben in die Stammdaten. Die
+        # Bestellmenge nicht: die steht woanders und darf mit.
+        self.nur_ansicht = schreibschutz.nur_ansicht()
 
         with self.canvas.before:
             Color(*theme.CARD)
@@ -187,6 +193,9 @@ class ArticleListRow(BoxLayout):
         )
         self.add_widget(delete_button)
 
+        if self.nur_ansicht:
+            schreibschutz.sperren(confirm_button, edit_button, delete_button)
+
     # =====================================================
     # Hochformat
     # =====================================================
@@ -308,6 +317,9 @@ class ArticleListRow(BoxLayout):
         untere_zeile.add_widget(edit_button)
 
         self.add_widget(untere_zeile)
+
+        if self.nur_ansicht:
+            schreibschutz.sperren(confirm_button, edit_button, delete_button)
 
     def _build_portrait(self, article, order_amount, is_mix):
         """Zweizeilige Fassung derselben Zeile für schmale Fenster."""
@@ -438,6 +450,9 @@ class ArticleListRow(BoxLayout):
         untere_zeile.add_widget(edit_button)
 
         self.add_widget(untere_zeile)
+
+        if self.nur_ansicht:
+            schreibschutz.sperren(confirm_button, edit_button, delete_button)
 
     @staticmethod
     def _caption_label(text):

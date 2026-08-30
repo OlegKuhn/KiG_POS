@@ -40,6 +40,8 @@ from kivy.uix.switch import Switch
 import config
 import theme
 
+from widgets.common import schreibschutz
+
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.common.rounded_input import RoundedInput
 from widgets.common.rounded_spinner import RoundedSpinner
@@ -379,6 +381,13 @@ class StammdatenCard(RoundedPanel):
             font_size="16sp", bold=True,
         )
         button.bind(on_release=lambda *_args: self.on_save())
+
+        # Ansehen ja, speichern nein: Auf einem Nebengeraet fuehrte
+        # dieser Knopf in genau die Meldung, die das Programm anhielt.
+        if schreibschutz.nur_ansicht():
+            button.text = "Nur Ansicht"
+            schreibschutz.sperren(button)
+
         return button
 
     # =====================================================

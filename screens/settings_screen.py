@@ -321,9 +321,11 @@ class SettingsScreen(Screen):
         )
         teilen_row.add_widget(self.teilen_button)
 
-        # Der Knopf steht allein in seiner Zeile, soll aber so breit
-        # sein wie die anderen - deshalb der Platzhalter daneben.
-        teilen_row.add_widget(BoxLayout())
+        self.bluetooth_button = SettingsOptionButton(
+            "Per Bluetooth senden", "bluetooth",
+            lambda _wert: self.per_bluetooth_clicked(),
+        )
+        teilen_row.add_widget(self.bluetooth_button)
 
         inhalt.add_widget(teilen_row)
 
@@ -343,7 +345,10 @@ class SettingsScreen(Screen):
             "noch fehlt - Verkäufe, Kassenbuch, Listen. Zweimal "
             "eingesammelt ändert nichts.\n\n"
             "\"Datei teilen\" schickt die zuletzt geschriebene Datei "
-            "weiter - per Mail, Messenger oder wohin auch immer."
+            "weiter - per Mail, Messenger oder wohin auch immer. "
+            "\"Per Bluetooth senden\" nimmt den kuerzesten Weg zum "
+            "Geraet daneben: Am anderen Geraet annehmen, dann dort "
+            "ueber \"Datei suchen\" einspielen."
         ))
         uebergabe_hint.set_font_size(14)
         uebergabe_hint.set_alignment("left")
@@ -351,7 +356,7 @@ class SettingsScreen(Screen):
         # Waechst mit dem Text: Auf einem Telefon braucht
         # derselbe Satz doppelt so viele Zeilen wie am Rechner,
         # und eine feste Hoehe schnitt den Rest einfach ab.
-        hinweisfeld_vorbereiten(uebergabe_hint, dp(250))
+        hinweisfeld_vorbereiten(uebergabe_hint, dp(290))
         inhalt.add_widget(uebergabe_hint)
 
         self.uebergabe_status = Label(
@@ -688,15 +693,15 @@ class SettingsScreen(Screen):
         Dieselbe Auswahl für Übergabe und Einsammeln - beide holen
         ihre Dateien aus demselben Ordner, und zwei verschiedene
         Auswahldialoge wären nur zwei Stellen zum Auseinanderlaufen.
+
+        Auf dem Rechner steht zusätzlich, was in Downloads, auf dem
+        Desktop oder im Bluetooth-Ordner liegt: Genau dort landet eine
+        empfangene Datei (siehe dateiwahl.uebergabedateien).
         """
 
         ordner = storage.export_dir("uebergabe")
 
-        dateien = sorted(
-            ordner.glob(f"*{uebergabe.ENDUNG}"),
-            key=lambda pfad: pfad.stat().st_mtime,
-            reverse=True,
-        )
+        dateien = dateiwahl.uebergabedateien(ordner, uebergabe.ENDUNG)
 
         inhalt = BoxLayout(
             orientation="vertical",
@@ -714,7 +719,10 @@ class SettingsScreen(Screen):
             inhalt.add_widget(Label(
                 text=(
                     f"Keine Datei gefunden.\n\n"
-                    f"Erwartet wird sie hier:\n{ordner}\n\n{hinweis}"
+                    f"Gesucht wird hier:\n{ordner}\n\n"
+                    f"und in Downloads, auf dem Desktop und im "
+                    f"Bluetooth-Ordner - dort landet, was von außen "
+                    f"kommt.\n\n{hinweis}"
                     if not dateiwahl.verfuegbar() else
                     f"In diesem Ordner liegt nichts:\n{ordner}\n\n"
                     f"Kam die Datei per Mail oder Messenger, liegt sie "
@@ -746,13 +754,21 @@ class SettingsScreen(Screen):
             scroll.add_widget(liste)
             inhalt.add_widget(scroll)
 
-            for pfad in dateien[:12]:
+            for pfad, herkunft in dateien:
+
+                # Woher die Datei stammt, steht dabei - sonst wäre bei
+                # zwei gleich benannten nicht zu erkennen, welche die
+                # eben empfangene ist.
+                beschriftung = (
+                    f"{pfad.name}\n({herkunft})" if herkunft else pfad.name
+                )
 
                 knopf = self._popup_button(
-                    pfad.name,
+                    beschriftung,
                     lambda p=pfad: (popup.dismiss(), weiter(p)),
                 )
                 knopf.font_size = "13sp"
+                knopf.halign = "center"
                 knopf.size_hint_y = None
                 knopf.height = dp(50)
 
@@ -1031,6 +1047,19 @@ class SettingsScreen(Screen):
         """
 
         erfolg, meldung = teilen.teilen(
+            self.letzte_ausgabe, betreff="KiG POS Übergabe"
+        )
+
+        self.uebergabe_status.text = meldung
+
+    def per_bluetooth_clicked(self):
+        """Schickt die zuletzt geschriebene Datei über Bluetooth.
+
+        Der kürzeste Weg zwischen zwei Geräten, die nebeneinander
+        liegen: kein Kabel, kein Netz, kein Konto.
+        """
+
+        erfolg, meldung = teilen.per_bluetooth(
             self.letzte_ausgabe, betreff="KiG POS Übergabe"
         )
 

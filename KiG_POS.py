@@ -17,6 +17,8 @@ Version:
 import traceback
 
 from kivy.app import App
+from kivy.base import ExceptionHandler, ExceptionManager
+from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.metrics import dp, sp, Metrics
 from kivy.uix.boxlayout import BoxLayout
@@ -30,10 +32,11 @@ import demo
 import storage
 import theme
 
-from database import DatabaseManager
+from database import DatabaseManager, NurAnsichtFehler
 
 from screens.main_screen import MainScreen
 from screens.splash_wrapper import SplashWrapper
+from widgets.common.hinweis_popup import HinweisPopup
 
 
 # =========================================================
@@ -276,6 +279,55 @@ apply_window_orientation(theme.get_orientation())
 
 
 # =========================================================
+# Netz für den Schreibschutz
+# =========================================================
+
+class NurAnsichtNetz(ExceptionHandler):
+    """Fängt ab, wenn ein Nebengerät doch etwas ändern wollte.
+
+    Der Schreibschutz sitzt am Datenbankcursor (siehe
+    database.NurAnsichtCursor) und wirft dort eine Ausnahme. Fliegt
+    die aus einem Tastendruck heraus, beendet Kivy die Anwendung -
+    auf dem Tablet sieht das aus wie ein hängendes Programm, und
+    genau so wurde es auch gemeldet.
+
+    Die Bedienung ist auf einem Nebengerät bereits gesperrt (siehe
+    products_screen). Dieses Netz ist die zweite Reihe: für Wege, die
+    dabei übersehen wurden, und für alles, was später dazukommt. Es
+    zeigt den Grund als wegtippbaren Hinweis, und die Anwendung läuft
+    weiter.
+    """
+
+    def handle_exception(self, ausnahme):
+
+        if not isinstance(ausnahme, NurAnsichtFehler):
+            return ExceptionManager.RAISE
+
+        traceback.print_exc()
+
+        # Erst im nächsten Frame: Wir stecken gerade mitten in der
+        # Ereignisverarbeitung, aus der die Ausnahme kam.
+        Clock.schedule_once(
+            lambda _dt: HinweisPopup(
+                title="Nur Ansicht",
+                message=str(ausnahme),
+            ).open(),
+            0,
+        )
+
+        return ExceptionManager.PASS
+
+
+def _nur_ansicht_netz_einhaengen():
+
+    for vorhandenes in ExceptionManager.handlers:
+        if isinstance(vorhandenes, NurAnsichtNetz):
+            return
+
+    ExceptionManager.add_handler(NurAnsichtNetz())
+
+
+# =========================================================
 # Anwendung
 # =========================================================
 
@@ -313,6 +365,9 @@ class KiGPOS(App):
         # davon nichts zu sehen - dort gibt es keine
         # Bildschirmtastatur.
         Window.softinput_mode = "below_target"
+
+        # Netz für den Schreibschutz - siehe NurAnsichtNetz.
+        _nur_ansicht_netz_einhaengen()
 
         # Kivys Umrechnung von "sp" und "dp" in Ordnung bringen, bevor
         # die erste Beschriftung entsteht: auf dem Rechner anstoßen

@@ -9,6 +9,7 @@ from kivy.uix.scrollview import ScrollView
 import theme
 
 from widgets.common.exporthinweis import hinweisfeld_vorbereiten
+from widgets.common import schreibschutz
 
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.kig_label import KiGLabel
@@ -148,6 +149,27 @@ class ArticleListPanel(RoundedPanel):
         self.header.add_widget(self.header_buttons)
 
         self.add_widget(self.header)
+
+        # Nebengeraet: Was die Datenbank ablehnt, wird hier gar nicht
+        # erst angeboten (siehe widgets/common/schreibschutz.py).
+        self.nur_ansicht = schreibschutz.nur_ansicht()
+
+        if self.nur_ansicht:
+
+            schreibschutz.sperren(self.new_button, self.sort_button)
+
+            hinweis = Label(
+                text=schreibschutz.HINWEIS,
+                color=theme.WARNING, font_size="13sp", bold=True,
+                halign="left", valign="middle",
+                size_hint_y=None, height=dp(26),
+            )
+            hinweis.bind(
+                size=lambda instanz, groesse: setattr(
+                    instanz, "text_size", groesse
+                )
+            )
+            self.add_widget(hinweis)
 
         self.bind(width=self._update_header)
         self._update_header()

@@ -17,6 +17,7 @@ from kivy.uix.scrollview import ScrollView
 
 import theme
 
+from widgets.common import schreibschutz
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.common.kig_action_tile import KiGActionTile
 from widgets.kig_label import KiGLabel
@@ -189,6 +190,14 @@ class CategoryPanel(RoundedPanel):
         # es nichts umzusortieren.
         if not hasattr(self, "actions"):
             self.actions = None
+
+        # Kategorien gehoeren zu den Stammdaten - ein Nebengeraet darf
+        # sie ansehen, aber nicht anlegen oder umbenennen.
+        if self.show_actions and schreibschutz.nur_ansicht():
+            schreibschutz.sperren(
+                getattr(self, "new_button", None),
+                getattr(self, "edit_button", None),
+            )
 
         # -------------------------------------------------
         # Scrollbereich

@@ -157,7 +157,7 @@ class CashScreen(Screen):
         # Klappt der Warenkorb auf dem Telefon auf oder zu, ändert sich
         # seine Höhe - und damit der Platz für die Artikel.
         if getattr(self.right_panel, "schmal", False):
-            self.right_panel.on_klapp = lambda _offen: self._update_cart_height()
+            self.right_panel.on_klapp = self._korb_umgeklappt
 
         # =====================================================
         # Layout
@@ -288,6 +288,30 @@ class CashScreen(Screen):
             if panel.width > 0:
                 rechter_rand -= panel.width + abstand
 
+    def _korb_umgeklappt(self, offen):
+        """Telefon: Der aufgeklappte Warenkorb bekommt den ganzen
+        Bildschirm.
+
+        Ihn nur höher zu machen, genügte nicht - über ihm blieb der
+        Artikelbereich stehen und nahm dem Warenkorb genau den Platz,
+        wegen dem man ihn aufklappt. Solange er offen ist, tritt der
+        Artikelbereich deshalb ganz aus der Oberfläche heraus.
+        """
+
+        if offen:
+
+            if self.left_panel.parent is not None:
+                self.layout.remove_widget(self.left_panel)
+
+        elif self.left_panel.parent is None:
+
+            # Reihenfolge zählt: Artikel oben, Warenkorb unten.
+            self.layout.clear_widgets()
+            self.layout.add_widget(self.left_panel)
+            self.layout.add_widget(self.right_panel)
+
+        self._update_cart_height()
+
     def _update_cart_height(self):
         """Bestimmt die Höhe des Warenkorbs im Hochformat.
 
@@ -305,12 +329,14 @@ class CashScreen(Screen):
         )
 
         # Auf dem Telefon ist der Warenkorb zugeklappt nur eine Zeile -
-        # den ganzen Rest bekommen die Artikel. Aufgeklappt nimmt er
-        # sich mehr als am Tablet: Wer ihn öffnet, will hineinsehen.
+        # den ganzen Rest bekommen die Artikel. Aufgeklappt gehört ihm
+        # der Bildschirm: Der Artikelbereich ist dann nicht im Layout
+        # (siehe _korb_umgeklappt), es gibt also auch keinen Abstand
+        # zwischen zwei Panels abzuziehen.
         if getattr(self.right_panel, "schmal", False):
 
             self.right_panel.height = (
-                verfuegbar * 0.62
+                self.layout.height - dp(theme.SCREEN_PADDING) * 2
                 if self.right_panel.aufgeklappt
                 else dp(self.right_panel.SCHMAL_LEISTE_HOEHE)
             )

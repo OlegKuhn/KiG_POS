@@ -193,6 +193,8 @@ class ArticleDashboardPanel(BoxLayout):
         drei zu flach.
         """
 
+        self._karten_hoehen = karten
+
         for karte, hoehe in karten:
 
             karte.size_hint_x = 1
@@ -208,6 +210,18 @@ class ArticleDashboardPanel(BoxLayout):
         Clock.schedule_once(self._nach_oben, 0)
 
     def _nach_oben(self, *_args):
+
+        # Erst die Hoehen: Eine Karte, die ihre Zeilen selbst zaehlen
+        # kann, bekommt so viel, wie sie braucht - der feste Wert ist
+        # nur die Untergrenze. (Die Zeilen stehen erst im naechsten
+        # Bild, deshalb geschieht das hier und nicht in
+        # _untereinander.)
+        for karte, hoehe in getattr(self, "_karten_hoehen", ()):
+
+            gebraucht = getattr(karte, "inhaltshoehe", None)
+
+            if callable(gebraucht):
+                karte.height = max(dp(hoehe), gebraucht())
 
         if getattr(self, "karten_rollbereich", None) is not None:
             self.karten_rollbereich.scroll_y = 1

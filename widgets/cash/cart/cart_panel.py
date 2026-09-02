@@ -400,9 +400,16 @@ class CartPanel(RoundedPanel):
 
             self._volle_kinder = list(reversed(self.children))
 
+            # Der Rueckruf stammt von einer KiGActionTile und erwartet
+            # deshalb Kachel und Aktion (siehe CartFooter). Ohne die
+            # beiden Argumente lief der Bezahlen-Knopf der Leiste in
+            # einen TypeError - und tat scheinbar gar nichts.
             self.leiste = _Warenkorbleiste(
                 on_auf=self._aufklappen,
-                on_bezahlen=pay_callback,
+                on_bezahlen=(
+                    (lambda: pay_callback(None, None))
+                    if callable(pay_callback) else None
+                ),
             )
 
             self._nur_leiste()
@@ -448,8 +455,16 @@ class CartPanel(RoundedPanel):
     def leiste_aktualisieren(self, anzahl, summe):
         """Traegt Postenzahl und Summe in die zugeklappte Zeile ein."""
 
-        if self.schmal:
-            self.leiste.setzen(anzahl, summe)
+        if not self.schmal:
+            return
+
+        self.leiste.setzen(anzahl, summe)
+
+        # Ein leerer Warenkorb, der den ganzen Bildschirm belegt,
+        # versperrt nur die Artikel. Nach dem Bezahlen, dem Leeren oder
+        # dem Entfernen des letzten Postens klappt er von selbst zu.
+        if not anzahl and self.aufgeklappt:
+            self.zuklappen()
 
     # =====================================================
     # Eigenschaften

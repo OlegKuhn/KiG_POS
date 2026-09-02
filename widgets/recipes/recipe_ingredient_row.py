@@ -31,12 +31,17 @@ class RecipeIngredientRow(BoxLayout):
             remove_callback,
             **kwargs
     ):
+        # Auf dem Telefon steht der Name ueber Menge, Einheit und
+        # "Entfernen" statt daneben: Die drei belegen 290 dp, die
+        # Rezeptkarte ist dort keine 290 dp breit.
+        self.schmal = theme.is_narrow()
+
         super().__init__(
-            orientation="horizontal",
-            spacing=dp(theme.ROW_SPACING),
+            orientation="vertical" if self.schmal else "horizontal",
+            spacing=dp(theme.SPACE_XS if self.schmal else theme.ROW_SPACING),
             padding=(dp(theme.CARD_SPACING), dp(theme.SPACE_XS)),
             size_hint_y=None,
-            height=dp(58),
+            height=dp(96 if self.schmal else 58),
             **kwargs
         )
 
@@ -66,7 +71,30 @@ class RecipeIngredientRow(BoxLayout):
         self.name_label.bind(
             size=lambda instance, value: setattr(instance, "text_size", value)
         )
+
+        if self.schmal:
+            self.name_label.size_hint_y = None
+            self.name_label.height = dp(26)
+            self.name_label.font_size = "15sp"
+
         self.add_widget(self.name_label)
+
+        # Kivy stellt in einer senkrechten Reihe das zuerst
+        # Hinzugefuegte nach oben - die Angabenzeile also nach dem
+        # Namen.
+        if self.schmal:
+
+            self.angaben = BoxLayout(
+                orientation="horizontal",
+                spacing=dp(theme.ROW_SPACING),
+                size_hint_y=None,
+                height=dp(48),
+            )
+
+            self.add_widget(self.angaben)
+
+        else:
+            self.angaben = self
 
         self.amount_button = Button(
             text=self._format_quantity(), size_hint_x=None, width=dp(90),
@@ -79,7 +107,7 @@ class RecipeIngredientRow(BoxLayout):
         self.amount_button.bind(
             on_release=lambda *_args: self.quantity_callback(self.ingredient)
         )
-        self.add_widget(self.amount_button)
+        self._einhaengen(self.amount_button, 0.28)
 
         # Freitext-Zutaten (ohne eigenen Artikelstamm, z. B. "Minze")
         # haben keine Lagereinheit, gegen die sich eine Umrechnung
@@ -94,7 +122,7 @@ class RecipeIngredientRow(BoxLayout):
                 halign="center", valign="middle",
             )
             unit_label.bind(size=lambda instance, value: setattr(instance, "text_size", value))
-            self.add_widget(unit_label)
+            self._einhaengen(unit_label, 0.28)
         else:
             # "Flasche" hat keinen festen ml-Wert und wird für die
             # Einheiten-Kompatibilität daher wie ml behandelt (siehe
@@ -112,7 +140,7 @@ class RecipeIngredientRow(BoxLayout):
                 width=dp(90)
             )
             self.unit_spinner.bind(text=self._unit_changed)
-            self.add_widget(self.unit_spinner)
+            self._einhaengen(self.unit_spinner, 0.28)
 
         remove_button = Button(
             text="Entfernen", size_hint_x=None, width=dp(110),
@@ -123,7 +151,16 @@ class RecipeIngredientRow(BoxLayout):
         remove_button.bind(
             on_release=lambda *_args: self.remove_callback(self.ingredient)
         )
-        self.add_widget(remove_button)
+        self._einhaengen(remove_button, 0.44)
+
+    def _einhaengen(self, widget, anteil):
+        """Haengt eine Angabe ein - schmal anteilig statt fest breit."""
+
+        if self.schmal:
+            widget.size_hint_x = anteil
+            widget.width = 0
+
+        self.angaben.add_widget(widget)
 
     def _update_canvas(self, *_args):
         self._background.pos = self.pos

@@ -373,6 +373,24 @@ class StammdatenCard(RoundedPanel):
             if suggestion and suggestion.lower() != base_name.lower():
                 self.shot_name_input.text = suggestion
 
+    def inhaltshoehe(self):
+        """Hoehe, bei der alle Zeilen ohne eigenes Rollen hineinpassen.
+
+        Auf dem Telefon stehen die Karten untereinander in einem
+        Rollbereich - dort ist ein zweites Rollen INNERHALB der Karte
+        nur laestig, und eine halb abgeschnittene Zeile sieht kaputt
+        aus. Die Karte bekommt deshalb ihre natuerliche Hoehe und die
+        Seite rollt.
+        """
+
+        return (
+            dp(30)                              # Ueberschrift
+            + self.fields.minimum_height        # alle sichtbaren Zeilen
+            + dp(54)                            # Speichern
+            + dp(theme.CARD_SPACING) * 2
+            + dp(theme.CARD_PADDING) * 2
+        )
+
     def _save_button(self):
         button = Button(
             text="Speichern", size_hint_y=None, height=dp(54),

@@ -31,6 +31,26 @@ from kivy.tools.packaging.pyinstaller_hooks import (
 
 PROJEKT = Path(SPECPATH)
 
+# Die Buildnummer zaehlt Commits (siehe config._buildnummer). Im
+# fertigen Paket gibt es kein Git mehr - sie wird deshalb hier
+# festgehalten und mit eingepackt.
+import subprocess
+
+try:
+    _gezaehlt = subprocess.run(
+        ["git", "rev-list", "--count", "HEAD"],
+        cwd=str(PROJEKT), capture_output=True, text=True, timeout=10,
+    )
+
+    if _gezaehlt.returncode == 0 and _gezaehlt.stdout.strip().isdigit():
+        (PROJEKT / "buildnummer.txt").write_text(
+            _gezaehlt.stdout.strip(), encoding="utf-8"
+        )
+        print(f"Buildnummer: {_gezaehlt.stdout.strip()}")
+
+except Exception as fehler:                      # pragma: no cover
+    print(f"Buildnummer nicht ermittelbar: {fehler}")
+
 # Kivy laedt seine Anbieter (Fenster, Bild, Text) erst zur Laufzeit -
 # PyInstaller findet sie deshalb nicht von selbst. get_deps_minimal()
 # nennt genau die, die tatsaechlich gebraucht werden.
@@ -63,6 +83,8 @@ a = Analysis(
     datas=[
         # Bilder, Symbole und die Bilder des Handbuchs
         (str(PROJEKT / "assets"), "assets"),
+        # Die Buildnummer (siehe oben)
+        (str(PROJEKT / "buildnummer.txt"), "."),
     ],
     hookspath=hookspath(),
     runtime_hooks=runtime_hooks(),

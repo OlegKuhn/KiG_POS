@@ -66,7 +66,63 @@ VEREIN = "KiG e.V. - est. 1996"
 
 VERSION = "0.1.0"
 
-BUILD = "0001"
+
+def _buildnummer():
+    """Die Buildnummer - sie steigt mit jeder Revision von selbst.
+
+    Von Hand gepflegt blieb sie jahrelang auf "0001" stehen. Gezaehlt
+    wird deshalb, was das Projekt an Commits hat:
+
+        1. buildnummer.txt neben dieser Datei. Die schreiben die
+           Bauablaeufe (Windows wie Android), denn im fertigen Paket
+           gibt es kein Git mehr.
+        2. Auf dem Entwicklungsrechner sonst Git selbst.
+        3. Bleibt beides aus: 0000 - eine Nummer, die es so nie
+           gibt und die damit selbst die Auskunft ist.
+    """
+
+    orte = [Path(__file__).resolve().parent]
+
+    # Im PyInstaller-Paket liegen die mitgelieferten Dateien im
+    # Entpackordner, nicht neben dem Quelltext.
+    entpackt = getattr(sys, "_MEIPASS", None)
+
+    if entpackt:
+        orte.insert(0, Path(entpackt))
+
+    for ordner in orte:
+
+        datei = ordner / "buildnummer.txt"
+
+        try:
+            if datei.exists():
+                gelesen = datei.read_text(encoding="utf-8").strip()
+                if gelesen.isdigit():
+                    return f"{int(gelesen):04d}"
+        except OSError:
+            pass
+
+    try:
+        import subprocess
+
+        ergebnis = subprocess.run(
+            ["git", "rev-list", "--count", "HEAD"],
+            cwd=str(Path(__file__).resolve().parent),
+            capture_output=True, text=True, timeout=5,
+        )
+
+        if ergebnis.returncode == 0:
+            gezaehlt = ergebnis.stdout.strip()
+            if gezaehlt.isdigit():
+                return f"{int(gezaehlt):04d}"
+
+    except (OSError, ValueError, subprocess.SubprocessError):
+        pass
+
+    return "0000"
+
+
+BUILD = _buildnummer()
 
 # ==========================================================
 # Fenster
@@ -82,7 +138,7 @@ fullscreen  = Vollbild
 borderless  = randloses Fenster
 """
 
-WINDOW_MODE = "window"
+WINDOW_MODE = "fullscreen"
 
 WINDOW_WIDTH = 1200
 

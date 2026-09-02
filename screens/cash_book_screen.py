@@ -59,6 +59,7 @@ from widgets.common.feldausrichtung import links_ausrichten
 from widgets.common.confirm_popup import ConfirmPopup
 from widgets.common.date_picker_popup import DatePickerPopup
 from widgets.common.rounded_input import RoundedInput
+from widgets.common.filterleiste import Filterleiste
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.kig_label import KiGLabel
 
@@ -246,7 +247,17 @@ class CashBookScreen(Screen):
             spacing=dp(theme.SCREEN_SPACING),
         )
 
-        root.add_widget(self._build_selection_panel())
+        # Jahr und Monat sind der Filter des Kassenbuchs - sie stehen
+        # jetzt in der Leiste am unteren Rand statt in einer eigenen
+        # Karte. Die belegte im Hochformat ein Sechstel der Hoehe, um
+        # zwei Zahlen zu zeigen.
+        self.filterleiste = Filterleiste(
+            inhalt=self._build_zeitraum_inhalt(),
+            titel="Zeitraum",
+            zusammenfassung=self._zeitraum_text,
+            inhalt_hoehe=200 if theme.is_narrow() else 230,
+        )
+
         root.add_widget(self._build_table_panel())
         root.add_widget(self._build_form_panel())
 
@@ -256,27 +267,12 @@ class CashBookScreen(Screen):
     # Links: Jahr und Monat
     # =====================================================
 
-    def _build_selection_panel(self):
+    def _build_zeitraum_inhalt(self):
+        """Jahre und Monate - der Inhalt der Filterleiste."""
 
-        panel = RoundedPanel(
-            orientation="vertical",
-            padding=dp(theme.CARD_PADDING),
-            spacing=dp(theme.CARD_SPACING),
-            size_hint=(
-                (1, 0.22 if theme.is_narrow() else 0.16)
-                if self.hochformat else (None, 1)
-            ),
-        )
-
-        if not self.hochformat:
-            panel.width = dp(self.SELECTION_WIDTH)
-
-        panel.add_widget(self._title("Zeitraum"))
-
-        # Im Hochformat nebeneinander: Dort ist Höhe knapp, Breite
-        # nicht.
+        # Nebeneinander: In einer Leiste ist Hoehe knapp, Breite nicht.
         inhalt = BoxLayout(
-            orientation="horizontal" if self.hochformat else "vertical",
+            orientation="horizontal",
             spacing=dp(theme.CARD_SPACING),
         )
 
@@ -292,8 +288,9 @@ class CashBookScreen(Screen):
         self.year_scroll = ScrollView(do_scroll_x=False, bar_width=dp(8))
         self.year_scroll.add_widget(self.year_box)
 
-        if not self.hochformat:
-            self.year_scroll.size_hint_y = None
+        # Ein Jahr ist eine vierstellige Zahl, ein Monat ein Wort -
+        # entsprechend teilen sie sich die Breite.
+        self.year_scroll.size_hint_x = 0.35
 
         inhalt.add_widget(self.year_scroll)
 
@@ -308,9 +305,12 @@ class CashBookScreen(Screen):
         self.month_scroll.add_widget(self.month_box)
         inhalt.add_widget(self.month_scroll)
 
-        panel.add_widget(inhalt)
+        return inhalt
 
-        return panel
+    def _zeitraum_text(self):
+        """Was in der zugeklappten Leiste steht."""
+
+        return f"{MONTH_NAMES[self.selected_month - 1]} {self.selected_year}"
 
     def _build_year_buttons(self):
 
@@ -326,17 +326,6 @@ class CashBookScreen(Screen):
 
             self.year_buttons[jahr] = button
             self.year_box.add_widget(button)
-
-        if self.year_scroll.size_hint_y is None:
-
-            # Mindestens zwei Jahre auf einen Blick - eines allein
-            # sieht nach einer Schaltflaeche aus, nicht nach einer
-            # Liste, in der man blaettern kann.
-            sichtbar = min(3, max(2, len(self.year_buttons)))
-
-            self.year_scroll.height = sichtbar * (
-                dp(self.YEAR_BUTTON_HEIGHT) + dp(theme.SPACE_XS)
-            )
 
         self._highlight_selection()
 
@@ -404,11 +393,15 @@ class CashBookScreen(Screen):
         self._highlight_selection()
         self.refresh()
 
+        self.filterleiste.aktualisieren()
+
     def select_month(self, monat):
 
         self.selected_month = monat
         self._highlight_selection()
         self.refresh()
+
+        self.filterleiste.aktualisieren()
 
     # =====================================================
     # Mitte: Übersichtstabelle

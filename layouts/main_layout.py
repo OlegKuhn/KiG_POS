@@ -32,6 +32,8 @@ from kivy.uix.screenmanager import ScreenManager
 
 from kivy.graphics import Color, Rectangle
 
+from datetime import date
+
 import config
 import theme
 
@@ -39,7 +41,6 @@ from database import DatabaseManager
 
 from widgets.common.confirm_popup import ConfirmPopup
 from widgets.kig_headerbar import KiGHeaderBar
-from widgets.kig_footerbar import KiGFooterBar
 
 from screens.home_screen import HomeScreen
 from screens.cash_screen import CashScreen
@@ -80,10 +81,6 @@ class MainLayout(BoxLayout):
         self.header.set_home_callback(
             self.show_home
         )
-        self.header.set_event_name(
-            "KiG POS"
-        )
-
         # Der Wahlspruch steht auf dem Telefon nicht: Dort bricht er
         # zweizeilig um und drückt den Namen an den oberen Rand. Auf
         # den zwei Zeilen, die er kostet, steht sonst eine Kachelreihe.
@@ -91,6 +88,8 @@ class MainLayout(BoxLayout):
             "" if theme.is_narrow()
             else "Gemeinsam feiern. Gemeinsam stark."
         )
+
+        self.veranstaltung_anzeigen()
 
         self.header.set_revenue(self.db.get_daily_revenue())
 
@@ -157,23 +156,13 @@ class MainLayout(BoxLayout):
         self.screen_manager.add_widget(self.userguide_screen)
 
         #
-        # Footer
-        #
-
-        self.footer = KiGFooterBar()
-
-        self.footer.set_version(config.VERSION)
-
-        self.footer.set_build(config.BUILD)
-
-        # Ohne diese Zeile passiert beim Tippen auf "Programm beenden"
-        # nichts - die Fußzeile bringt die Klicklogik zwar mit, kannte
-        # bis hierher aber niemanden, den sie benachrichtigen könnte.
-        self.footer.set_exit_callback(self.request_exit)
-
-        #
         # Widgets
         #
+        #
+        # Ohne Fusszeile: Sie trug Version, Buildnummer und "Programm
+        # beenden" - eine Zeile, die auf jedem Bildschirm Platz kostete
+        # und deren einzige Schaltflaeche man versehentlich traf. Alle
+        # drei stehen jetzt in den Einstellungen.
 
         self.add_widget(
             self.header
@@ -183,9 +172,35 @@ class MainLayout(BoxLayout):
             self.screen_manager
         )
 
-        self.add_widget(
-            self.footer
+        # Am unteren Rand, wo die Fusszeile stand: die Filterleiste des
+        # gerade sichtbaren Bildschirms - zugeklappt eine Zeile, die
+        # sagt, wonach gefiltert wird (siehe
+        # widgets/common/filterleiste.py). Bildschirme ohne Filter
+        # lassen den Streifen leer; in der Kasse steht dort der
+        # Warenkorb.
+        self.filterbereich = BoxLayout(
+            orientation="vertical",
+            size_hint_y=None,
+            height=0,
         )
+
+        self.filterbereich.bind(
+            minimum_height=self.filterbereich.setter("height")
+        )
+
+        self.add_widget(
+            self.filterbereich
+        )
+
+        # Beim Wechsel des Bildschirms nachsehen, ob heute etwas
+        # ansteht: Wer im Kalender gerade eine Veranstaltung angelegt
+        # hat, sieht sie danach oben stehen. Und die Filterleiste
+        # wechselt mit.
+        self.screen_manager.bind(
+            current=lambda *_args: self._bildschirm_gewechselt()
+        )
+
+        self.filterleiste_zeigen()
 
     def _update_background(self, *args):
         self.background.pos = self.pos
@@ -193,6 +208,61 @@ class MainLayout(BoxLayout):
 
     def refresh_revenue(self):
         self.header.set_revenue(self.db.get_daily_revenue())
+
+    def _bildschirm_gewechselt(self):
+
+        self.veranstaltung_anzeigen()
+        self.filterleiste_zeigen()
+
+    def filterleiste_zeigen(self):
+        """Haengt die Filterleiste des sichtbaren Bildschirms unten ein.
+
+        Die Leiste gehoert dem Bildschirm - sie steht nur an einer
+        gemeinsamen Stelle, damit sie ueberall gleich sitzt.
+        """
+
+        self.filterbereich.clear_widgets()
+
+        bildschirm = self.screen_manager.current_screen
+
+        leiste = getattr(bildschirm, "filterleiste", None)
+
+        if leiste is None:
+            self.filterbereich.height = 0
+            return
+
+        if leiste.parent is not None:
+            leiste.parent.remove_widget(leiste)
+
+        # Zugeklappt beginnen: Wer den Bildschirm wechselt, will
+        # zuerst sehen, was darauf steht.
+        leiste.zuklappen()
+        leiste.aktualisieren()
+
+        self.filterbereich.add_widget(leiste)
+
+    def veranstaltung_anzeigen(self):
+        """Traegt die heutige Veranstaltung in die Kopfzeile ein.
+
+        Bis hierher stand dort fest verdrahtet "KiG POS" - der Kalender
+        wurde nie gefragt, auch wenn ein Fest eingetragen war.
+
+        Auf dem Telefon bleibt die Mitte leer: Dort reicht die Breite
+        gerade fuer Logo und Tagesumsatz, ein Name brach Buchstabe fuer
+        Buchstabe um.
+        """
+
+        if theme.is_narrow():
+            self.header.set_event_name("")
+            return
+
+        heute = date.today().isoformat()
+
+        eintrag = self.db.get_event_for_date(heute)
+
+        self.header.set_event_name(
+            eintrag["name"] if eintrag else config.APP_NAME
+        )
 
     def show_screen(self, screen_name):
         self.screen_manager.current = screen_name

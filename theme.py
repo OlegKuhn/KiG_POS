@@ -529,6 +529,57 @@ SPLASH_STATUS_CENTER_Y = 0.095
 
 SPLASH_VERSION_CENTER_Y = 0.045
 
+# ---------------------------------------------------------
+# Startbildschirm auf dem Telefon
+# ---------------------------------------------------------
+#
+# Die Werte oben sind fuer ein Tablet im 16:10-Format gerechnet. Auf
+# einem 424 x 918 Punkte grossen Telefonbildschirm stand das Logo
+# (600 Punkte breit) links und rechts ueber dem Rand, zwischen Logo und
+# Titel klaffte ein Drittel Bildschirm, und Titel und Untertitel lagen
+# uebereinander. Schmal gilt deshalb ein eigener, enger Satz - und die
+# Logobreite richtet sich nach dem Bildschirm statt nach einer festen
+# Zahl.
+
+SPLASH_LOGO_BREITENANTEIL = 0.82
+
+NARROW_SPLASH_LOGO_CENTER_Y = 0.80
+NARROW_SPLASH_TITLE_CENTER_Y = 0.62
+NARROW_SPLASH_SUBTITLE_CENTER_Y = 0.53
+NARROW_SPLASH_SEPARATOR_CENTER_Y = 0.46
+NARROW_SPLASH_SLOGAN_CENTER_Y = 0.41
+NARROW_SPLASH_PROGRESS_CENTER_Y = 0.30
+NARROW_SPLASH_STATUS_CENTER_Y = 0.20
+NARROW_SPLASH_VERSION_CENTER_Y = 0.09
+
+
+def splash_positionen():
+    """Die senkrechten Mitten der Elemente des Startbildschirms."""
+
+    if is_narrow():
+
+        return {
+            "logo": NARROW_SPLASH_LOGO_CENTER_Y,
+            "title": NARROW_SPLASH_TITLE_CENTER_Y,
+            "subtitle": NARROW_SPLASH_SUBTITLE_CENTER_Y,
+            "separator": NARROW_SPLASH_SEPARATOR_CENTER_Y,
+            "slogan": NARROW_SPLASH_SLOGAN_CENTER_Y,
+            "progress": NARROW_SPLASH_PROGRESS_CENTER_Y,
+            "status": NARROW_SPLASH_STATUS_CENTER_Y,
+            "version": NARROW_SPLASH_VERSION_CENTER_Y,
+        }
+
+    return {
+        "logo": SPLASH_LOGO_CENTER_Y,
+        "title": SPLASH_TITLE_CENTER_Y,
+        "subtitle": SPLASH_SUBTITLE_CENTER_Y,
+        "separator": SPLASH_SEPARATOR_CENTER_Y,
+        "slogan": SPLASH_SLOGAN_CENTER_Y,
+        "progress": SPLASH_PROGRESS_CENTER_Y,
+        "status": SPLASH_STATUS_CENTER_Y,
+        "version": SPLASH_VERSION_CENTER_Y,
+    }
+
 # ----------------------------------------------------
 # Header
 # ----------------------------------------------------

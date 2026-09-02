@@ -42,3 +42,6 @@ __pycache__/
 
 # PyCharm
 .idea/
+
+# Beim Bauen erzeugt (siehe config._buildnummer)
+buildnummer.txt

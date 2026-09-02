@@ -34,6 +34,17 @@ jobs:
 
       - name: Projekt holen
         uses: actions/checkout@v4
+        with:
+          # Die Buildnummer zaehlt Commits - mit der Standardtiefe 1
+          # waere sie immer 1.
+          fetch-depth: 0
+
+      # Im fertigen Paket gibt es kein Git mehr, die Nummer muss also
+      # vorher in eine Datei (siehe config._buildnummer).
+      - name: Buildnummer festhalten
+        run: |
+          git rev-list --count HEAD > buildnummer.txt
+          echo "Build $(cat buildnummer.txt)"
 
       - name: Python bereitstellen
         uses: actions/setup-python@v5

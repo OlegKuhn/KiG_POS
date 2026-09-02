@@ -253,10 +253,10 @@ class CartPanel(RoundedPanel):
             setattr(instance, "text_size", value)
         )
 
-        # Auf dem Telefon fuehrt die Ueberschrift wieder zurueck: Der
+        # Im Hochformat fuehrt die Ueberschrift wieder zurueck: Der
         # Warenkorb liess sich aufklappen, aber nicht mehr zuklappen -
         # es gab schlicht nichts zum Antippen.
-        if theme.is_narrow():
+        if theme.is_portrait():
 
             self.zuklapp_knopf = _Zuklappzeile(
                 text="Warenkorb", on_zu=self.zuklappen
@@ -391,12 +391,16 @@ class CartPanel(RoundedPanel):
         # Telefon: die zugeklappte Zeile
         # -------------------------------------------------
 
-        self.schmal = theme.is_narrow()
-        self.aufgeklappt = not self.schmal
+        # Klappbar ist der Warenkorb ueberall dort, wo er UNTEN steht -
+        # also im Hochformat, auf dem Telefon wie auf dem Tablet. Im
+        # Querformat ist er eine Spalte neben den Artikeln und bleibt,
+        # wie er ist.
+        self.klappbar = theme.is_portrait()
+        self.aufgeklappt = not self.klappbar
 
         self.on_klapp = None
 
-        if self.schmal:
+        if self.klappbar:
 
             self._volle_kinder = list(reversed(self.children))
 
@@ -444,7 +448,7 @@ class CartPanel(RoundedPanel):
     def zuklappen(self):
         """Klappt den Warenkorb wieder zur Zeile zusammen."""
 
-        if not self.schmal or not self.aufgeklappt:
+        if not self.klappbar or not self.aufgeklappt:
             return
 
         self._nur_leiste()
@@ -455,7 +459,7 @@ class CartPanel(RoundedPanel):
     def leiste_aktualisieren(self, anzahl, summe):
         """Traegt Postenzahl und Summe in die zugeklappte Zeile ein."""
 
-        if not self.schmal:
+        if not self.klappbar:
             return
 
         self.leiste.setzen(anzahl, summe)

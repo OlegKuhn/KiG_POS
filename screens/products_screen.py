@@ -46,6 +46,7 @@ from widgets.common.hinweis_popup import HinweisPopup
 
 from database import DatabaseManager
 
+from widgets.common.filterleiste import Filterleiste
 from widgets.products.category_panel import CategoryPanel
 from widgets.products.category_dialog import CategoryDialog
 from widgets.products.article_list_panel import ArticleListPanel
@@ -106,14 +107,16 @@ class ProductsScreen(Screen):
             on_new=self.new_category, on_edit=self.edit_category,
         )
 
-        if self.hochformat:
-            # Telefon: etwas mehr, damit zwei Reihen Kategorien
-            # ganz hineinpassen statt halb abgeschnitten zu sein.
-            self.category_panel.size_hint = (
-                (1, 0.30) if theme.is_narrow() else (1, 0.26)
-            )
-        else:
-            self.category_panel.size_hint_x = 0.22
+        # Die Kategorien sind der Filter dieses Bildschirms - sie
+        # stehen unten in der Leiste. Vorher belegten sie im
+        # Hochformat fast ein Drittel der Hoehe und im Querformat eine
+        # ganze Spalte, um zu zeigen, wonach gerade sortiert wird.
+        self.filterleiste = Filterleiste(
+            inhalt=self.category_panel,
+            titel="Kategorie",
+            zusammenfassung=self._kategorie_text,
+            inhalt_hoehe=190 if theme.is_narrow() else 210,
+        )
 
         self.article_list_panel = ArticleListPanel(
             new_callback=self.new_article,
@@ -126,12 +129,8 @@ class ProductsScreen(Screen):
             teilen_callback=self.teilen_clicked,
         )
 
-        if self.hochformat:
-            self.article_list_panel.size_hint = (
-                (1, 0.70) if theme.is_narrow() else (1, 0.74)
-            )
-        else:
-            self.article_list_panel.size_hint_x = 0.78
+        # Die Liste bekommt, was die Kategorienkarte hergegeben hat.
+        self.article_list_panel.size_hint = (1, 1)
 
         self.dashboard_panel = ArticleDashboardPanel(
             on_back=self.back_to_list,
@@ -176,13 +175,6 @@ class ProductsScreen(Screen):
         nummernblock_offen = not self.numpad_panel.disabled
 
         if self.mode == "list":
-
-            # Solange der Nummernblock offen ist, tritt die
-            # Kategorienkarte zur Seite: Die Artikelliste braucht ihre
-            # sieben Spalten, und gefiltert wird gerade ohnehin nicht -
-            # es wird eine Menge eingetippt.
-            if not nummernblock_offen:
-                self.root.add_widget(self.category_panel)
 
             self.root.add_widget(self.article_list_panel)
 
@@ -257,6 +249,14 @@ class ProductsScreen(Screen):
     # Kategorien
     # =====================================================
 
+    def _kategorie_text(self):
+        """Was in der zugeklappten Filterleiste steht."""
+
+        if self.selected_category is None:
+            return "Alle Kategorien"
+
+        return self.selected_category["name"]
+
     def select_category(self, card, category):
 
         if self.selected_category_card is card:
@@ -264,6 +264,7 @@ class ProductsScreen(Screen):
             self.selected_category_card = None
             self.selected_category = None
             self.refresh_articles()
+            self.filterleiste.aktualisieren()
             return
 
         if self.selected_category_card is not None:
@@ -273,6 +274,8 @@ class ProductsScreen(Screen):
         card.select()
         self.selected_category = category
         self.refresh_articles()
+
+        self.filterleiste.aktualisieren()
 
     def _nur_ansicht(self):
         """True, wenn dieses Gerät nur zusehen darf - und sagt es auch.

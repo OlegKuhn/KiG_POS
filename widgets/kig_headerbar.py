@@ -34,6 +34,7 @@ Build:
 from datetime import datetime
 
 from kivy.clock import Clock
+from kivy.utils import platform
 
 from kivy.graphics import (
     Color,
@@ -56,6 +57,13 @@ from kivy.metrics import dp
 
 import demo
 import theme
+
+
+# Auf einem Telefon oder Tablet zeigt das Betriebssystem Datum und
+# Uhrzeit ohnehin dauerhaft an - die Kopfzeile spart sich beides und
+# gibt den Platz dem Inhalt. Am Rechner im Vollbild gibt es diese
+# Anzeige nicht, dort bleibt die Uhr.
+IS_ANDROID = platform == "android"
 
 
 class KiGHeaderBar(KiGWidget):
@@ -137,6 +145,13 @@ class KiGHeaderBar(KiGWidget):
     NARROW_DEMO_AREA_WIDTH = 62
     NARROW_DEMO_FONT_SIZE = 18
 
+    # Hoehe des rechten Blocks: Uhr (22) + Trenner + "Tagesumsatz" +
+    # Betrag. Ohne Uhr faellt die erste Zeile weg.
+    STATUS_HOEHE = 70
+    STATUS_HOEHE_OHNE_UHR = 46
+    NARROW_STATUS_HOEHE = 44
+    NARROW_STATUS_HOEHE_OHNE_UHR = 32
+
     SHADOW_HEIGHT = 2
 
     SEPARATOR_HEIGHT = 1
@@ -160,9 +175,23 @@ class KiGHeaderBar(KiGWidget):
         # Auf einem Telefon gilt derselbe Aufbau, nur in klein - die
         # Werte werden vor dem Bauen ausgetauscht, damit unten nichts
         # doppelt steht.
+        if IS_ANDROID:
+
+            self.STATUS_HOEHE = self.STATUS_HOEHE_OHNE_UHR
+
+            # Die gesparte Zeile darf auch die Kopfzeile selbst
+            # flacher machen - 90 dp waren fuer Uhr UND Umsatz
+            # gerechnet.
+            self.HEADER_HEIGHT = 70
+
         if theme.is_narrow():
 
             self.HEADER_HEIGHT = theme.NARROW_HEADER_HEIGHT
+
+            self.STATUS_HOEHE = (
+                self.NARROW_STATUS_HOEHE_OHNE_UHR if IS_ANDROID
+                else self.NARROW_STATUS_HOEHE
+            )
 
             self.LOGO_SIZE = self.NARROW_LOGO_SIZE
             self.LOGO_AREA_WIDTH = self.NARROW_LOGO_AREA_WIDTH
@@ -495,7 +524,7 @@ class KiGHeaderBar(KiGWidget):
 
             size_hint=(1, None),
 
-            height=dp(44 if theme.is_narrow() else 70)
+            height=dp(self.STATUS_HOEHE)
 
         )
 
@@ -578,15 +607,17 @@ class KiGHeaderBar(KiGWidget):
         # Labels hinzufügen
         #
 
-        self.status_layout.add_widget(
-            self.lbl_datetime
-        )
+        if not IS_ANDROID:
 
-        self.status_layout.add_widget(
-            KiGDividerHorizontal(
-                padding=10
+            self.status_layout.add_widget(
+                self.lbl_datetime
             )
-        )
+
+            self.status_layout.add_widget(
+                KiGDividerHorizontal(
+                    padding=10
+                )
+            )
 
         self.status_layout.add_widget(
             self.lbl_revenue_title
@@ -610,10 +641,11 @@ class KiGHeaderBar(KiGWidget):
 
         self.update_datetime()
 
-        Clock.schedule_interval(
-            self.update_datetime,
-            1
-        )
+        if not IS_ANDROID:
+            Clock.schedule_interval(
+                self.update_datetime,
+                1
+            )
 
     # =====================================================
     # Erstes Layout

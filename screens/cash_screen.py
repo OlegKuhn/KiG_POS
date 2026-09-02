@@ -156,7 +156,7 @@ class CashScreen(Screen):
 
         # Klappt der Warenkorb auf dem Telefon auf oder zu, ändert sich
         # seine Höhe - und damit der Platz für die Artikel.
-        if getattr(self.right_panel, "schmal", False):
+        if getattr(self.right_panel, "klappbar", False):
             self.right_panel.on_klapp = self._korb_umgeklappt
 
         # =====================================================
@@ -333,7 +333,7 @@ class CashScreen(Screen):
         # der Bildschirm: Der Artikelbereich ist dann nicht im Layout
         # (siehe _korb_umgeklappt), es gibt also auch keinen Abstand
         # zwischen zwei Panels abzuziehen.
-        if getattr(self.right_panel, "schmal", False):
+        if getattr(self.right_panel, "klappbar", False):
 
             self.right_panel.height = (
                 self.layout.height - dp(theme.SCREEN_PADDING) * 2

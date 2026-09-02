@@ -30,6 +30,7 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 
+import config
 import demo
 import geraet
 import storage
@@ -334,6 +335,51 @@ class SettingsScreen(Screen):
         hinweisfeld_vorbereiten(self.uebergabe_status, dp(8))
         inhalt.add_widget(self.uebergabe_status)
 
+        #
+        # Programm
+        #
+        # Fruehe Fassungen trugen Version, Buildnummer und "Programm
+        # beenden" dauerhaft in einer Fusszeile am unteren Rand. Die
+        # kostete auf jedem Bildschirm Platz, und die Schaltflaeche lag
+        # genau dort, wo man mit dem Daumen aufsetzt.
+        #
+
+        inhalt.add_widget(self._section_label("Programm"))
+
+        self.version_label = KiGLabel(
+            text=f"{config.APP_NAME}   ·   Version {config.VERSION}   "
+                 f"·   Build {config.BUILD}"
+        )
+        self.version_label.set_font_size(15)
+        self.version_label.set_alignment("left")
+        self.version_label.set_color(theme.TEXT_PRIMARY)
+        self.version_label.size_hint_y = None
+        self.version_label.height = dp(30)
+        inhalt.add_widget(self.version_label)
+
+        beenden_row = self._option_row()
+
+        self.beenden_button = SettingsOptionButton(
+            "Programm beenden", "beenden",
+            lambda _wert: self.programm_beenden(),
+        )
+        beenden_row.add_widget(self.beenden_button)
+
+        beenden_row.add_widget(BoxLayout())
+
+        inhalt.add_widget(beenden_row)
+
+        beenden_hint = KiGLabel(text=(
+            "Die Buildnummer zählt die Änderungen am Programm und "
+            "steigt mit jeder neuen Fassung. Bitte nenne sie, wenn "
+            "etwas nicht stimmt."
+        ))
+        beenden_hint.set_font_size(14)
+        beenden_hint.set_alignment("left")
+        beenden_hint.set_color(theme.TEXT_SECONDARY)
+        hinweisfeld_vorbereiten(beenden_hint, dp(40))
+        inhalt.add_widget(beenden_hint)
+
         self._geraet_anzeigen()
 
         root.add_widget(panel)
@@ -519,6 +565,29 @@ class SettingsScreen(Screen):
     # Der ganze Ablauf steckt in zwei Dialogen (siehe
     # widgets/common/uebertragung_dialog.py). Hier stehen nur noch die
     # beiden Einstiege - und die eine Regel, die vorher gilt.
+
+    def programm_beenden(self):
+        """Fragt nach und beendet dann.
+
+        Mitten in einer Veranstaltung waere ein versehentlich
+        geschlossenes Programm aergerlich - deshalb erst die Rueckfrage,
+        und deshalb steht der Knopf hier und nicht am Bildschirmrand.
+        """
+
+        ConfirmPopup(
+            message="Soll KiG POS wirklich beendet werden?",
+            title="Programm beenden",
+            confirm_text="Beenden",
+            on_confirm=self._beenden,
+        ).open()
+
+    @staticmethod
+    def _beenden():
+
+        app = App.get_running_app()
+
+        if app is not None:
+            app.stop()
 
     def daten_senden(self):
         """Sucht ein wartendes Gerät und schickt ihm etwas."""

@@ -70,21 +70,48 @@ TOPICS = [
                     "Vereinslogo - ein Tipp darauf bringt dich jederzeit "
                     "zurück zur Startseite. In der Mitte steht das "
                     "aktuelle Event des Tages (falls im Kalender "
-                    "eines angelegt ist), rechts das Datum, die Uhrzeit "
-                    "und der Tagesumsatz. Der Tagesumsatz aktualisiert "
-                    "sich automatisch, sobald ein Verkauf abgeschlossen "
-                    "oder in der Statistik gelöscht wird."
+                    "eines angelegt ist), rechts der Tagesumsatz. Er "
+                    "aktualisiert sich automatisch, sobald ein Verkauf "
+                    "abgeschlossen oder in der Statistik gelöscht "
+                    "wird.\n\n"
+                    "Am Rechner stehen dort außerdem Datum und Uhrzeit. "
+                    "Auf Telefon und Tablet nicht: Beides zeigt das "
+                    "Gerät ohnehin an, und der Platz gehört dort "
+                    "besser dem Inhalt. Auf dem Telefon bleibt aus "
+                    "demselben Grund auch der Eventname weg."
                 ),
             },
             {
-                "heading": "Fußzeile",
+                "heading": "Die Leiste unten",
                 "text": (
-                    "Unten stehen links Programmname, Version und "
-                    "Build-Nummer - diese Angaben helfen bei Rückfragen. "
-                    "Rechts beendest du über \"Programm beenden\" die "
-                    "Anwendung; damit das nicht versehentlich mitten in "
-                    "einer Veranstaltung passiert, kommt vorher eine "
-                    "Sicherheitsabfrage."
+                    "Am unteren Rand steht das, was zum jeweiligen "
+                    "Bildschirm gehört: In der Kasse der Warenkorb - "
+                    "zugeklappt eine Zeile mit Postenzahl, Summe und "
+                    "\"Bezahlen\", aufgeklappt die ganze Liste. In der "
+                    "Artikelverwaltung, im Kassenbuch und in der "
+                    "Statistik steht dort der Filter: zugeklappt sagt "
+                    "er, was gerade gilt (etwa \"September 2026\" oder "
+                    "\"Alle Kategorien\"), ein Tipp klappt die "
+                    "Einstellmöglichkeiten hoch.\n\n"
+                    "So gehört der übrige Bildschirm ganz der Tabelle "
+                    "oder der Liste - und nichts steht dauerhaft "
+                    "herum, was man nur selten braucht."
+                ),
+            },
+            {
+                "heading": "Version, Build und Beenden",
+                "text": (
+                    "Programmname, Version und Build-Nummer stehen in "
+                    "den Einstellungen im Abschnitt \"Programm\" - "
+                    "diese Angaben helfen bei Rückfragen. Die "
+                    "Build-Nummer zählt die Änderungen am Programm und "
+                    "steigt mit jeder neuen Fassung.\n\n"
+                    "Dort beendest du über \"Programm beenden\" auch "
+                    "die Anwendung; damit das nicht versehentlich "
+                    "mitten in einer Veranstaltung passiert, kommt "
+                    "vorher eine Sicherheitsabfrage. Früher stand "
+                    "dieser Knopf am unteren Bildschirmrand - genau "
+                    "dort, wo der Daumen aufsetzt."
                 ),
             },
             {

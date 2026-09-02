@@ -27,6 +27,7 @@ from widgets.common.exporthinweis import (
     export_hinweis, hinweisfeld_vorbereiten,
 )
 from widgets.common.feldausrichtung import links_ausrichten
+from widgets.common.filterleiste import Filterleiste
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.kig_label import KiGLabel
 from widgets.statistics.category_pie import CategoryPiePanel
@@ -210,7 +211,7 @@ class StatisticsScreen(Screen):
             font_size="15sp", size_hint_x=1.15,
         )
         links_ausrichten(self.event_filter)
-        self.event_filter.bind(text=lambda *_args: self.refresh())
+        self.event_filter.bind(text=lambda *_args: self._filter_geaendert())
         obere.add_widget(self.event_filter)
 
         self.date_from_value = None
@@ -232,7 +233,18 @@ class StatisticsScreen(Screen):
             obere.add_widget(aktualisieren)
         else:
             filters.add_widget(aktualisieren)
-        panel.add_widget(filters)
+
+        # Ereignis und Zeitraum sind der Filter dieses Bildschirms -
+        # sie stehen jetzt unten in der Leiste. Die Karte darueber
+        # gehoert damit ganz der Tabelle.
+        self.filterleiste = Filterleiste(
+            inhalt=filters,
+            titel="Auswahl",
+            zusammenfassung=self._filter_text,
+            inhalt_hoehe=(
+                filters.height / dp(1) + 2 * theme.SPACE_XS
+            ),
+        )
 
         actions_top = BoxLayout(
             size_hint_y=None, height=dp(36 if schmal else 40),
@@ -611,6 +623,32 @@ class StatisticsScreen(Screen):
     def _period(self):
         return self.date_from_value, self.date_to_value
 
+    def _filter_geaendert(self):
+
+        self.refresh()
+
+        if getattr(self, "filterleiste", None) is not None:
+            self.filterleiste.aktualisieren()
+
+    def _filter_text(self):
+        """Was in der zugeklappten Filterleiste steht."""
+
+        teile = [self.event_filter.text]
+
+        von = self.date_from_value
+        bis = self.date_to_value
+
+        if von and bis:
+            teile.append(f"{self.format_date(von)} - {self.format_date(bis)}")
+        elif von:
+            teile.append(f"ab {self.format_date(von)}")
+        elif bis:
+            teile.append(f"bis {self.format_date(bis)}")
+        else:
+            teile.append("ganzer Zeitraum")
+
+        return "   ·   ".join(teile)
+
     # =====================================================
     # Zeitraum-Auswahl (Kalender-Dropdown)
     # =====================================================
@@ -666,6 +704,8 @@ class StatisticsScreen(Screen):
         button.text = f"{label_prefix}: {self.format_date(iso_date)}"
         self.refresh()
 
+        self.filterleiste.aktualisieren()
+
     def clear_date_filter(self, which):
 
         label_prefix = "Von" if which == "from" else "Bis"
@@ -678,6 +718,8 @@ class StatisticsScreen(Screen):
 
         button.text = f"{label_prefix}: alle"
         self.refresh()
+
+        self.filterleiste.aktualisieren()
 
     def refresh(self):
         date_from, date_to = self._period()

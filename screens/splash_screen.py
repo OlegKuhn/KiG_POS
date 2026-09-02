@@ -53,6 +53,10 @@ class SplashScreen(FloatLayout):
 
         self.on_finished = None
 
+        # Wo die Elemente senkrecht stehen - auf dem Telefon enger
+        # (siehe theme.splash_positionen).
+        self.positionen = theme.splash_positionen()
+
         # ==================================================
         # Hintergrund
         # ==================================================
@@ -80,7 +84,7 @@ class SplashScreen(FloatLayout):
 
         self.logo.pos_hint = {
             "center_x": 0.5,
-            "center_y": theme.SPLASH_LOGO_CENTER_Y
+            "center_y": self.positionen["logo"]
         }
 
         self.add_widget(self.logo)
@@ -99,7 +103,7 @@ class SplashScreen(FloatLayout):
 
         self.title.pos_hint = {
             "center_x": 0.5,
-            "center_y": theme.SPLASH_TITLE_CENTER_Y
+            "center_y": self.positionen["title"]
         }
 
         self.add_widget(self.title)
@@ -124,7 +128,7 @@ class SplashScreen(FloatLayout):
 
         self.subtitle.pos_hint = {
             "center_x": 0.5,
-            "center_y": theme.SPLASH_SUBTITLE_CENTER_Y
+            "center_y": self.positionen["subtitle"]
         }
 
         self.add_widget(self.subtitle)
@@ -169,7 +173,7 @@ class SplashScreen(FloatLayout):
 
         self.slogan.pos_hint = {
             "center_x": 0.5,
-            "center_y": theme.SPLASH_SLOGAN_CENTER_Y
+            "center_y": self.positionen["slogan"]
         }
 
         self.add_widget(self.slogan)
@@ -189,7 +193,7 @@ class SplashScreen(FloatLayout):
 
         self.progress.pos_hint = {
             "center_x": 0.5,
-            "center_y": theme.SPLASH_PROGRESS_CENTER_Y
+            "center_y": self.positionen["progress"]
         }
 
         self.add_widget(self.progress)
@@ -212,7 +216,7 @@ class SplashScreen(FloatLayout):
 
         self.status.pos_hint = {
             "center_x": 0.5,
-            "center_y": theme.SPLASH_STATUS_CENTER_Y
+            "center_y": self.positionen["status"]
         }
 
         self.add_widget(self.status)
@@ -238,7 +242,7 @@ class SplashScreen(FloatLayout):
 
         self.version.pos_hint = {
             "center_x": 0.5,
-            "center_y": theme.SPLASH_VERSION_CENTER_Y
+            "center_y": self.positionen["version"]
         }
 
         self.add_widget(self.version)
@@ -279,7 +283,7 @@ class SplashScreen(FloatLayout):
         start_x = (self.width - line_width) / 2
         end_x = start_x + line_width
 
-        line_y = self.height * theme.SPLASH_SEPARATOR_CENTER_Y
+        line_y = self.height * self.positionen["separator"]
 
         #
         # Dunkle Linie
@@ -307,10 +311,14 @@ class SplashScreen(FloatLayout):
         # Logo
         # -------------------------------------------------
 
-        self.logo.width = theme.SPLASH_LOGO_WIDTH
-        self.logo.height = (
-            theme.SPLASH_LOGO_WIDTH * 0.67
+        # 600 Punkte feste Breite standen auf einem 424 Punkte breiten
+        # Telefon links und rechts ueber dem Rand - das Logo war an
+        # beiden Seiten abgeschnitten. Es passt sich jetzt an.
+        self.logo.width = min(
+            theme.SPLASH_LOGO_WIDTH,
+            self.width * theme.SPLASH_LOGO_BREITENANTEIL,
         )
+        self.logo.height = self.logo.width * 0.67
 
         # -------------------------------------------------
         # ProgressBar

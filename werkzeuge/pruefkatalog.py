@@ -69,6 +69,49 @@ ZUSTAENDE = ("offen", "OK", "Fehler", "Teilweise", "entfällt")
 NICHT = "entfällt"
 
 
+# =========================================================
+# Was beim Neuerzeugen erhalten bleibt
+# =========================================================
+#
+# Der Katalog waechst mit dem Programm - eingetragene Ergebnisse und
+# Kommentare duerfen dabei nicht verlorengehen. Beim Erzeugen wird
+# eine vorhandene Mappe deshalb gelesen und ihr Stand uebernommen.
+#
+# Zwei Sonderfaelle:
+#
+#   UMBENANNT   Die Funktion heisst jetzt anders. Der Kommentar zieht
+#               mit, das Ergebnis nicht - die Funktion ist eine
+#               andere geworden.
+#
+#   GEAENDERT   Die Funktion heisst gleich, verhaelt sich aber
+#               anders. Auch hier bleibt der Kommentar, das Ergebnis
+#               geht auf "offen": Was sich geaendert hat, will neu
+#               angesehen werden.
+
+UMBENANNT = {
+    ("Grundlagen", "Fußzeile: Version und Beenden"):
+        ("Grundlagen", "Version, Build und Beenden in den Einstellungen"),
+
+    ("Grundlagen", "Kopfzeile: Datum, Uhrzeit, Tagesumsatz"):
+        ("Grundlagen", "Kopfzeile: Tagesumsatz"),
+
+    ("Darstellung", "Kopf- und Fußzeile schlank"):
+        ("Darstellung", "Kopfzeile schlank"),
+}
+
+GEAENDERT = {
+    ("Grundlagen", "Kopfzeile: Veranstaltung des Tages"),
+    ("Kasse", "Warenkorb als Zeile"),
+    ("Kasse", "Warenkorb aufklappen"),
+    ("Artikelverwaltung", "Übersicht"),
+    ("Artikelverwaltung", "Kategorie anlegen"),
+    ("Artikelverwaltung", "Kategorie ändern und löschen"),
+    ("Kassenbuch", "Zeitraum wählen"),
+    ("Statistik", "Nach Event filtern"),
+    ("Statistik", "Nach Zeitraum filtern"),
+}
+
+
 FARBEN = {
     "kopf": "F44611",
     "bereich": "FDE8E1",
@@ -119,21 +162,46 @@ KATALOG = [
          "Ein Tipp auf das Logo öffnet die Startseite.",
          "RTH"),
 
-        ("Kopfzeile: Datum, Uhrzeit, Tagesumsatz",
+        ("Kopfzeile: Tagesumsatz",
          "Kopfzeile rechts",
-         "Uhrzeit läuft mit, Tagesumsatz ändert sich nach einem "
-         "Verkauf sofort.",
+         "Der Tagesumsatz ändert sich nach einem Verkauf sofort.",
+         "RTH"),
+
+        ("Kopfzeile: Datum und Uhrzeit nur am Rechner",
+         "Kopfzeile rechts",
+         "Am Rechner läuft die Uhr mit. Auf Tablet und Telefon steht "
+         "dort nichts dergleichen - das zeigt das Gerät selbst.",
          "RTH"),
 
         ("Kopfzeile: Veranstaltung des Tages",
          "Kopfzeile Mitte (Event im Kalender anlegen)",
-         "Der Name der heutigen Veranstaltung steht dort.",
+         "Der Name der heutigen Veranstaltung steht dort, sonst "
+         "\"KiG POS\". Ein neu angelegtes Event erscheint nach dem "
+         "nächsten Bildschirmwechsel.",
+         "RT"),
+
+        ("Keine Fußzeile mehr",
+         "Alle Bildschirme, unterer Rand",
+         "Unten steht nur noch, was zum Bildschirm gehört - Warenkorb "
+         "oder Filter. Kein Streifen mit Version und Beenden.",
          "RTH"),
 
-        ("Fußzeile: Version und Beenden",
-         "Fußzeile",
-         "Version und Build stehen links; \"Programm beenden\" fragt "
-         "vorher nach.",
+        ("Version, Build und Beenden in den Einstellungen",
+         "Einstellungen, Abschnitt \"Programm\"",
+         "Version und Buildnummer stehen dort; \"Programm beenden\" "
+         "fragt vorher nach und beendet erst dann.",
+         "RTH"),
+
+        ("Buildnummer steigt mit jeder Fassung",
+         "Einstellungen, Abschnitt \"Programm\"",
+         "Nicht mehr fest 0001: Die Nummer ist bei jedem neuen Stand "
+         "höher als beim vorigen.",
+         "RTH"),
+
+        ("Startbild sitzt richtig",
+         "Beim Start, vor der Startseite",
+         "Das Logo ist ganz zu sehen und nicht abgeschnitten; Titel, "
+         "Untertitel und Wahlspruch überlappen einander nicht.",
          "RTH"),
 
         ("Startseite: drei Gruppen",
@@ -222,14 +290,33 @@ KATALOG = [
          "RTH"),
 
         ("Warenkorb als Zeile",
-         "Kasse (Telefon), unten",
+         "Kasse im Hochformat, unten",
          "Zugeklappt eine Zeile: Postenzahl, Summe, \"Bezahlen\".",
-         "H"),
+         "RTH"),
 
         ("Warenkorb aufklappen",
-         "Kasse (Telefon), auf die Zeile tippen",
-         "Der Warenkorb klappt hoch und wieder zu.",
-         "H"),
+         "Kasse im Hochformat, auf die Zeile tippen",
+         "Er klappt hoch und nimmt den ganzen Bildschirm ein; die "
+         "Artikel treten so lange beiseite.",
+         "RTH"),
+
+        ("Warenkorb wieder zuklappen",
+         "Aufgeklappter Warenkorb, auf \"Warenkorb\" oben tippen",
+         "Der Winkel zeigt nach oben; ein Tipp klappt zu, die Artikel "
+         "sind wieder da.",
+         "RTH"),
+
+        ("Bezahlen aus der zugeklappten Zeile",
+         "Kasse im Hochformat, \"Bezahlen\" in der Zeile",
+         "Das Zahlungsfenster geht mit der richtigen Summe auf - ohne "
+         "vorher aufzuklappen.",
+         "RTH"),
+
+        ("Leerer Warenkorb klappt selbst zu",
+         "Bezahlen oder Leeren, während er aufgeklappt ist",
+         "Er klappt von allein zur Zeile zusammen, statt leer den "
+         "Bildschirm zu belegen.",
+         "RTH"),
 
         ("Bezahlen: Nummernblock",
          "Kasse, \"Bezahlen\"",
@@ -273,16 +360,29 @@ KATALOG = [
 
         ("Übersicht",
          "Artikel",
-         "Kategorien und Artikelliste sind zu sehen.",
+         "Die Artikelliste hat den ganzen Bildschirm; die Kategorien "
+         "stehen unten in der Leiste.",
+         "RTH"),
+
+        ("Kategorien in der Leiste",
+         "Artikel, Leiste unten \"Kategorie\"",
+         "Zugeklappt steht dort die gewählte Kategorie (sonst \"Alle "
+         "Kategorien\"); ein Tipp klappt die Kategorien hoch.",
+         "RTH"),
+
+        ("Nach Kategorie filtern",
+         "Artikel, Kategorie in der Leiste antippen",
+         "Die Liste zeigt nur deren Artikel, die Leiste nennt sie; "
+         "ein zweiter Tipp hebt den Filter auf.",
          "RTH"),
 
         ("Kategorie anlegen",
-         "Artikel, \"Neu\" bei den Kategorien",
+         "Artikel, Leiste aufklappen, \"Neu\"",
          "Neue Kategorie erscheint in der Liste und in der Kasse.",
          "RTH"),
 
         ("Kategorie ändern und löschen",
-         "Artikel, \"Bearbeiten\" bei den Kategorien",
+         "Artikel, Leiste aufklappen, \"Bearbeiten\"",
          "Umbenennen wirkt überall; Löschen fragt nach.",
          "RTH"),
 
@@ -297,6 +397,18 @@ KATALOG = [
          "Preis, Einkaufspreis, Kategorie, Sichtbarkeit lassen sich "
          "speichern.",
          "RTH"),
+
+        ("Maske nutzt die ganze Breite",
+         "Artikel, \"Bearbeiten\" (Telefon)",
+         "Die Karten stehen untereinander, jede über die volle Breite; "
+         "keine Zeile ist mittendrin abgeschnitten.",
+         "H"),
+
+        ("Preis und Bestand über den Nummernblock",
+         "Artikel, Bearbeiten, ins Preisfeld tippen (Telefon)",
+         "Die erste Ziffer ersetzt den Vorschlag; \"Bestätigen\" trägt "
+         "den Wert ins Feld, Speichern behält ihn.",
+         "H"),
 
         ("Artikel löschen",
          "Artikel, Kreuz in der Zeile",
@@ -333,6 +445,12 @@ KATALOG = [
          "Artikel, Mix-Artikel bearbeiten",
          "Zutaten zuordnen, Mengen und Einheiten ändern, entfernen.",
          "RTH"),
+
+        ("Rezept: Zutatenfeld ist bedienbar",
+         "Artikel, Mix-Artikel bearbeiten (Telefon)",
+         "Zutat, Menge, Einheit und \"Hinzufügen\" stehen zweizeilig "
+         "und sind alle zu treffen.",
+         "H"),
 
         ("Zutat ohne eigenen Artikel",
          "Rezept, Freitextzutat",
@@ -402,8 +520,9 @@ KATALOG = [
     ("Kassenbuch", [
 
         ("Zeitraum wählen",
-         "Kassenbuch, Jahr und Monat",
-         "Die Tabelle zeigt den gewählten Monat.",
+         "Kassenbuch, Leiste unten \"Zeitraum\"",
+         "Zugeklappt steht dort Monat und Jahr; aufgeklappt lassen "
+         "sich beide wählen, die Tabelle zieht nach.",
          "RTH"),
 
         ("Zeile erfassen",
@@ -524,13 +643,15 @@ KATALOG = [
          "RTH"),
 
         ("Nach Event filtern",
-         "Statistik, Auswahl oben",
-         "Nur Verkäufe dieser Veranstaltung.",
+         "Statistik, Leiste unten \"Auswahl\"",
+         "Nur Verkäufe dieser Veranstaltung; die zugeklappte Leiste "
+         "nennt das gewählte Event.",
          "RTH"),
 
         ("Nach Zeitraum filtern",
-         "Statistik, Von / Bis",
-         "Kalender öffnet sich, Filter wirkt, Kreuz setzt zurück.",
+         "Statistik, Leiste unten, Von / Bis",
+         "Kalender öffnet sich, Filter wirkt, Kreuz setzt zurück; die "
+         "Leiste nennt den Zeitraum.",
          "RTH"),
 
         ("Einzelne Position löschen",
@@ -804,11 +925,23 @@ KATALOG = [
          "Nichts bricht mitten im Wort um.",
          "RTH"),
 
-        ("Kopf- und Fußzeile schlank",
+        ("Kopfzeile schlank",
          "Alle Bildschirme (Telefon)",
-         "Kopf und Fuß nehmen zusammen deutlich weniger als ein "
-         "Fünftel der Höhe ein.",
+         "Die Kopfzeile nimmt deutlich weniger als ein Zehntel der "
+         "Höhe ein; eine Fußzeile gibt es nicht mehr.",
          "H"),
+
+        ("Filterleiste sagt, was gilt",
+         "Artikel, Kassenbuch, Statistik",
+         "Zugeklappt steht dort der eingestellte Stand - ohne dass man "
+         "sie öffnen muss.",
+         "RTH"),
+
+        ("Filterleiste klappt auf und zu",
+         "Artikel, Kassenbuch, Statistik",
+         "Ein Tipp öffnet sie, ein zweiter schließt sie; beim Wechsel "
+         "des Bildschirms ist sie wieder zu.",
+         "RTH"),
 
         ("Bildschirmtastatur schiebt das Feld hoch",
          "Listen, neues Feld beschreiben",
@@ -915,7 +1048,90 @@ def _anleitung(mappe):
     return blatt
 
 
-def _bereichsblatt(mappe, bereich, eintraege, pruefliste):
+def _altbestand(ziel):
+    """Liest Ergebnisse und Kommentare aus einer vorhandenen Mappe.
+
+    Ergebnis: {(Bereich, Funktion): ([Rechner, Tablet, Handy],
+    Kommentar)}. Fehlt die Datei oder laesst sie sich nicht lesen,
+    bleibt das Ergebnis leer - dann entsteht eben eine frische Mappe.
+    """
+
+    ziel = Path(ziel)
+
+    if not ziel.exists():
+        return {}
+
+    try:
+        from openpyxl import load_workbook
+
+        mappe = load_workbook(ziel, data_only=True)
+
+    except Exception as fehler:                      # pragma: no cover
+        print(f"   (vorhandene Mappe nicht lesbar: {fehler})")
+        return {}
+
+    bestand = {}
+
+    for name in mappe.sheetnames:
+
+        if name in ("Anleitung", "Übersicht"):
+            continue
+
+        blatt = mappe[name]
+
+        for zeile in blatt.iter_rows(min_row=2):
+
+            werte = [zelle.value for zelle in zeile]
+
+            if len(werte) < 8 or not werte[1]:
+                continue
+
+            funktion = str(werte[1]).strip()
+
+            zustaende = [
+                str(wert).strip() if wert else ""
+                for wert in werte[4:7]
+            ]
+
+            kommentar = str(werte[7]).strip() if werte[7] else ""
+
+            bestand[(name, funktion)] = (zustaende, kommentar)
+
+    mappe.close()
+
+    return bestand
+
+
+def _uebernehmen(bestand, bereich, funktion):
+    """Was fuer diese Funktion schon eingetragen war.
+
+    Liefert (Zustaende, Kommentar). Zustaende ist None, wenn die
+    Funktion sich geaendert hat und deshalb neu angesehen werden will.
+    """
+
+    schluessel = (bereich, funktion)
+
+    # Alte Namen mitnehmen
+    for alt, neu in UMBENANNT.items():
+
+        if neu == schluessel and alt in bestand:
+
+            _zustaende, kommentar = bestand[alt]
+
+            return None, kommentar
+
+    if schluessel not in bestand:
+        return None, ""
+
+    zustaende, kommentar = bestand[schluessel]
+
+    if schluessel in GEAENDERT:
+        return None, kommentar
+
+    return zustaende, kommentar
+
+
+def _bereichsblatt(mappe, bereich, eintraege, pruefliste, bestand):
 
     blatt = mappe.create_sheet(bereich[:31])
 
@@ -941,10 +1157,28 @@ def _bereichsblatt(mappe, bereich, eintraege, pruefliste):
 
         werte = [nummer, funktion, wo, erwartet]
 
-        for kuerzel, geraet in zip("RTH", GERAETE):
-            werte.append("offen" if kuerzel in geraete else NICHT)
+        alte_zustaende, alter_kommentar = _uebernehmen(
+            bestand, bereich, funktion
+        )
 
-        werte.append("")
+        for stelle, (kuerzel, geraet) in enumerate(zip("RTH", GERAETE)):
+
+            if kuerzel not in geraete:
+                werte.append(NICHT)
+                continue
+
+            frueher = (
+                alte_zustaende[stelle] if alte_zustaende else ""
+            )
+
+            # "entfällt" von frueher gilt nicht mehr, wenn es die
+            # Funktion auf dem Geraet inzwischen gibt.
+            if frueher in ("", NICHT):
+                werte.append("offen")
+            else:
+                werte.append(frueher)
+
+        werte.append(alter_kommentar)
 
         for spalte, wert in enumerate(werte, start=1):
 
@@ -1070,6 +1304,9 @@ def _uebersicht(mappe, bereiche):
 
 def erzeugen(ziel):
 
+    # Was schon geprueft und kommentiert wurde, bleibt erhalten.
+    bestand = _altbestand(ziel)
+
     mappe = Workbook()
     mappe.remove(mappe.active)
 
@@ -1080,7 +1317,7 @@ def erzeugen(ziel):
 
     for bereich, eintraege in KATALOG:
 
-        _bereichsblatt(mappe, bereich, eintraege, pruefliste)
+        _bereichsblatt(mappe, bereich, eintraege, pruefliste, bestand)
 
         bereiche.append((bereich, len(eintraege)))
 
@@ -1089,9 +1326,23 @@ def erzeugen(ziel):
     ziel = Path(ziel)
     ziel.parent.mkdir(parents=True, exist_ok=True)
 
-    mappe.save(ziel)
+    try:
+        mappe.save(ziel)
 
-    return ziel, pruefliste
+    except PermissionError:
+
+        # Excel haelt die Datei offen. Statt die Arbeit wegzuwerfen,
+        # daneben ablegen - der Name sagt, was zu tun ist.
+        ausweich = ziel.with_name(f"{ziel.stem}_NEU{ziel.suffix}")
+
+        mappe.save(ausweich)
+
+        print(f"   {ziel.name} ist geöffnet - neu geschrieben nach "
+              f"{ausweich.name}")
+
+        ziel = ausweich
+
+    return ziel, pruefliste, bestand
 
 
 def main():
@@ -1101,7 +1352,7 @@ def main():
     else:
         ziel = config.EXPORT_EXCEL_DIR / "KiG_POS_Pruefkatalog.xlsx"
 
-    ziel, pruefliste = erzeugen(ziel)
+    ziel, pruefliste, bestand = erzeugen(ziel)
 
     gesamt = len(pruefliste)
 
@@ -1110,6 +1361,17 @@ def main():
     print(f"{ziel}")
     print(f"{len(KATALOG)} Bereiche, {gesamt} Funktionen, "
           f"{einzelpruefungen} Einzelprüfungen")
+
+    if bestand:
+
+        namen = {(b, f) for b, f, _g in pruefliste}
+
+        wieder = len(namen & set(bestand))
+        neu = len(namen - set(bestand))
+        weg = len(set(bestand) - namen)
+
+        print(f"Aus der bisherigen Mappe übernommen: {wieder} Funktionen, "
+              f"{neu} neu, {weg} entfallen")
 
     for bereich, eintraege in KATALOG:
         print(f"   {bereich:22s} {len(eintraege):3d}")

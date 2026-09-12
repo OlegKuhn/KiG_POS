@@ -27,6 +27,7 @@ from widgets.common.exporthinweis import (
     export_hinweis, hinweisfeld_vorbereiten,
 )
 from widgets.common.feld import Feldknopf
+from widgets.common.kig_bildknopf import loeschknopf
 from widgets.common.filterleiste import Filterleiste
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.common.rounded_spinner import RoundedSpinner
@@ -191,50 +192,65 @@ class StatisticsScreen(Screen):
 
         # Auf dem Telefon passen Ereignisauswahl, zwei Datumsfelder und
         # "Aktualisieren" nicht in eine Zeile - dort brechen sie um.
-        schmal = theme.is_narrow()
-
+        # Die Felder stehen untereinander, jedes ueber die ganze
+        # Breite der Filterkarte. Nebeneinander gezogen blieben fuer
+        # Ereignis, Von, Bis und "Aktualisieren" je rund ein Viertel
+        # Bildschirm - vier flache Kaesten in einer Reihe.
         filters = BoxLayout(
-            orientation="vertical" if schmal else "horizontal",
-            size_hint_y=None,
-            height=dp(44 * 2 + theme.ROW_SPACING) if schmal else dp(48),
+            orientation="vertical",
             spacing=dp(theme.ROW_SPACING),
         )
 
-        obere = BoxLayout(spacing=dp(theme.ROW_SPACING)) if schmal else filters
-        untere = BoxLayout(spacing=dp(theme.ROW_SPACING)) if schmal else filters
+        def zeile(beschriftung, feld):
+            """Ein Feld mit seiner Ueberschrift darueber."""
 
-        if schmal:
-            filters.add_widget(obere)
-            filters.add_widget(untere)
+            kasten = BoxLayout(
+                orientation="vertical",
+                size_hint_y=None,
+                height=dp(24) + dp(theme.FELD_HOEHE),
+                spacing=dp(2),
+            )
+
+            titel = KiGLabel(text=beschriftung)
+            titel.set_font_size(13)
+            titel.set_alignment("left")
+            titel.set_color(theme.TEXT_SECONDARY)
+            titel.size_hint_y = None
+            titel.height = dp(24)
+            kasten.add_widget(titel)
+
+            feld.size_hint_y = None
+            feld.height = dp(theme.FELD_HOEHE)
+            kasten.add_widget(feld)
+
+            return kasten
 
         # Ein blanker Kivy-Spinner stand hier als dunkler Kasten mit
         # weisser Schrift zwischen lauter hellen Feldern.
         self.event_filter = RoundedSpinner(
             text="Alle Events", values=("Alle Events",),
-            size_hint_x=1.15,
         )
         self.event_filter.bind(text=lambda *_args: self._filter_geaendert())
-        obere.add_widget(self.event_filter)
+
+        filters.add_widget(zeile("Veranstaltung", self.event_filter))
 
         self.date_from_value = None
         self.date_to_value = None
 
-        untere.add_widget(self._build_date_filter(
-            "Von", lambda: self.open_date_picker("from"), lambda: self.clear_date_filter("from"),
-        ))
-        untere.add_widget(self._build_date_filter(
-            "Bis", lambda: self.open_date_picker("to"), lambda: self.clear_date_filter("to"),
-        ))
+        filters.add_widget(zeile("Von", self._build_date_filter(
+            "Von", lambda: self.open_date_picker("from"),
+            lambda: self.clear_date_filter("from"),
+        )))
+        filters.add_widget(zeile("Bis", self._build_date_filter(
+            "Bis", lambda: self.open_date_picker("to"),
+            lambda: self.clear_date_filter("to"),
+        )))
 
-        aktualisieren = self._button("Aktualisieren", self.refresh, width=dp(130))
+        aktualisieren = self._button("Aktualisieren", self.refresh)
+        aktualisieren.size_hint_y = None
+        aktualisieren.height = dp(theme.FELD_HOEHE)
 
-        if schmal:
-            # In der oberen Zeile neben der Ereignisauswahl - unten
-            # brauchen die beiden Datumsfelder den ganzen Platz.
-            aktualisieren.width = dp(120)
-            obere.add_widget(aktualisieren)
-        else:
-            filters.add_widget(aktualisieren)
+        filters.add_widget(aktualisieren)
 
         # Ereignis und Zeitraum sind der Filter dieses Bildschirms -
         # sie stehen jetzt unten in der Leiste. Die Karte darueber
@@ -244,7 +260,10 @@ class StatisticsScreen(Screen):
             titel="Auswahl",
             zusammenfassung=self._filter_text,
             inhalt_hoehe=(
-                filters.height / dp(1) + 2 * theme.SPACE_XS
+                3 * (24 + theme.FELD_HOEHE)
+                + theme.FELD_HOEHE
+                + 3 * theme.ROW_SPACING
+                + 2 * theme.CARD_PADDING
             ),
         )
 
@@ -305,8 +324,14 @@ class StatisticsScreen(Screen):
         panel.add_widget(scroll)
 
         actions = BoxLayout(size_hint_y=None, height=dp(48), spacing=dp(theme.ROW_SPACING))
-        actions.add_widget(self._button("Ausgewählte löschen", self.delete_selected))
-        actions.add_widget(self._button("Zeitraum löschen", self.delete_period))
+        actions.add_widget(loeschknopf(
+            self.delete_selected, text="Ausgewählte",
+            font_size="15sp", bold=True,
+        ))
+        actions.add_widget(loeschknopf(
+            self.delete_period, text="Zeitraum",
+            font_size="15sp", bold=True,
+        ))
         panel.add_widget(actions)
         return panel
 

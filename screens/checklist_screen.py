@@ -38,6 +38,10 @@ import storage
 import teilen
 import theme
 
+from widgets.common.kig_bildknopf import (
+    loeschknopf, neuknopf,
+)
+
 from widgets.common.exporthinweis import (
     export_hinweis, hinweisfeld_vorbereiten,
 )
@@ -116,8 +120,10 @@ class ChecklistScreen(Screen):
         aktionen = BoxLayout(
             size_hint_y=None, height=dp(52), spacing=dp(theme.ROW_SPACING)
         )
-        aktionen.add_widget(self._button("Neue Liste", self.new_checklist))
-        aktionen.add_widget(self._button("Löschen", self.delete_checklist))
+        # Bild ohne Wort: In der schmalen Spalte teilen sich zwei
+        # Schaltflaechen rund 180 dp - "Neue Liste" brach dort um.
+        aktionen.add_widget(neuknopf(self.new_checklist))
+        aktionen.add_widget(loeschknopf(self.delete_checklist))
         panel.add_widget(aktionen)
 
         return panel

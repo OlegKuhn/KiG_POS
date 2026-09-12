@@ -58,6 +58,7 @@ from widgets.common.exporthinweis import (
 from widgets.common.confirm_popup import ConfirmPopup
 from widgets.common.date_picker_popup import DatePickerPopup
 from widgets.common.feld import Feldknopf
+from widgets.common.kig_bildknopf import loeschknopf
 from widgets.common.rounded_input import RoundedInput
 from widgets.common.filterleiste import Filterleiste
 from widgets.common.rounded_panel import RoundedPanel
@@ -255,7 +256,7 @@ class CashBookScreen(Screen):
             inhalt=self._build_zeitraum_inhalt(),
             titel="Zeitraum",
             zusammenfassung=self._zeitraum_text,
-            inhalt_hoehe=200 if theme.is_narrow() else 230,
+            inhalt_hoehe=300 if theme.is_narrow() else 340,
         )
 
         root.add_widget(self._build_table_panel())
@@ -270,27 +271,30 @@ class CashBookScreen(Screen):
     def _build_zeitraum_inhalt(self):
         """Jahre und Monate - der Inhalt der Filterleiste."""
 
-        # Nebeneinander: In einer Leiste ist Hoehe knapp, Breite nicht.
+        # Untereinander: Die Filterkarte ist hoch und schmal (siehe
+        # widgets/common/filterleiste.py). Die Jahre passen als
+        # Streifen nach oben, darunter bleibt Platz fuer die Monate.
         inhalt = BoxLayout(
-            orientation="horizontal",
+            orientation="vertical",
             spacing=dp(theme.CARD_SPACING),
         )
 
         self.year_box = BoxLayout(
-            orientation="vertical",
+            orientation="horizontal",
             spacing=dp(theme.SPACE_XS),
-            size_hint_y=None,
+            size_hint_x=None,
         )
-        self.year_box.bind(minimum_height=self.year_box.setter("height"))
+        self.year_box.bind(minimum_width=self.year_box.setter("width"))
 
         # Die Jahre bekommen nur so viel Platz, wie sie brauchen (bis
         # zu drei auf einen Blick) - der Rest gehoert den Monaten.
-        self.year_scroll = ScrollView(do_scroll_x=False, bar_width=dp(8))
+        # Die Jahre liegen nebeneinander und rollen waagerecht: Es
+        # sind wenige, und sie sind kurz.
+        self.year_scroll = ScrollView(
+            do_scroll_y=False, bar_width=dp(8),
+            size_hint_y=None, height=dp(self.YEAR_BUTTON_HEIGHT),
+        )
         self.year_scroll.add_widget(self.year_box)
-
-        # Ein Jahr ist eine vierstellige Zahl, ein Monat ein Wort -
-        # entsprechend teilen sie sich die Breite.
-        self.year_scroll.size_hint_x = 0.35
 
         inhalt.add_widget(self.year_scroll)
 
@@ -322,6 +326,7 @@ class CashBookScreen(Screen):
             button = self._selection_button(
                 str(jahr), dp(self.YEAR_BUTTON_HEIGHT),
                 lambda jahr=jahr: self.select_year(jahr),
+                breite=dp(92),
             )
 
             self.year_buttons[jahr] = button
@@ -357,7 +362,7 @@ class CashBookScreen(Screen):
         if button is not None and button.parent is not None:
             self.month_scroll.scroll_to(button, padding=dp(20), animate=False)
 
-    def _selection_button(self, text, height, callback):
+    def _selection_button(self, text, height, callback, breite=None):
 
         # Auch die Auswahl im Filter traegt den Feldstil: Sie steht
         # neben Feldern und wuerde sonst als Fremdkoerper auffallen.
@@ -365,6 +370,10 @@ class CashBookScreen(Screen):
             text=text, size_hint_y=None, height=height,
             on_tipp=callback,
         )
+
+        if breite is not None:
+            button.size_hint_x = None
+            button.width = breite
 
         return button
 
@@ -592,7 +601,10 @@ class CashBookScreen(Screen):
         buttons = BoxLayout(
             size_hint_y=None, height=dp(52), spacing=dp(theme.ROW_SPACING)
         )
-        buttons.add_widget(self._action_button("Löschen", self.delete_entry))
+        buttons.add_widget(loeschknopf(
+            self.delete_entry, text="Löschen",
+            font_size="15sp", bold=True,
+        ))
         buttons.add_widget(self._action_button(
             "Speichern", self.save_entry,
             background=theme.PRIMARY_ORANGE, color=theme.TEXT_WHITE,

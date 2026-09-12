@@ -12,7 +12,9 @@ import theme
 from widgets.common import schreibschutz
 from widgets.common.feld import Feldknopf
 
-from widgets.common.kig_symbol import KiGSymbolButton, KREUZ
+from widgets.common.kig_bildknopf import (
+    bearbeitenknopf, loeschknopf,
+)
 
 
 class ArticleListRow(BoxLayout):
@@ -165,24 +167,15 @@ class ArticleListRow(BoxLayout):
         # Bearbeiten / Löschen
         # -------------------------------------------------
 
-        edit_button = Button(
-            text="Bearbeiten", size_hint_x=None, width=dp(100),
-            background_normal="", background_down="",
-            background_color=theme.PRIMARY_ORANGE, color=theme.TEXT_WHITE,
-            font_size="13sp", bold=True,
-        )
-        edit_button.bind(
-            on_release=lambda *_args: self.edit_callback(self.article)
+        edit_button = bearbeitenknopf(
+            lambda: self.edit_callback(self.article),
+            size_hint_x=None, width=dp(58),
         )
         self.add_widget(edit_button)
 
-        delete_button = KiGSymbolButton(
-            symbol=KREUZ, symbol_color=theme.TEXT_WHITE,
+        delete_button = loeschknopf(
+            lambda: self.delete_callback(self.article),
             size_hint_x=None, width=dp(46),
-            background_color=theme.ERROR, color=theme.TEXT_WHITE,
-        )
-        delete_button.bind(
-            on_release=lambda *_args: self.delete_callback(self.article)
         )
         self.add_widget(delete_button)
 
@@ -245,13 +238,9 @@ class ArticleListRow(BoxLayout):
 
         obere_zeile.add_widget(name_column)
 
-        delete_button = KiGSymbolButton(
-            symbol=KREUZ, symbol_color=theme.TEXT_WHITE,
+        delete_button = loeschknopf(
+            lambda: self.delete_callback(self.article),
             size_hint_x=None, width=dp(44),
-            background_color=theme.ERROR, color=theme.TEXT_WHITE,
-        )
-        delete_button.bind(
-            on_release=lambda *_args: self.delete_callback(self.article)
         )
         obere_zeile.add_widget(delete_button)
 
@@ -293,14 +282,8 @@ class ArticleListRow(BoxLayout):
             )
         untere_zeile.add_widget(confirm_button)
 
-        edit_button = Button(
-            text="Bearbeiten",
-            background_normal="", background_down="",
-            background_color=theme.PRIMARY_ORANGE, color=theme.TEXT_WHITE,
-            font_size="13sp", bold=True,
-        )
-        edit_button.bind(
-            on_release=lambda *_args: self.edit_callback(self.article)
+        edit_button = bearbeitenknopf(
+            lambda: self.edit_callback(self.article),
         )
         untere_zeile.add_widget(edit_button)
 
@@ -354,13 +337,9 @@ class ArticleListRow(BoxLayout):
 
         obere_zeile.add_widget(name_column)
 
-        delete_button = KiGSymbolButton(
-            symbol=KREUZ, symbol_color=theme.TEXT_WHITE,
+        delete_button = loeschknopf(
+            lambda: self.delete_callback(self.article),
             size_hint_x=None, width=dp(46),
-            background_color=theme.ERROR, color=theme.TEXT_WHITE,
-        )
-        delete_button.bind(
-            on_release=lambda *_args: self.delete_callback(self.article)
         )
         obere_zeile.add_widget(delete_button)
 
@@ -419,14 +398,9 @@ class ArticleListRow(BoxLayout):
             )
         untere_zeile.add_widget(confirm_button)
 
-        edit_button = Button(
-            text="Bearbeiten", size_hint_x=None, width=dp(94),
-            background_normal="", background_down="",
-            background_color=theme.PRIMARY_ORANGE, color=theme.TEXT_WHITE,
-            font_size="13sp", bold=True,
-        )
-        edit_button.bind(
-            on_release=lambda *_args: self.edit_callback(self.article)
+        edit_button = bearbeitenknopf(
+            lambda: self.edit_callback(self.article),
+            size_hint_x=None, width=dp(58),
         )
         untere_zeile.add_widget(edit_button)
 

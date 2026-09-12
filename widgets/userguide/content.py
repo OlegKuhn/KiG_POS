@@ -82,6 +82,22 @@ TOPICS = [
                 ),
             },
             {
+                "heading": "Drei Sinnbilder",
+                "text": (
+                    "Drei Handgriffe wiederholen sich überall im "
+                    "Programm. Sie tragen deshalb ihr Bild statt eines "
+                    "Wortes:\n\n"
+                    "Mülleimer - löschen oder entfernen. Der Knopf ist "
+                    "zart rot hinterlegt, und vor dem Löschen kommt "
+                    "immer eine Rückfrage.\n\n"
+                    "Stift - bearbeiten. Öffnet den Eintrag, die Zeile "
+                    "oder das Dashboard zum Ändern.\n\n"
+                    "Plus - neu anlegen oder hinzufügen.\n\n"
+                    "Wo im Handbuch \"Bearbeiten\", \"Löschen\" oder "
+                    "\"Neu\" steht, ist ab sofort dieses Bild gemeint."
+                ),
+            },
+            {
                 "heading": "Die Leiste unten",
                 "text": (
                     "Am unteren Rand steht das, was zum jeweiligen "
@@ -92,7 +108,9 @@ TOPICS = [
                     "Statistik steht dort der Filter: zugeklappt sagt "
                     "er, was gerade gilt (etwa \"September 2026\" oder "
                     "\"Alle Kategorien\"), ein Tipp klappt die "
-                    "Einstellmöglichkeiten hoch.\n\n"
+                    "Einstellmöglichkeiten als schmale Karte darüber "
+                    "auf - die Felder stehen darin untereinander. Ein "
+                    "Tipp daneben schließt sie wieder.\n\n"
                     "So gehört der übrige Bildschirm ganz der Tabelle "
                     "oder der Liste - und nichts steht dauerhaft "
                     "herum, was man nur selten braucht."

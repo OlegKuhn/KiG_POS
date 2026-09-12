@@ -8,6 +8,8 @@ from kivy.uix.scrollview import ScrollView
 
 import theme
 
+from widgets.common.kig_bildknopf import neuknopf
+
 from widgets.common.exporthinweis import hinweisfeld_vorbereiten
 from widgets.common import schreibschutz
 
@@ -45,14 +47,14 @@ class ArticleListPanel(RoundedPanel):
         "sort_button": "Sortierung",
         "export_button": "Einkaufsliste exportieren",
         "teilen_button": "Teilen",
-        "new_button": "+ Neuer Artikel",
+        "new_button": "Neuer Artikel",
     }
 
     KURZE_BESCHRIFTUNGEN = {
         "sort_button": "Sortieren",
         "export_button": "Export",
         "teilen_button": "Teilen",
-        "new_button": "+ Neu",
+        "new_button": "Neu",
     }
 
     def __init__(
@@ -137,13 +139,11 @@ class ArticleListPanel(RoundedPanel):
         self.teilen_button.bind(on_release=lambda *_args: self.teilen_callback())
         self.header_buttons.add_widget(self.teilen_button)
 
-        self.new_button = Button(
-            text="+ Neuer Artikel",
-            background_normal="", background_down="",
-            background_color=theme.PRIMARY_ORANGE, color=theme.TEXT_WHITE,
+        self.new_button = neuknopf(
+            self.new_callback,
+            text="Neuer Artikel",
             font_size="14sp", bold=True,
         )
-        self.new_button.bind(on_release=lambda *_args: self.new_callback())
         self.header_buttons.add_widget(self.new_button)
 
         self.header.add_widget(self.header_buttons)
@@ -256,6 +256,12 @@ class ArticleListPanel(RoundedPanel):
 
         for name, text in beschriftungen.items():
             getattr(self, name).text = text
+
+        # Der Knopf mit dem Plus kommt ohne Wort aus, sobald es eng
+        # wird: Bild UND "Neu" nebeneinander brachen den Text sonst
+        # buchstabenweise um ("N e u").
+        if beschriftungen is self.KURZE_BESCHRIFTUNGEN:
+            self.new_button.text = ""
 
         # Neben der Überschrift behalten die Schaltflächen ihre Breite,
         # in der eigenen Zeile teilen sie sich den Platz.

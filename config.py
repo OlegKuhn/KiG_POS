@@ -277,6 +277,19 @@ ICON_USE = ICON_DIR / "use.png"
 
 ICON_SETTINGS = ICON_DIR / "settings.png"
 
+# Die drei Handgriffe, die sich durch das ganze Programm ziehen -
+# loeschen, bearbeiten, neu (siehe widgets/common/kig_bildknopf.py).
+# Zu jedem gibt es eine helle Fassung fuer den Dunkelmodus; sie
+# entsteht mit werkzeuge/symbolbilder_hell.py.
+ICON_DELETE = ICON_DIR / "recycle-bin.png"
+ICON_DELETE_HELL = ICON_DIR / "recycle-bin_hell.png"
+
+ICON_EDIT = ICON_DIR / "edit.png"
+ICON_EDIT_HELL = ICON_DIR / "edit_hell.png"
+
+ICON_NEW = ICON_DIR / "plus.png"
+ICON_NEW_HELL = ICON_DIR / "plus_hell.png"
+
 # Programmsymbol, erzeugt aus dem Vereinslogo
 # (siehe werkzeuge/symbol_erzeugen.py). Zwei Dateien, weil zwei
 # verschiedene Stellen es anzeigen:

@@ -21,14 +21,24 @@ Beschreibung:
     gehört der ganze Bildschirm dem Wesentlichen - der
     Tabelle, der Liste, den Zahlen.
 
+    Aufgeklappt ist der Teil mit den Bedienelementen
+    bewusst NICHT so breit wie der Bildschirm, sondern eine
+    hohe, schmale Karte über der Zeile - so, wie ein Menü
+    aus seiner Schaltfläche herauswächst. Über die ganze
+    Breite gezogen standen die Felder sonst als flacher
+    Streifen nebeneinander und wirkten gequetscht; in der
+    schmalen Karte stehen sie untereinander und haben ihre
+    volle Höhe.
+
 Version:
-    1.0.0
+    1.1.0
 =========================================================
 """
 
 from kivy.metrics import dp
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.floatlayout import FloatLayout
 
 import theme
 
@@ -102,7 +112,7 @@ class _Filterzeile(ButtonBehavior, BoxLayout):
         self.symbol.set_symbol(PFEIL_UNTEN if offen else PFEIL_OBEN)
 
 
-class Filterleiste(RoundedPanel):
+class Filterleiste(FloatLayout):
     """Die Filterleiste eines Bildschirms.
 
     `inhalt` sind die Bedienelemente, die beim Aufklappen erscheinen -
@@ -112,22 +122,27 @@ class Filterleiste(RoundedPanel):
 
     ZEILE_HOEHE = 44
 
+    # Höchstbreite der aufgeklappten Karte. Breiter braucht sie nicht
+    # zu sein: Darin stehen Felder untereinander, und ein Feld ist
+    # rund 300 dp breit gut zu lesen.
+    INHALT_BREITE = 420
+
     def __init__(
             self,
             inhalt,
             titel="Filter",
             zusammenfassung=None,
-            inhalt_hoehe=220,
+            inhalt_hoehe=280,
             **kwargs
     ):
 
-        super().__init__(
-            orientation="vertical",
-            padding=dp(theme.SPACE_S),
-            spacing=dp(theme.SPACE_XS),
-            **kwargs
-        )
+        super().__init__(**kwargs)
 
+        # Die Leiste selbst ist immer nur die Zeile hoch. Die Karte
+        # mit den Bedienelementen LEGT sich beim Aufklappen darueber,
+        # statt den Bildschirm zusammenzuschieben: Sonst wurde die
+        # Tabelle darueber auf einen Streifen gequetscht, waehrend man
+        # den Filter einstellt.
         self.size_hint_y = None
 
         self.inhalt = inhalt
@@ -136,7 +151,33 @@ class Filterleiste(RoundedPanel):
 
         self.offen = False
 
+        # --------------------------------------------------
+        # Die immer sichtbare Zeile, in ihrer eigenen Karte
+        # --------------------------------------------------
+
         self.zeile = _Filterzeile(titel, self.umschalten)
+
+        self.zeilen_karte = RoundedPanel(
+            orientation="vertical",
+            padding=dp(theme.SPACE_S),
+            size_hint=(1, None),
+            height=self._zeilenhoehe,
+            pos_hint={"x": 0, "y": 0},
+        )
+        self.zeilen_karte.add_widget(self.zeile)
+
+        # --------------------------------------------------
+        # Die Karte mit den Bedienelementen
+        # --------------------------------------------------
+
+        self.inhalt_karte = RoundedPanel(
+            orientation="vertical",
+            padding=dp(theme.CARD_PADDING),
+            spacing=dp(theme.CARD_SPACING),
+            size_hint=(None, None),
+        )
+
+        self.bind(pos=self._karte_setzen, size=self._karte_setzen)
 
         self._nur_zeile()
 
@@ -147,15 +188,36 @@ class Filterleiste(RoundedPanel):
     @property
     def _zeilenhoehe(self):
 
-        return (
-            dp(self.ZEILE_HOEHE)
-            + dp(theme.SPACE_S) * 2
+        return dp(self.ZEILE_HOEHE) + dp(theme.SPACE_S) * 2
+
+    def _karte_setzen(self, *_args):
+        """Legt die Karte über die Leiste - rechtsbündig, von unten
+        nach oben.
+
+        Auf einem schmalen Gerät darf sie alles nehmen, was da ist;
+        sonst bleibt sie bei ihrer Höchstbreite.
+        """
+
+        if not self.offen:
+            return
+
+        self.inhalt_karte.width = min(
+            dp(self.INHALT_BREITE), max(dp(200), self.width)
         )
+
+        self.inhalt_karte.height = dp(self.inhalt_hoehe)
+
+        self.inhalt_karte.right = self.right
+
+        self.inhalt_karte.y = self.top + dp(theme.SPACE_XS)
 
     def _nur_zeile(self):
 
-        self.clear_widgets()
-        self.add_widget(self.zeile)
+        if self.inhalt_karte.parent is self:
+            self.remove_widget(self.inhalt_karte)
+
+        if self.zeilen_karte.parent is not self:
+            self.add_widget(self.zeilen_karte)
 
         self.height = self._zeilenhoehe
 
@@ -168,23 +230,20 @@ class Filterleiste(RoundedPanel):
         if self.offen:
             return
 
-        self.clear_widgets()
+        if self.inhalt.parent is not self.inhalt_karte:
 
-        # Kivy stellt in einer senkrechten Reihe das zuerst
-        # Hinzugefuegte nach oben: erst der Inhalt, dann die Zeile.
-        self.inhalt.size_hint_y = None
-        self.inhalt.height = dp(self.inhalt_hoehe)
+            if self.inhalt.parent is not None:
+                self.inhalt.parent.remove_widget(self.inhalt)
 
-        self.add_widget(self.inhalt)
-        self.add_widget(self.zeile)
+            self.inhalt_karte.add_widget(self.inhalt)
 
-        self.height = (
-            self._zeilenhoehe
-            + dp(self.inhalt_hoehe)
-            + dp(theme.SPACE_XS)
-        )
+        self.inhalt.size_hint_y = 1
+
+        self.add_widget(self.inhalt_karte)
 
         self.offen = True
+
+        self._karte_setzen()
 
         self.aktualisieren()
 
@@ -201,6 +260,26 @@ class Filterleiste(RoundedPanel):
             self.zuklappen()
         else:
             self.aufklappen()
+
+    def on_touch_down(self, touch):
+        """Ein Tipp neben die offene Karte schließt sie.
+
+        Wie bei einem Menü: Man kommt wieder heraus, ohne den Winkel
+        zu suchen. Der Tipp wird dabei geschluckt - sonst löst
+        derselbe Fingerdruck noch etwas auf dem Bildschirm darunter
+        aus.
+        """
+
+        if self.offen:
+
+            auf_karte = self.inhalt_karte.collide_point(*touch.pos)
+            auf_zeile = self.zeilen_karte.collide_point(*touch.pos)
+
+            if not auf_karte and not auf_zeile:
+                self.zuklappen()
+                return True
+
+        return super().on_touch_down(touch)
 
     # =====================================================
     # Stand

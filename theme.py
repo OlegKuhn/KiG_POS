@@ -78,6 +78,9 @@ _LIGHT_COLORS = {
     "SUCCESS": (0.26, 0.67, 0.30, 1),
     "WARNING": (1.00, 0.60, 0.00, 1),
     "ERROR": (0.83, 0.18, 0.18, 1),
+    # Hintergrund der Loeschknoepfe: Der Griff soll auffallen, ohne
+    # dass jede Zeile eine rote Flaeche traegt.
+    "ERROR_LIGHT": (0.98, 0.91, 0.91, 1),
     "INFO": (0.12, 0.47, 0.82, 1),
 
     # Progressbar
@@ -139,6 +142,7 @@ _DARK_COLORS = {
     "SUCCESS": (0.33, 0.75, 0.40, 1),
     "WARNING": (1.00, 0.66, 0.20, 1),
     "ERROR": (0.92, 0.35, 0.35, 1),
+    "ERROR_LIGHT": (0.38, 0.22, 0.22, 1),
     "INFO": (0.35, 0.62, 0.95, 1),
 
     # Progressbar
@@ -412,6 +416,10 @@ INPUT_RADIUS = 10
 # Wer im Halbdunkel einen Artikelnamen eintippt, muss lesen können,
 # was dasteht - erst recht auf dem E-Ink-Tablet.
 INPUT_FONT_SIZE = 19
+
+# Hoehe eines Feldes - ueberall dieselbe, damit Felder
+# untereinander eine Leiter bilden statt einer Treppe.
+FELD_HOEHE = 52
 
 DIALOG_RADIUS = 18
 

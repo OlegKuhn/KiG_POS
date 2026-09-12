@@ -15,6 +15,10 @@ from kivy.uix.widget import Widget
 
 import theme
 
+from widgets.common.kig_bildknopf import (
+    loeschknopf, neuknopf,
+)
+
 from widgets.common.rounded_spinner import RoundedSpinner
 from database import DatabaseManager
 from widgets.common.confirm_popup import ConfirmPopup
@@ -246,7 +250,10 @@ class EventsScreen(Screen):
             entry_list.add_widget(button)
 
         controls = BoxLayout(size_hint_y=None, height=dp(58), spacing=dp(theme.ROW_SPACING))
-        controls.add_widget(self._button("Neu", lambda: self.open_entry_editor(selected_day), height=dp(54)))
+        controls.add_widget(neuknopf(
+            lambda: self.open_entry_editor(selected_day),
+            size_hint=(1, None), height=dp(54),
+        ))
         controls.add_widget(self._button("Schließen", lambda: self.day_popup.dismiss(), height=dp(54)))
         content.add_widget(controls)
 
@@ -358,7 +365,12 @@ class EventsScreen(Screen):
         ), height=dp(54)))
 
         if entry is not None:
-            buttons.add_widget(self._button("Löschen", lambda: self.delete_entry(editor_popup, entry["id"]), height=dp(54)))
+            buttons.add_widget(loeschknopf(
+                lambda: self.delete_entry(editor_popup, entry["id"]),
+                text="Löschen",
+                size_hint=(1, None), height=dp(54),
+                font_size="18sp", bold=True,
+            ))
 
         buttons.add_widget(self._button("Abbrechen", editor_popup.dismiss, height=dp(54)))
         content.add_widget(buttons)

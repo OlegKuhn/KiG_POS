@@ -10,6 +10,8 @@ from kivy.metrics import dp
 
 import theme
 
+from widgets.common.kig_bildknopf import loeschknopf
+
 from widgets.kig_label import KiGLabel
 from widgets.common.kig_action_tile import KiGActionTile
 from widgets.cash.edit.quantity_editor import QuantityEditor
@@ -298,7 +300,13 @@ class EditPanel(SlidePanel, BoxLayout):
 
         self.btn_duplicate = schaltflaeche("Duplizieren", self._duplicate_clicked)
 
-        self.btn_delete = schaltflaeche("Löschen", self._delete_clicked)
+        self.btn_delete = loeschknopf(
+            lambda: self._delete_clicked(None, None),
+            text="Löschen",
+            size_hint=(1, None),
+            height=dp(self.BUTTON_HEIGHT),
+            font_size="16sp", bold=True,
+        )
 
         self.btn_cancel = schaltflaeche("Abbrechen", self._cancel_clicked)
 

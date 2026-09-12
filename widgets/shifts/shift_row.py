@@ -35,7 +35,7 @@ from kivy.uix.widget import Widget
 import theme
 
 from widgets.common.feld import Feldknopf
-from widgets.common.kig_symbol import KREUZ, KiGSymbolButton
+from widgets.common.kig_bildknopf import loeschknopf
 from widgets.common.rounded_input import RoundedInput
 
 
@@ -184,12 +184,10 @@ class ShiftRow(BoxLayout):
         self.add_widget(self.helper_button)
 
         # ---- Entfernen ----
-        entfernen = KiGSymbolButton(
-            symbol=KREUZ,
+        entfernen = loeschknopf(
+            lambda: self.on_remove(self),
             size_hint_x=None, width=dp(self.REMOVE_WIDTH),
-            symbol_color=theme.ERROR,
         )
-        entfernen.bind(on_release=lambda *_a: self.on_remove(self))
         self.add_widget(entfernen)
 
         self._faerben()

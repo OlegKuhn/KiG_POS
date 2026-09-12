@@ -25,6 +25,8 @@ from widgets.common.kig_popup import KiGPopup
 
 import theme
 
+from widgets.common.kig_bildknopf import loeschknopf
+
 from widgets.common.rounded_input import RoundedInput
 
 
@@ -225,13 +227,9 @@ class CategoryDialog(KiGPopup):
 
         if self.category is not None:
 
-            delete_button = Button(
+            delete_button = loeschknopf(
                 text="Löschen",
-                font_size="18sp",
-                background_normal="",
-                background_down="",
-                background_color=theme.ERROR,
-                color=theme.TEXT_WHITE
+                font_size="18sp", bold=True,
             )
 
             delete_button.bind(

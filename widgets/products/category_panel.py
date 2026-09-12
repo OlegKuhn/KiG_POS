@@ -20,6 +20,9 @@ import theme
 from widgets.common import schreibschutz
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.common.kig_action_tile import KiGActionTile
+from widgets.common.kig_bildknopf import (
+    bearbeitenknopf, neuknopf,
+)
 from widgets.kig_label import KiGLabel
 from widgets.products.category_card import CategoryCard
 
@@ -130,14 +133,12 @@ class CategoryPanel(RoundedPanel):
 
         if self.show_actions and self.hochformat:
 
-            for text, callback in (
-                ("Neu", lambda *_: self.on_new()),
-                ("Bearbeiten", lambda *_: self.on_edit()),
+            for text, bauen in (
+                ("Neu", lambda: neuknopf(self.on_new)),
+                ("Bearbeiten", lambda: bearbeitenknopf(self.on_edit)),
             ):
-                button = KiGActionTile(text=text, callback=callback)
+                button = bauen()
 
-                # Breite und Höhe erst NACH der Konstruktion setzen -
-                # KiGActionTile überschreibt übergebene Werte.
                 button.size_hint = (None, None)
                 button.width = dp(
                     self.NARROW_ACTION_WIDTH if theme.is_narrow()
@@ -160,15 +161,9 @@ class CategoryPanel(RoundedPanel):
                 height=dp(theme.CATEGORY_TILE_HEIGHT)
             )
 
-            self.new_button = KiGActionTile(
-                text="Neu",
-                callback=lambda *_: self.on_new()
-            )
+            self.new_button = neuknopf(self.on_new)
 
-            self.edit_button = KiGActionTile(
-                text="Bearbeiten",
-                callback=lambda *_: self.on_edit()
-            )
+            self.edit_button = bearbeitenknopf(self.on_edit)
 
             # KiGActionTile bringt von Haus aus eine feste Breite mit
             # (theme.CATEGORY_TILE_WIDTH). Zwei davon nebeneinander

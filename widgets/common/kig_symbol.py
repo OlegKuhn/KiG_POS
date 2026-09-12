@@ -17,6 +17,10 @@ Beschreibung:
     jedem Gerät gleich aus, auch auf dem E-Ink-Tablet, und
     hängt von keiner Schriftart ab.
 
+    Mülleimer, Stift und Plus sind KEINE gezeichneten
+    Symbole: Für sie liegen Bilder in assets/icons
+    (siehe widgets/common/kig_bildknopf.py).
+
     Verfügbar sind:
 
         haken         Erledigt-Häkchen
@@ -48,53 +52,77 @@ PFEIL_RECHTS = "pfeil_rechts"
 PFEIL_OBEN = "pfeil_oben"
 
 
-def _punkte(symbol, x, y, groesse):
-    """Linienzug eines Symbols in einem Quadrat der Kantenlänge
-    `groesse`, dessen linke untere Ecke bei (x, y) liegt."""
+def _linienzuege(symbol, x, y, groesse):
+    """Die Linienzüge eines Symbols.
+
+    Ein Quadrat der Kantenlänge `groesse`, dessen linke untere Ecke
+    bei (x, y) liegt. Zurück kommt eine Liste von Linienzügen - die
+    einfachen Symbole bestehen aus einem, Mülleimer und Stift aus
+    mehreren.
+
+    Die Zahlen sind Anteile der Kantenlänge: So sieht jedes Symbol in
+    jeder Größe gleich aus.
+    """
+
+    def punkte(*anteile):
+        """Rechnet Anteilspaare in Bildpunkte um."""
+
+        werte = []
+
+        for spalte, zeile in anteile:
+            werte += [x + groesse * spalte, y + groesse * zeile]
+
+        return werte
 
     if symbol == HAKEN:
         # Kurzer Schenkel nach unten links, langer nach oben rechts.
-        return [
-            x + groesse * 0.16, y + groesse * 0.52,
-            x + groesse * 0.42, y + groesse * 0.24,
-            x + groesse * 0.86, y + groesse * 0.76,
-        ]
+        return [punkte((0.16, 0.52), (0.42, 0.24), (0.86, 0.76))]
 
     if symbol == KREUZ:
         # Zwei Striche - als ein Linienzug ginge nur ein "V".
-        return None
+        return [
+            punkte((0.24, 0.24), (0.76, 0.76)),
+            punkte((0.24, 0.76), (0.76, 0.24)),
+        ]
 
     if symbol == PFEIL_LINKS:
+        # Strich und Spitze
         return [
-            x + groesse * 0.80, y + groesse * 0.50,
-            x + groesse * 0.20, y + groesse * 0.50,
+            punkte((0.80, 0.50), (0.20, 0.50)),
+            punkte((0.42, 0.28), (0.20, 0.50), (0.42, 0.72)),
         ]
 
     if symbol == PFEIL_UNTEN:
         # Winkel nach unten: aufgeklappt, der Inhalt steht darunter.
-        return [
-            x + groesse * 0.24, y + groesse * 0.62,
-            x + groesse * 0.50, y + groesse * 0.36,
-            x + groesse * 0.76, y + groesse * 0.62,
-        ]
+        return [punkte((0.24, 0.62), (0.50, 0.36), (0.76, 0.62))]
 
     if symbol == PFEIL_OBEN:
         # Winkel nach oben: zuklappen.
-        return [
-            x + groesse * 0.24, y + groesse * 0.38,
-            x + groesse * 0.50, y + groesse * 0.64,
-            x + groesse * 0.76, y + groesse * 0.38,
-        ]
+        return [punkte((0.24, 0.38), (0.50, 0.64), (0.76, 0.38))]
 
     if symbol == PFEIL_RECHTS:
         # Winkel nach rechts: zugeklappt.
-        return [
-            x + groesse * 0.38, y + groesse * 0.24,
-            x + groesse * 0.64, y + groesse * 0.50,
-            x + groesse * 0.38, y + groesse * 0.76,
-        ]
+        return [punkte((0.38, 0.24), (0.64, 0.50), (0.38, 0.76))]
 
     return []
+
+
+def zeichnen(symbol, x, y, groesse, linienbreite):
+    """Zeichnet ein Symbol in die gerade offene Zeichenfläche.
+
+    Farbe setzt der Aufrufer - so gilt dieselbe Rechnung für das
+    Symbol allein wie für das auf einer Schaltfläche.
+    """
+
+    for zug in _linienzuege(symbol, x, y, groesse):
+
+        if not zug:
+            continue
+
+        Line(
+            points=zug, width=dp(linienbreite),
+            cap="round", joint="round",
+        )
 
 
 class KiGSymbol(Widget):
@@ -156,48 +184,7 @@ class KiGSymbol(Widget):
 
             Color(*self.symbol_color)
 
-            if self.symbol == KREUZ:
-
-                rand = groesse * 0.24
-
-                Line(
-                    points=[
-                        x + rand, y + rand,
-                        x + groesse - rand, y + groesse - rand,
-                    ],
-                    width=dp(self.line_width), cap="round",
-                )
-                Line(
-                    points=[
-                        x + rand, y + groesse - rand,
-                        x + groesse - rand, y + rand,
-                    ],
-                    width=dp(self.line_width), cap="round",
-                )
-
-                return
-
-            punkte = _punkte(self.symbol, x, y, groesse)
-
-            if not punkte:
-                return
-
-            Line(
-                points=punkte, width=dp(self.line_width),
-                cap="round", joint="round",
-            )
-
-            if self.symbol == PFEIL_LINKS:
-
-                # Spitze
-                Line(
-                    points=[
-                        x + groesse * 0.42, y + groesse * 0.28,
-                        x + groesse * 0.20, y + groesse * 0.50,
-                        x + groesse * 0.42, y + groesse * 0.72,
-                    ],
-                    width=dp(self.line_width), cap="round", joint="round",
-                )
+            zeichnen(self.symbol, x, y, groesse, self.line_width)
 
 
 class KiGSymbolButton(Button):
@@ -263,44 +250,4 @@ class KiGSymbolButton(Button):
 
             Color(*self.symbol_color)
 
-            if self.symbol == KREUZ:
-
-                rand = kante * 0.24
-
-                Line(
-                    points=[
-                        x + rand, y + rand,
-                        x + kante - rand, y + kante - rand,
-                    ],
-                    width=dp(self.line_width), cap="round",
-                )
-                Line(
-                    points=[
-                        x + rand, y + kante - rand,
-                        x + kante - rand, y + rand,
-                    ],
-                    width=dp(self.line_width), cap="round",
-                )
-
-                return
-
-            punkte = _punkte(self.symbol, x, y, kante)
-
-            if not punkte:
-                return
-
-            Line(
-                points=punkte, width=dp(self.line_width),
-                cap="round", joint="round",
-            )
-
-            if self.symbol == PFEIL_LINKS:
-
-                Line(
-                    points=[
-                        x + kante * 0.42, y + kante * 0.28,
-                        x + kante * 0.20, y + kante * 0.50,
-                        x + kante * 0.42, y + kante * 0.72,
-                    ],
-                    width=dp(self.line_width), cap="round", joint="round",
-                )
+            zeichnen(self.symbol, x, y, kante, self.line_width)

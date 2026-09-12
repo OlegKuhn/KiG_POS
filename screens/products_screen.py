@@ -115,7 +115,7 @@ class ProductsScreen(Screen):
             inhalt=self.category_panel,
             titel="Kategorie",
             zusammenfassung=self._kategorie_text,
-            inhalt_hoehe=190 if theme.is_narrow() else 210,
+            inhalt_hoehe=280 if theme.is_narrow() else 320,
         )
 
         self.article_list_panel = ArticleListPanel(

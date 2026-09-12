@@ -33,6 +33,7 @@ import theme
 
 from widgets.common.kig_symbol import KiGSymbolButton, HAKEN
 from widgets.common.feld import Feldknopf
+from widgets.common.kig_bildknopf import loeschknopf
 from widgets.common.rounded_input import RoundedInput
 
 
@@ -43,7 +44,7 @@ class ChecklistItemRow(BoxLayout):
     # Verteilung der Breite: Die Aufgabe bekommt am meisten, die
     # Zusatzangaben teilen sich den Rest.
     HAKEN_WIDTH = 52
-    REMOVE_WIDTH = 110
+    REMOVE_WIDTH = 58
 
     # Der Haken wird gezeichnet (siehe widgets/common/kig_symbol.py):
     # Kivys Schrift kennt kein Häkchen und setzte an seine Stelle ein
@@ -126,13 +127,10 @@ class ChecklistItemRow(BoxLayout):
         self.add_widget(self.info_input)
 
         # ---- Entfernen ----
-        remove_button = Button(
-            text="Entfernen", size_hint_x=None, width=dp(self.REMOVE_WIDTH),
-            background_normal="", background_down="",
-            background_color=theme.SURFACE, color=theme.ERROR,
-            font_size="14sp", bold=True,
+        remove_button = loeschknopf(
+            lambda: self.on_remove(self),
+            size_hint_x=None, width=dp(self.REMOVE_WIDTH),
         )
-        remove_button.bind(on_release=lambda *_a: self.on_remove(self))
         self.add_widget(remove_button)
 
     # =====================================================

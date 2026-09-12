@@ -6,6 +6,8 @@ from kivy.metrics import dp
 import geldformat
 import theme
 
+from widgets.common.kig_bildknopf import bearbeitenknopf
+
 from widgets.kig_label import KiGLabel
 from widgets.common.kig_action_tile import KiGActionTile
 
@@ -89,7 +91,16 @@ class CartFooter(BoxLayout):
         # werden sie dort komplett ausgetauscht (siehe set_storno_mode).
         # Der Einstieg in den Storno sitzt oben in der Kopfzeile des
         # Warenkorbs neben "Leeren" (siehe cart_panel.py).
-        self.edit_button = tile("Bearbeiten", edit_callback)
+        # Breit genug fuer beides: Das Sinnbild sagt, was passiert,
+        # das Wort bleibt daneben stehen.
+        self.edit_button = bearbeitenknopf(
+            lambda: edit_callback(None, None) if callable(edit_callback)
+            else None,
+            text="Bearbeiten",
+            size_hint=(1, None),
+            height=dp(theme.CART_ACTION_TILE_HEIGHT),
+            font_size="16sp", bold=True,
+        )
         self.pay_button = tile("Bezahlen", pay_callback)
 
         self.storno_cancel_button = tile("Abbrechen", storno_cancel_callback)

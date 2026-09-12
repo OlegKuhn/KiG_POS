@@ -10,6 +10,7 @@ import theme
 import units
 
 from widgets.common.feld import Feldknopf
+from widgets.common.kig_bildknopf import loeschknopf
 from widgets.common.rounded_spinner import RoundedSpinner
 
 
@@ -135,16 +136,11 @@ class RecipeIngredientRow(BoxLayout):
             self.unit_spinner.bind(text=self._unit_changed)
             self._einhaengen(self.unit_spinner, 0.28)
 
-        remove_button = Button(
-            text="Entfernen", size_hint_x=None, width=dp(110),
-            background_normal="", background_down="",
-            background_color=theme.ERROR, color=theme.TEXT_WHITE,
-            font_size="14sp", bold=True,
+        remove_button = loeschknopf(
+            lambda: self.remove_callback(self.ingredient),
+            size_hint_x=None, width=dp(58),
         )
-        remove_button.bind(
-            on_release=lambda *_args: self.remove_callback(self.ingredient)
-        )
-        self._einhaengen(remove_button, 0.44)
+        self._einhaengen(remove_button, 0.28)
 
     def _einhaengen(self, widget, anteil):
         """Haengt eine Angabe ein - schmal anteilig statt fest breit."""

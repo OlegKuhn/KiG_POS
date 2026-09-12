@@ -47,13 +47,16 @@ import storage
 import teilen
 import theme
 
+from widgets.common.kig_bildknopf import (
+    loeschknopf, neuknopf,
+)
+
 from database import DatabaseManager
 from widgets.common.confirm_popup import ConfirmPopup
 from widgets.common.exporthinweis import (
     export_hinweis, hinweisfeld_vorbereiten,
 )
 from widgets.common.kig_popup import KiGPopup
-from widgets.common.kig_symbol import KREUZ, KiGSymbolButton
 from widgets.common.numpad.numpad_popup import NumpadPopup
 from widgets.common.rounded_input import RoundedInput
 from widgets.common.rounded_panel import RoundedPanel
@@ -126,8 +129,9 @@ class ShiftPlanScreen(Screen):
         aktionen = BoxLayout(
             size_hint_y=None, height=dp(52), spacing=dp(theme.ROW_SPACING)
         )
-        aktionen.add_widget(self._button("Plan anlegen", self.new_plan))
-        aktionen.add_widget(self._button("Löschen", self.delete_plan))
+        # Bild ohne Wort - siehe Checkliste.
+        aktionen.add_widget(neuknopf(self.new_plan))
+        aktionen.add_widget(loeschknopf(self.delete_plan))
         panel.add_widget(aktionen)
 
         return panel
@@ -636,9 +640,8 @@ class ShiftPlanScreen(Screen):
                 )
                 zeile.add_widget(name)
 
-                entfernen = KiGSymbolButton(
-                    symbol=KREUZ, size_hint_x=None, width=dp(52),
-                    symbol_color=theme.ERROR,
+                entfernen = loeschknopf(
+                    size_hint_x=None, width=dp(52),
                 )
                 entfernen.bind(
                     on_release=lambda _b, helfer_id=eintrag["id"]:

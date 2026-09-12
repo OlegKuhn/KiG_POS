@@ -818,6 +818,20 @@ TOPICS = [
                 ),
             },
             {
+                "heading": "Mehrere Zeilen an einem Tag",
+                "text": (
+                    "Ein Tag darf so viele Zeilen haben, wie du "
+                    "brauchst - eine je Schicht, je Stand oder je "
+                    "Abrechnung. Das Plus neben \"Speichern\" beginnt "
+                    "eine weitere Zeile.\n\n"
+                    "Der Startbestand der neuen Zeile wird dabei mit "
+                    "dem Endbestand der Zeile davor vorbelegt, auch "
+                    "wenn die vom selben Tag ist. Die Prüfung geht "
+                    "denselben Weg: Sie vergleicht Zeile mit Zeile, "
+                    "nicht Tag mit Tag."
+                ),
+            },
+            {
                 "heading": "Zeile ändern oder löschen",
                 "text": (
                     "Ein Tipp auf eine Zeile lädt sie ins Eingabefeld. "
@@ -1184,17 +1198,26 @@ TOPICS = [
                 "heading": "Überblick",
                 "text": (
                     "Der Statistik-Screen zeigt alle über die Kasse "
-                    "abgeschlossenen Verkäufe. Links siehst du die "
-                    "einzelnen Verkaufspositionen als Tabelle, rechts "
-                    "eine Zusammenfassung mit den meistverkauften "
-                    "Artikeln und den Gesamteinnahmen je Artikel."
+                    "abgeschlossenen Verkäufe.\n\n"
+                    "Links, in der großen Hälfte, steht die "
+                    "Auswertung: die summierten Verkäufe, absteigend "
+                    "nach Umsatz, jeder Balken in der Farbe seiner "
+                    "Kategorie. Daneben derselbe Zeitraum als Kreis - "
+                    "wie viel jede Kategorie beigetragen hat. Darunter "
+                    "Einnahmen, Ausgaben und Gewinn.\n\n"
+                    "Rechts stehen die einzelnen Verkäufe als Beleg "
+                    "dazu.\n\n"
+                    "Alles bezieht sich auf den unten eingestellten "
+                    "Zeitraum und das gewählte Event. Ist kein Filter "
+                    "gesetzt, siehst du sämtliche Verkäufe."
                 ),
                 "image": "statistik/01_uebersicht.png",
             },
             {
                 "heading": "Nach Event filtern",
                 "text": (
-                    "Über das Auswahlfeld \"Alle Events\" oben links "
+                    "Über das Auswahlfeld \"Veranstaltung\" in der "
+                    "Filterleiste unten "
                     "kannst du die Liste auf ein einzelnes, im Kalender "
                     "angelegtes Event einschränken. \"Alle Events\" "
                     "zeigt wieder sämtliche Verkäufe ohne "
@@ -1215,7 +1238,9 @@ TOPICS = [
             {
                 "heading": "Verkaufsliste lesen",
                 "text": (
-                    "Jede Zeile zeigt Event, Datum, Kategorie, Artikel "
+                    "Rechts unter \"Einzelverkäufe\" steht jede "
+                    "einzelne Position. Am Rechner zeigt eine Zeile "
+                    "Event, Datum, Kategorie, Artikel "
                     "sowie Verkaufspreis, Einkaufspreis und den daraus "
                     "berechneten Gewinn der jeweiligen Position. Bei "
                     "Mix-Artikeln stammt der Einkaufspreis aus den "

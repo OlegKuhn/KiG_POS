@@ -58,7 +58,7 @@ from widgets.common.exporthinweis import (
 from widgets.common.confirm_popup import ConfirmPopup
 from widgets.common.date_picker_popup import DatePickerPopup
 from widgets.common.feld import Feldknopf
-from widgets.common.kig_bildknopf import loeschknopf
+from widgets.common.kig_bildknopf import loeschknopf, neuknopf
 from widgets.common.rounded_input import RoundedInput
 from widgets.common.filterleiste import Filterleiste
 from widgets.common.rounded_panel import RoundedPanel
@@ -601,6 +601,13 @@ class CashBookScreen(Screen):
         buttons = BoxLayout(
             size_hint_y=None, height=dp(52), spacing=dp(theme.ROW_SPACING)
         )
+        # An einem Tag darf mehr als eine Zeile stehen - eine je
+        # Schicht, je Stand, je Abrechnung. Ohne diesen Knopf blieb
+        # das Formular nach dem Speichern an der eben angelegten Zeile
+        # haengen, und eine zweite fuer denselben Tag war nur ueber
+        # den Umweg "Zeile antippen, wieder antippen" zu bekommen.
+        buttons.add_widget(neuknopf(self.new_entry))
+
         buttons.add_widget(loeschknopf(
             self.delete_entry, text="Löschen",
             font_size="15sp", bold=True,
@@ -1000,7 +1007,9 @@ class CashBookScreen(Screen):
                 f"eingetragen {self.money(eintrag['closing_balance'])}"
             )
 
-        vorheriger = self.db.get_previous_closing_balance(self.date_value)
+        vorheriger = self.db.get_previous_closing_balance(
+            self.date_value, vor_id=self.selected_entry_id
+        )
 
         if vorheriger is not None and abs(
             eintrag["opening_balance"] - vorheriger

@@ -3812,8 +3812,14 @@ class DatabaseManager:
 
         eintraege = self.get_cash_book_entries(year, month)
 
+        # Ausdruecklich MIT vor_id: Seit ein Tag mehrere Zeilen haben
+        # darf, liefert die Auskunft ohne diese Angabe den Stand am
+        # Ende des Tages - die erste Zeile wuerde dann gegen sich
+        # selbst geprueft.
         vorheriger = (
-            self.get_previous_closing_balance(eintraege[0]["entry_date"])
+            self.get_previous_closing_balance(
+                eintraege[0]["entry_date"], vor_id=eintraege[0]["id"]
+            )
             if eintraege else None
         )
 
@@ -3871,21 +3877,45 @@ class DatabaseManager:
 
         return self.cursor.fetchone()
 
-    def get_previous_closing_balance(self, entry_date):
-        """Endbestand des letzten Eintrags VOR diesem Datum.
+    def get_previous_closing_balance(self, entry_date, vor_id=None):
+        """Endbestand des Eintrags, der diesem vorausgeht.
 
         Damit lässt sich der Startbestand vorbelegen: In der Kasse
         liegt am Morgen das, was am Abend zuvor drin lag. Gibt es
         keinen Vorgänger, kommt None zurück.
+
+        An einem Tag darf es mehrere Zeilen geben - etwa eine je
+        Schicht oder je Stand. Der Vorgänger ist deshalb nicht
+        einfach "der Tag davor", sondern die Zeile davor: am selben
+        Tag die mit der kleineren Nummer, sonst die letzte eines
+        früheren Tages.
+
+        vor_id ist die Nummer der Zeile, für die vorbelegt wird (beim
+        Bearbeiten). Ohne Angabe zählt der Stand am Ende des Tages -
+        so bekommt eine NEUE Zeile den Endbestand der letzten Zeile
+        desselben Tages.
         """
 
-        self.cursor.execute("""
-            SELECT closing_balance
-            FROM cash_book_entries
-            WHERE entry_date < ?
-            ORDER BY entry_date DESC, id DESC
-            LIMIT 1
-        """, (entry_date,))
+        if vor_id is None:
+
+            self.cursor.execute("""
+                SELECT closing_balance
+                FROM cash_book_entries
+                WHERE entry_date <= ?
+                ORDER BY entry_date DESC, id DESC
+                LIMIT 1
+            """, (entry_date,))
+
+        else:
+
+            self.cursor.execute("""
+                SELECT closing_balance
+                FROM cash_book_entries
+                WHERE entry_date < ?
+                   OR (entry_date = ? AND id < ?)
+                ORDER BY entry_date DESC, id DESC
+                LIMIT 1
+            """, (entry_date, entry_date, vor_id))
 
         row = self.cursor.fetchone()
 
@@ -4894,6 +4924,56 @@ class DatabaseManager:
             )
         return sorted(
             totals.items(), key=lambda item: (-item[1], item[0])
+        )
+
+    def get_article_sales(self, date_from=None, date_to=None, event_id=None):
+        """Die summierten Verkäufe je Artikel, absteigend nach Umsatz.
+
+        Je Artikel ein Wörterbuch:
+
+            name        Artikelname
+            kategorie   Name der Kategorie
+            menge       verkaufte Menge (Stornos ziehen ab)
+            umsatz      Menge x Verkaufspreis
+            gewinn      Umsatz minus Einkauf
+            farbe       Farbe der Kategorie (für die Balken)
+
+        Anders als get_article_revenues bringt diese Auskunft die
+        Kategorie samt Farbe mit: Im Balkendiagramm trägt jeder Artikel
+        die Farbe seiner Kategorie, dieselbe wie im Kreisdiagramm
+        daneben.
+        """
+
+        self.cursor.execute("SELECT name, color FROM categories")
+
+        farben = {row["name"]: row["color"] for row in self.cursor.fetchall()}
+
+        zeilen = self.get_statistic_sale_items(date_from, date_to, event_id)
+
+        summen = {}
+
+        for zeile in zeilen:
+
+            name = zeile["article_name"]
+
+            eintrag = summen.setdefault(name, {
+                "name": name,
+                "kategorie": zeile["category_name"],
+                "menge": 0,
+                "umsatz": 0.0,
+                "gewinn": 0.0,
+            })
+
+            eintrag["menge"] += zeile["quantity"]
+            eintrag["umsatz"] += zeile["quantity"] * zeile["unit_price"]
+            eintrag["gewinn"] += zeile["profit"]
+
+        for eintrag in summen.values():
+            eintrag["farbe"] = farben.get(eintrag["kategorie"])
+
+        return sorted(
+            summen.values(),
+            key=lambda eintrag: (-eintrag["umsatz"], eintrag["name"]),
         )
 
     def get_category_revenues(self, date_from=None, date_to=None, event_id=None):

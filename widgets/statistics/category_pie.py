@@ -139,15 +139,37 @@ class CategoryPiePanel(BoxLayout):
         self.orientation = "horizontal"
         self.spacing = dp(theme.CARD_SPACING)
 
-        self.pie = CategoryPie(size_hint_x=0.42)
+        self.pie = CategoryPie()
         self.add_widget(self.pie)
 
         self.legende = BoxLayout(
             orientation="vertical",
             spacing=dp(theme.SPACE_XS),
-            size_hint_x=0.58,
         )
         self.add_widget(self.legende)
+
+        self.bind(width=self._aufteilen)
+
+        self._aufteilen()
+
+    # Ab dieser Breite stehen Kreis und Legende nebeneinander -
+    # darunter untereinander. Nachgemessen: In 320 Bildpunkten bleiben
+    # der Legende sonst 180, und in denen steht "Alkoholfrei 41 %
+    # 217,00 €" nicht mehr.
+    NEBENEINANDER_AB = 340
+
+    def _aufteilen(self, *_args):
+
+        nebeneinander = self.width >= dp(self.NEBENEINANDER_AB)
+
+        self.orientation = "horizontal" if nebeneinander else "vertical"
+
+        if nebeneinander:
+            self.pie.size_hint = (0.42, 1)
+            self.legende.size_hint = (0.58, 1)
+        else:
+            self.pie.size_hint = (1, 0.55)
+            self.legende.size_hint = (1, 0.45)
 
     def set_data(self, anteile):
 
@@ -218,26 +240,40 @@ class CategoryPiePanel(BoxLayout):
         halter.add_widget(punkt)
         zeile.add_widget(halter)
 
-        zeile.add_widget(Label(
+        # text_size an die eigene Breite binden, nicht (None, Hoehe):
+        # Ohne Begrenzung ist die Textur so breit wie der Text und wird
+        # mittig in ihre Spalte gesetzt - in einer schmalen Legende
+        # schoben sich Name, Anteil und Betrag dadurch uebereinander
+        # ("Alkohol53 %277,50 €").
+        def in_der_spalte(label):
+
+            label.bind(
+                size=lambda instanz, groesse: setattr(
+                    instanz, "text_size", groesse
+                )
+            )
+
+            zeile.add_widget(label)
+
+        in_der_spalte(Label(
             text=name, color=theme.TEXT_PRIMARY, font_size="13sp",
-            halign="left", valign="middle",
-            text_size=(None, dp(self.LEGENDE_ZEILE)), size_hint_x=0.52,
+            halign="left", valign="middle", size_hint_x=0.50,
             shorten=True, shorten_from="right",
         ))
 
         anteil = betrag / gesamt * 100
 
-        zeile.add_widget(Label(
+        in_der_spalte(Label(
             text=f"{anteil:.0f} %", color=theme.TEXT_SECONDARY,
             font_size="13sp", halign="right", valign="middle",
-            text_size=(None, dp(self.LEGENDE_ZEILE)), size_hint_x=0.20,
+            size_hint_x=0.20,
         ))
 
-        zeile.add_widget(Label(
+        in_der_spalte(Label(
             text=f"{betrag:.2f} €".replace(".", ","),
             color=theme.TEXT_PRIMARY, font_size="13sp", bold=True,
-            halign="right", valign="middle",
-            text_size=(None, dp(self.LEGENDE_ZEILE)), size_hint_x=0.28,
+            halign="right", valign="middle", size_hint_x=0.30,
+            shorten=True, shorten_from="right",
         ))
 
         return zeile

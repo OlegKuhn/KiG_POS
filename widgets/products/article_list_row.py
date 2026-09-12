@@ -10,7 +10,7 @@ import config
 import theme
 
 from widgets.common import schreibschutz
-from widgets.common.feldausrichtung import links_ausrichten
+from widgets.common.feld import Feldknopf
 
 from widgets.common.kig_symbol import KiGSymbolButton, KREUZ
 
@@ -135,18 +135,11 @@ class ArticleListRow(BoxLayout):
         # Bestellmenge: Menge festlegen + direkt buchen
         # -------------------------------------------------
 
-        self.amount_button = Button(
+        self.amount_button = Feldknopf(
             text=str(order_amount) if not is_mix else "–",
             size_hint_x=None, width=dp(80),
-            background_normal="", background_down="",
-            background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
-            font_size="15sp", bold=True,
             disabled=is_mix,
         )
-        # Wertfeld mit Nummernblock dahinter: schreibt links wie die
-        # uebrigen Felder (siehe widgets/common/feldausrichtung.py).
-        links_ausrichten(self.amount_button)
-
         if not is_mix:
             self.amount_button.bind(
                 on_release=lambda *_args: self.amount_callback(self.article)
@@ -275,16 +268,11 @@ class ArticleListRow(BoxLayout):
             spacing=dp(theme.ROW_SPACING), size_hint_y=None, height=dp(38)
         )
 
-        self.amount_button = Button(
+        self.amount_button = Feldknopf(
             text=str(order_amount) if not is_mix else "–",
             size_hint_x=None, width=dp(58),
-            background_normal="", background_down="",
-            background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
-            font_size="15sp", bold=True,
             disabled=is_mix,
         )
-        links_ausrichten(self.amount_button)
-
         if not is_mix:
             self.amount_button.bind(
                 on_release=lambda *_args: self.amount_callback(self.article)
@@ -406,18 +394,11 @@ class ArticleListRow(BoxLayout):
 
         untere_zeile.add_widget(self._caption_label(bestand_text))
 
-        self.amount_button = Button(
+        self.amount_button = Feldknopf(
             text=str(order_amount) if not is_mix else "–",
             size_hint_x=None, width=dp(64),
-            background_normal="", background_down="",
-            background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
-            font_size="15sp", bold=True,
             disabled=is_mix,
         )
-        # Wertfeld mit Nummernblock dahinter: schreibt links wie die
-        # uebrigen Felder (siehe widgets/common/feldausrichtung.py).
-        links_ausrichten(self.amount_button)
-
         if not is_mix:
             self.amount_button.bind(
                 on_release=lambda *_args: self.amount_callback(self.article)

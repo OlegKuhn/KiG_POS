@@ -7,7 +7,7 @@ from kivy.uix.button import Button
 import theme
 
 from widgets.common.rounded_panel import RoundedPanel
-from widgets.common.feldausrichtung import links_ausrichten
+from widgets.common.feld import Feldknopf
 from widgets.kig_label import KiGLabel
 
 
@@ -49,15 +49,10 @@ class BestellmengeCard(RoundedPanel):
 
         row = BoxLayout(size_hint_y=None, height=dp(56), spacing=dp(theme.CARD_SPACING))
 
-        self.amount_button = Button(
+        self.amount_button = Feldknopf(
             text="0", size_hint=(None, None), size=(dp(110), dp(56)),
-            background_normal="", background_down="",
-            background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
-            font_size="20sp", bold=True,
+            on_tipp=lambda: self.on_amount_button(),
         )
-        links_ausrichten(self.amount_button)
-
-        self.amount_button.bind(on_release=lambda *_args: self.on_amount_button())
         row.add_widget(self.amount_button)
 
         receive_button = Button(

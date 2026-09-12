@@ -30,12 +30,11 @@ Version:
 from kivy.graphics import Color, RoundedRectangle
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
 from kivy.uix.widget import Widget
 
 import theme
 
-from widgets.common.feldausrichtung import links_ausrichten
+from widgets.common.feld import Feldknopf
 from widgets.common.kig_symbol import KREUZ, KiGSymbolButton
 from widgets.common.rounded_input import RoundedInput
 
@@ -162,16 +161,10 @@ class ShiftRow(BoxLayout):
         self.add_widget(self.end_input)
 
         # ---- Ist / Soll ----
-        self.needed_button = Button(
+        self.needed_button = Feldknopf(
             text=self._count_text(),
             size_hint_x=None, width=dp(self.COUNT_WIDTH),
-            background_normal="", background_down="",
-            background_color=theme.SURFACE,
-            font_size="15sp", bold=True,
-        )
-        links_ausrichten(self.needed_button)
-        self.needed_button.bind(
-            on_release=lambda *_a: self.on_needed(self)
+            on_tipp=lambda: self.on_needed(self),
         )
         self.add_widget(self.needed_button)
 
@@ -183,16 +176,10 @@ class ShiftRow(BoxLayout):
         self.add_widget(self.balken)
 
         # ---- Helfer ----
-        self.helper_button = Button(
+        self.helper_button = Feldknopf(
             text=self._helper_text(),
             size_hint_x=self.HELPER_WIDTH,
-            background_normal="", background_down="",
-            background_color=theme.SURFACE,
-            font_size="14sp",
-        )
-        links_ausrichten(self.helper_button)
-        self.helper_button.bind(
-            on_release=lambda *_a: self.on_helpers(self)
+            on_tipp=lambda: self.on_helpers(self),
         )
         self.add_widget(self.helper_button)
 
@@ -251,7 +238,7 @@ class ShiftRow(BoxLayout):
         self.helper_button.color = (
             theme.ERROR
             if self.shift["besetzt"] == 0 and self.shift["needed"] > 0
-            else theme.TEXT_PRIMARY
+            else theme.INPUT_TEXT
         )
 
     # =====================================================

@@ -1,9 +1,11 @@
-from kivy.graphics import Color, RoundedRectangle, Line
+from kivy.graphics import Color
 from kivy.metrics import dp
 from kivy.uix.textinput import TextInput
 from kivy.properties import BooleanProperty, ObjectProperty
 
 import theme
+
+from widgets.common.feld import Feldflaeche
 
 
 class RoundedInput(TextInput):
@@ -121,25 +123,11 @@ class RoundedInput(TextInput):
         # Eigener Hintergrund
         # -------------------------------------------------
 
+        # Flaeche und Rahmen kommen von dort, wo sie fuer alle Felder
+        # stehen (siehe widgets/common/feld.py).
+        self.flaeche = Feldflaeche(self)
+
         with self.canvas.before:
-
-            Color(
-                *theme.SURFACE
-            )
-
-            self.field_background = RoundedRectangle(
-                radius=[
-                    theme.INPUT_RADIUS
-                ]
-            )
-
-            self.field_border_color = Color(
-                *theme.BORDER_COLOR
-            )
-
-            self.field_border = Line(
-                width=theme.BORDER_WIDTH
-            )
 
             # Textfarbe ZULETZT setzen.
             #
@@ -166,8 +154,6 @@ class RoundedInput(TextInput):
         # -------------------------------------------------
 
         self.bind(
-            pos=self._update_canvas,
-            size=self._update_canvas,
             focus=self._update_focus
         )
 
@@ -209,25 +195,6 @@ class RoundedInput(TextInput):
 
         self.padding = [dp(12), rand, dp(12), rand]
 
-    def _update_canvas(
-            self,
-            *_args
-    ):
-
-        self.field_background.pos = (
-            self.pos
-        )
-
-        self.field_background.size = (
-            self.size
-        )
-
-        self.field_border.rounded_rectangle = (
-            *self.pos,
-            *self.size,
-            theme.INPUT_RADIUS
-        )
-
     # =====================================================
     # Fokusdarstellung
     # =====================================================
@@ -244,11 +211,7 @@ class RoundedInput(TextInput):
         geöffnet.
         """
 
-        self.field_border_color.rgba = (
-            theme.PRIMARY_ORANGE
-            if focused
-            else theme.BORDER_COLOR
-        )
+        self.flaeche.hervorheben(focused)
 
     # =====================================================
     # Touch

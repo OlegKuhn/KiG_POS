@@ -8,7 +8,8 @@ from kivy.uix.scrollview import ScrollView
 import theme
 import units
 
-from widgets.common.feldausrichtung import links_ausrichten
+from widgets.common.exporthinweis import hinweisfeld_vorbereiten
+from widgets.common.feld import Feldknopf
 from widgets.common.rounded_input import RoundedInput
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.common.rounded_spinner import RoundedSpinner
@@ -95,9 +96,13 @@ class RecipeCompositionPanel(RoundedPanel):
         self.summary_label.set_bold(True)
         self.summary_label.set_alignment("left")
         self.summary_label.set_color(theme.TEXT_PRIMARY)
-        self.summary_label.size_hint_y = None
-        self.summary_label.height = 0
         self.summary_label.opacity = 0
+
+        # Waechst mit seinen Zeilen: Der Hinweis zum unbestimmten
+        # Einkaufspreis braucht zwei, stand aber in einer 24 dp hohen
+        # Zeile - und lief damit in die Zutatenliste darunter.
+        hinweisfeld_vorbereiten(self.summary_label, 0)
+
         self.add_widget(self.summary_label)
 
         #
@@ -136,16 +141,9 @@ class RecipeCompositionPanel(RoundedPanel):
 
         self._oben(self.add_row, steuerzeile, self.ingredient_spinner)
 
-        self.add_amount_button = Button(
+        self.add_amount_button = Feldknopf(
             text="0", size_hint_x=None, width=dp(90),
-            background_normal="", background_down="",
-            background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
-            font_size="18sp", bold=True,
-        )
-        links_ausrichten(self.add_amount_button)
-
-        self.add_amount_button.bind(
-            on_release=lambda *_args: self.add_amount_callback()
+            on_tipp=lambda: self.add_amount_callback(),
         )
         self._unten(steuerzeile, self.add_amount_button, 0.28)
 
@@ -203,17 +201,12 @@ class RecipeCompositionPanel(RoundedPanel):
             self.free_text_name_input,
         )
 
-        self.free_text_amount_button = Button(
+        self.free_text_amount_button = Feldknopf(
             text="0", size_hint_x=None, width=dp(90),
-            background_normal="", background_down="",
-            background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
-            font_size="18sp", bold=True,
-        )
-        links_ausrichten(self.free_text_amount_button)
-
-        self.free_text_amount_button.bind(
-            on_release=lambda *_args: self.add_free_text_amount_callback()
-            if callable(self.add_free_text_amount_callback) else None
+            on_tipp=lambda: (
+                self.add_free_text_amount_callback()
+                if callable(self.add_free_text_amount_callback) else None
+            ),
         )
         self._unten(freie_steuerzeile, self.free_text_amount_button, 0.26)
 
@@ -387,7 +380,6 @@ class RecipeCompositionPanel(RoundedPanel):
         text = "   ·   ".join(parts)
 
         self.summary_label.text = text
-        self.summary_label.height = dp(24) if text else 0
         self.summary_label.opacity = 1 if text else 0
 
         self.summary_label.set_color(

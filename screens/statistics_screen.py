@@ -26,9 +26,10 @@ from widgets.common.date_picker_popup import DatePickerPopup
 from widgets.common.exporthinweis import (
     export_hinweis, hinweisfeld_vorbereiten,
 )
-from widgets.common.feldausrichtung import links_ausrichten
+from widgets.common.feld import Feldknopf
 from widgets.common.filterleiste import Filterleiste
 from widgets.common.rounded_panel import RoundedPanel
+from widgets.common.rounded_spinner import RoundedSpinner
 from widgets.kig_label import KiGLabel
 from widgets.statistics.category_pie import CategoryPiePanel
 
@@ -206,11 +207,12 @@ class StatisticsScreen(Screen):
             filters.add_widget(obere)
             filters.add_widget(untere)
 
-        self.event_filter = Spinner(
+        # Ein blanker Kivy-Spinner stand hier als dunkler Kasten mit
+        # weisser Schrift zwischen lauter hellen Feldern.
+        self.event_filter = RoundedSpinner(
             text="Alle Events", values=("Alle Events",),
-            font_size="15sp", size_hint_x=1.15,
+            size_hint_x=1.15,
         )
-        links_ausrichten(self.event_filter)
         self.event_filter.bind(text=lambda *_args: self._filter_geaendert())
         obere.add_widget(self.event_filter)
 
@@ -659,10 +661,12 @@ class StatisticsScreen(Screen):
 
         box = BoxLayout(spacing=dp(theme.LABEL_SPACING))
 
-        button = self._button(f"{label_prefix}: alle", on_pick)
-
-        # Datumsfeld, kein Aktionsknopf: linksbuendig.
-        links_ausrichten(button)
+        # Datumsfeld, kein Aktionsknopf - es sieht deshalb aus wie
+        # ein Feld (siehe widgets/common/feld.py).
+        button = Feldknopf(
+            text=f"{label_prefix}: alle",
+            on_tipp=on_pick,
+        )
 
         box.add_widget(button)
 

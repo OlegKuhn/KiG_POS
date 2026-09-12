@@ -32,7 +32,7 @@ from kivy.uix.button import Button
 import theme
 
 from widgets.common.kig_symbol import KiGSymbolButton, HAKEN
-from widgets.common.feldausrichtung import links_ausrichten
+from widgets.common.feld import Feldknopf
 from widgets.common.rounded_input import RoundedInput
 
 
@@ -87,7 +87,7 @@ class ChecklistItemRow(BoxLayout):
 
         # ---- Aufgabe ----
         self.task_input = self._input(
-            item["task"], "Was ist zu tun?", 0.34, "task"
+            item["task"], "Was ist zu tun?", 0.30, "task"
         )
 
         # Erledigtes tritt auch beim Aufbau zurück, nicht erst nach
@@ -98,17 +98,14 @@ class ChecklistItemRow(BoxLayout):
         self.add_widget(self.task_input)
 
         # ---- Frist ----
-        self.deadline_button = Button(
+        #
+        # Etwas breiter als die 0,14 von frueher: Seit die Frist in
+        # der Schrift aller Felder steht, braucht "14.09.2026" mehr
+        # Platz - sonst stand dort "14.09.20...".
+        self.deadline_button = Feldknopf(
             text=self.format_deadline(item["deadline"]),
-            size_hint_x=0.14,
-            background_normal="", background_down="",
-            background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
-            font_size="14sp",
-        )
-        links_ausrichten(self.deadline_button)
-
-        self.deadline_button.bind(
-            on_release=lambda *_a: self.on_deadline(self)
+            size_hint_x=0.18,
+            on_tipp=lambda: self.on_deadline(self),
         )
         self.add_widget(self.deadline_button)
 

@@ -9,7 +9,7 @@ from kivy.uix.label import Label
 import theme
 import units
 
-from widgets.common.feldausrichtung import links_ausrichten
+from widgets.common.feld import Feldknopf
 from widgets.common.rounded_spinner import RoundedSpinner
 
 
@@ -96,16 +96,9 @@ class RecipeIngredientRow(BoxLayout):
         else:
             self.angaben = self
 
-        self.amount_button = Button(
+        self.amount_button = Feldknopf(
             text=self._format_quantity(), size_hint_x=None, width=dp(90),
-            background_normal="", background_down="",
-            background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
-            font_size="16sp", bold=True,
-        )
-        links_ausrichten(self.amount_button)
-
-        self.amount_button.bind(
-            on_release=lambda *_args: self.quantity_callback(self.ingredient)
+            on_tipp=lambda: self.quantity_callback(self.ingredient),
         )
         self._einhaengen(self.amount_button, 0.28)
 

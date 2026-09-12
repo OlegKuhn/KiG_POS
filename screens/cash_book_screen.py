@@ -55,9 +55,9 @@ from database import DatabaseManager
 from widgets.common.exporthinweis import (
     export_hinweis, hinweisfeld_vorbereiten,
 )
-from widgets.common.feldausrichtung import links_ausrichten
 from widgets.common.confirm_popup import ConfirmPopup
 from widgets.common.date_picker_popup import DatePickerPopup
+from widgets.common.feld import Feldknopf
 from widgets.common.rounded_input import RoundedInput
 from widgets.common.filterleiste import Filterleiste
 from widgets.common.rounded_panel import RoundedPanel
@@ -359,33 +359,40 @@ class CashBookScreen(Screen):
 
     def _selection_button(self, text, height, callback):
 
-        button = Button(
+        # Auch die Auswahl im Filter traegt den Feldstil: Sie steht
+        # neben Feldern und wuerde sonst als Fremdkoerper auffallen.
+        button = Feldknopf(
             text=text, size_hint_y=None, height=height,
-            background_normal="", background_down="",
-            background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
-            font_size="15sp", bold=True,
+            on_tipp=callback,
         )
 
-        button.bind(on_release=lambda *_args: callback())
-
         return button
+
+    @staticmethod
+    def _auswahl_faerben(button, gewaehlt):
+        """Der gewählte Eintrag wird gefüllt, der Rest bleibt Feld.
+
+        Gefärbt wird die gezeichnete Fläche, nicht background_color:
+        Ein Feld zeichnet seinen Hintergrund selbst (siehe
+        widgets/common/feld.py), und ein zusätzlich gefülltes
+        background_color läge als Rechteck darüber - mit Ecken.
+        """
+
+        button.flaeche.einfaerben(
+            theme.PRIMARY_ORANGE if gewaehlt else theme.SURFACE,
+            rahmen=None if gewaehlt else theme.BORDER_COLOR,
+        )
+
+        button.color = theme.TEXT_WHITE if gewaehlt else theme.INPUT_TEXT
 
     def _highlight_selection(self):
         """Färbt die gewählte Jahres- und Monatsschaltfläche."""
 
         for jahr, button in self.year_buttons.items():
-            gewaehlt = jahr == self.selected_year
-            button.background_color = (
-                theme.PRIMARY_ORANGE if gewaehlt else theme.SURFACE
-            )
-            button.color = theme.TEXT_WHITE if gewaehlt else theme.TEXT_PRIMARY
+            self._auswahl_faerben(button, jahr == self.selected_year)
 
         for monat, button in self.month_buttons.items():
-            gewaehlt = monat == self.selected_month
-            button.background_color = (
-                theme.PRIMARY_ORANGE if gewaehlt else theme.SURFACE
-            )
-            button.color = theme.TEXT_WHITE if gewaehlt else theme.TEXT_PRIMARY
+            self._auswahl_faerben(button, monat == self.selected_month)
 
     def select_year(self, jahr):
 
@@ -615,16 +622,13 @@ class CashBookScreen(Screen):
             text_size=(None, hoehe),
         ))
 
-        button = Button(
-            text=wert, background_normal="", background_down="",
-            background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
-            font_size="16sp", bold=True,
+        # Hinter der Schaltflaeche steckt ein Kalender oder der
+        # Nummernblock - sie ist ein Feld und sieht deshalb aus wie
+        # eines (siehe widgets/common/feld.py).
+        button = Feldknopf(
+            text=wert,
             size_hint_x=0.66 if theme.is_narrow() else 0.58,
         )
-
-        # Hinter der Schaltflaeche steckt ein Kalender oder der
-        # Nummernblock - sie ist ein Feld und schreibt deshalb links.
-        links_ausrichten(button)
 
         button.bind(on_release=lambda *_args: callback())
 

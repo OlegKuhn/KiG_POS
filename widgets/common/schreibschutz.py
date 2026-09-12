@@ -74,7 +74,10 @@ def sperren(*widgets):
 
         widget.disabled = True
 
-        if hasattr(widget, "background_color"):
+        # Ein Feld zeichnet seinen Hintergrund selbst (siehe
+        # widgets/common/feld.py). Ein zusaetzlich gefuelltes
+        # background_color laege als kantiges Rechteck darueber.
+        if hasattr(widget, "background_color") and not hasattr(widget, "flaeche"):
             widget.background_color = theme.SURFACE
 
         if hasattr(widget, "color"):

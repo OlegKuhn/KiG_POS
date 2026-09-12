@@ -1,9 +1,9 @@
-from kivy.graphics import Color, RoundedRectangle, Line
 from kivy.properties import BooleanProperty, ColorProperty
 from kivy.uix.spinner import Spinner, SpinnerOption
 
 import theme
 
+from widgets.common.feld import Feldflaeche, schrift_setzen
 from widgets.common.feldausrichtung import links_ausrichten
 
 
@@ -54,14 +54,14 @@ class RoundedSpinner(Spinner):
     # als Klassenattribut eingefroren würde dieser Default spätere
     # theme.set_mode()-Wechsel nicht mehr mitbekommen.
     text_color = ColorProperty(
-        theme.TEXT_PRIMARY
+        theme.INPUT_TEXT
     )
 
     locked = BooleanProperty(False)
 
     def __init__(self, **kwargs):
 
-        kwargs.setdefault("text_color", theme.TEXT_PRIMARY)
+        kwargs.setdefault("text_color", theme.INPUT_TEXT)
 
         super().__init__(**kwargs)
 
@@ -83,6 +83,13 @@ class RoundedSpinner(Spinner):
         # Schrift
         # -------------------------------------------------
 
+        # Gewicht und Farbe wie in jedem anderen Feld, die Groesse aus
+        # dem Thema - es sei denn, der Aufrufer nennt eine eigene.
+        schrift_setzen(self)
+
+        if "font_size" in kwargs:
+            self.font_size = kwargs["font_size"]
+
         self.color = self.text_color
 
         links_ausrichten(self)
@@ -101,49 +108,7 @@ class RoundedSpinner(Spinner):
         # Eigener Hintergrund
         # -------------------------------------------------
 
-        with self.canvas.before:
-
-            Color(
-                *theme.SURFACE
-            )
-
-            self.field_background = RoundedRectangle(
-                radius=[
-                    theme.INPUT_RADIUS
-                ]
-            )
-
-            Color(
-                *theme.BORDER_COLOR
-            )
-
-            self.field_border = Line(
-                width=theme.BORDER_WIDTH
-            )
-
-        # -------------------------------------------------
-        # Bindings
-        # -------------------------------------------------
-
-        self.bind(
-            pos=self._update_canvas,
-            size=self._update_canvas
-        )
-
-    # =====================================================
-    # Darstellung
-    # =====================================================
-
-    def _update_canvas(self, *_args):
-
-        self.field_background.pos = self.pos
-        self.field_background.size = self.size
-
-        self.field_border.rounded_rectangle = (
-            *self.pos,
-            *self.size,
-            theme.INPUT_RADIUS
-        )
+        self.flaeche = Feldflaeche(self)
 
     # =====================================================
     # Textfarbe

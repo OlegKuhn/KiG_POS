@@ -201,6 +201,22 @@ jobs:
 
           echo "::notice::Signatur stimmt ($GEFUNDEN) - Updates behalten die Datenbank."
 
+      # Scheitert der Bau, steht der Grund sofort im Lauf - ohne dass
+      # jemand erst ein Artefakt herunterladen und auspacken muss. Die
+      # letzten Zeilen genuegen dafuer fast immer: Buildozer nennt den
+      # Fehler am Ende.
+      - name: Fehler zeigen
+        if: failure()
+        run: |
+          echo "=== Die letzten 200 Zeilen des Bauprotokolls ==="
+          tail -n 200 bauprotokoll.txt || echo "(kein bauprotokoll.txt)"
+
+          for datei in .buildozer/android/platform/build-*/build.log; do
+            [ -f "$datei" ] || continue
+            echo "=== $datei (letzte 100 Zeilen) ==="
+            tail -n 100 "$datei"
+          done
+
       # Auch (und gerade) wenn der Bau scheitert: Protokoll sichern.
       - name: Bauprotokoll bereitstellen
         if: always()

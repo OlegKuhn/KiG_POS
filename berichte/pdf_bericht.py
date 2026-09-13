@@ -72,9 +72,12 @@ def _schriftordner():
     """Die Schriften, die Kivy mitbringt - am Rechner wie auf dem
     Tablet vorhanden."""
 
+    # kivy_data_dir statt des Paketordners: Im fertigen Windows-Programm
+    # liegt kivy/__init__ im Archiv, die Schriften aber in einem
+    # eigenen Ordner - Kivy weiss selbst am besten, wo.
     try:
-        import kivy
-        return os.path.join(os.path.dirname(kivy.__file__), "data", "fonts")
+        from kivy import kivy_data_dir
+        return os.path.join(kivy_data_dir, "fonts")
     except ImportError:
         return ""
 

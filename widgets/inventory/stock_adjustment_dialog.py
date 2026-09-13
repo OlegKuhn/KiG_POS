@@ -31,6 +31,8 @@ from kivy.uix.scrollview import ScrollView
 import config
 import theme
 
+from widgets.common.kig_bildknopf import speicherknopf
+
 from widgets.kig_label import KiGLabel
 from widgets.common.rounded_input import RoundedInput
 from widgets.common.kig_action_tile import KiGActionTile
@@ -285,17 +287,14 @@ class StockAdjustmentDialog(KiGPopup):
 
         )
 
-        buttons.add_widget(
-
-            KiGActionTile(
-
-                text="Speichern",
-
-                callback=self.save
-
-            )
-
-        )
+        # So gross wie die Kachel "Abbrechen" daneben - sonst nahm die
+        # Diskette den ganzen Rest der Zeile ein.
+        buttons.add_widget(speicherknopf(
+            self.save,
+            size_hint=(None, None),
+            width=dp(theme.CATEGORY_TILE_WIDTH),
+            height=dp(theme.CATEGORY_TILE_HEIGHT),
+        ))
 
         return root
 

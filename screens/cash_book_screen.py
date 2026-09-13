@@ -58,7 +58,9 @@ from widgets.common.exporthinweis import (
 from widgets.common.confirm_popup import ConfirmPopup
 from widgets.common.date_picker_popup import DatePickerPopup
 from widgets.common.feld import Feldknopf
-from widgets.common.kig_bildknopf import loeschknopf, neuknopf
+from widgets.common.kig_bildknopf import (
+    loeschknopf, neuknopf, speicherknopf,
+)
 from widgets.common.rounded_input import RoundedInput
 from widgets.common.filterleiste import Filterleiste
 from widgets.common.rounded_panel import RoundedPanel
@@ -608,14 +610,10 @@ class CashBookScreen(Screen):
         # den Umweg "Zeile antippen, wieder antippen" zu bekommen.
         buttons.add_widget(neuknopf(self.new_entry))
 
-        buttons.add_widget(loeschknopf(
-            self.delete_entry, text="Löschen",
-            font_size="15sp", bold=True,
-        ))
-        buttons.add_widget(self._action_button(
-            "Speichern", self.save_entry,
-            background=theme.PRIMARY_ORANGE, color=theme.TEXT_WHITE,
-        ))
+        # Nur Bilder: Bild UND Wort passten nicht in den Knopf - der
+        # Muelleimer stiess an "Loeschen", beides ragte ueber den Rand.
+        buttons.add_widget(loeschknopf(self.delete_entry))
+        buttons.add_widget(speicherknopf(self.save_entry))
         panel.add_widget(buttons)
 
         return panel

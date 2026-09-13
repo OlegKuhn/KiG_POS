@@ -25,7 +25,7 @@ from widgets.common.kig_popup import KiGPopup
 
 import theme
 
-from widgets.common.kig_bildknopf import loeschknopf
+from widgets.common.kig_bildknopf import loeschknopf, speicherknopf
 
 from widgets.common.rounded_input import RoundedInput
 
@@ -227,10 +227,7 @@ class CategoryDialog(KiGPopup):
 
         if self.category is not None:
 
-            delete_button = loeschknopf(
-                text="Löschen",
-                font_size="18sp", bold=True,
-            )
+            delete_button = loeschknopf()
 
             delete_button.bind(
                 on_release=self._delete
@@ -265,14 +262,7 @@ class CategoryDialog(KiGPopup):
         # Speichern
         # -------------------------------------------------
 
-        save_button = Button(
-            text="Speichern",
-            font_size="18sp",
-            background_normal="",
-            background_down="",
-            background_color=theme.PRIMARY_ORANGE,
-            color=theme.TEXT_WHITE
-        )
+        save_button = speicherknopf()
 
         save_button.bind(
             on_release=self._save

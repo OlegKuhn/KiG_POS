@@ -16,7 +16,7 @@ from kivy.uix.widget import Widget
 import theme
 
 from widgets.common.kig_bildknopf import (
-    loeschknopf, neuknopf,
+    loeschknopf, neuknopf, speicherknopf,
 )
 
 from widgets.common.rounded_spinner import RoundedSpinner
@@ -357,19 +357,20 @@ class EventsScreen(Screen):
             auto_dismiss=False
         )
 
-        buttons.add_widget(self._button("Speichern", lambda: self.save_entry(
-            editor_popup, selected_day, entry, type_spinner.text,
-            name_input.text,
-            mit_checkliste=checkliste_haken.aktiv,
-            mit_schichtplan=schichtplan_haken.aktiv,
-        ), height=dp(54)))
+        buttons.add_widget(speicherknopf(
+            lambda: self.save_entry(
+                editor_popup, selected_day, entry, type_spinner.text,
+                name_input.text,
+                mit_checkliste=checkliste_haken.aktiv,
+                mit_schichtplan=schichtplan_haken.aktiv,
+            ),
+            size_hint=(1, None), height=dp(54),
+        ))
 
         if entry is not None:
             buttons.add_widget(loeschknopf(
                 lambda: self.delete_entry(editor_popup, entry["id"]),
-                text="Löschen",
                 size_hint=(1, None), height=dp(54),
-                font_size="18sp", bold=True,
             ))
 
         buttons.add_widget(self._button("Abbrechen", editor_popup.dismiss, height=dp(54)))

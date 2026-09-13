@@ -1,11 +1,22 @@
 """Vollflächiges Dashboard eines einzelnen Artikels (ersetzt die Liste).
 
-Fasst zusammen, was vorher auf vier getrennten Screens verteilt war:
-Stammdaten (Artikel), Bestand (Inventar), Bestellmenge (Einkauf) und
-bei Mix-Artikeln die Zusammensetzung (Rezepte). Die Karten stehen
-nebeneinander statt untereinander - jede Karte füllt die volle
-verfügbare Höhe und scrollt bei Bedarf intern (z. B. die
-Bestandshistorie).
+Aufbau eines Einzelartikels im Querformat:
+
+    +--------------------------------------+------------------+
+    | Stammdaten                           | Bestandsverlauf  |
+    |   Angaben            Schalter        |   Datum  Grund   |
+    |   Name   ...         Aktiv    [x]    |   ...             |
+    |   Preis  ...         An Kasse [x]    |                  |
+    +--------------------------------------+                  |
+    | Bestand  45 Stück   [Bestand anpassen]                  |
+    +--------------------------------------+------------------+
+
+Die Bestellmenge steht hier nicht mehr: Sie wird direkt in der
+Artikelliste gebucht, und doppelt gefuehrt nahm sie den Stammdaten
+eine ganze Spalte.
+
+Mix-Artikel haben keinen eigenen Bestand; neben ihren Stammdaten steht
+die Zusammensetzung.
 """
 
 from kivy.clock import Clock
@@ -21,7 +32,7 @@ from widgets.common.kig_symbol import KiGSymbolButton, PFEIL_LINKS
 from widgets.kig_label import KiGLabel
 from widgets.products.dashboard_stammdaten_card import StammdatenCard
 from widgets.products.dashboard_bestand_card import BestandCard
-from widgets.products.dashboard_bestellmenge_card import BestellmengeCard
+from widgets.products.dashboard_verlauf_card import VerlaufCard
 from widgets.recipes.recipe_composition_panel import RecipeCompositionPanel
 
 
@@ -33,8 +44,6 @@ class ArticleDashboardPanel(BoxLayout):
             on_save,
             on_numpad,
             on_adjust_stock,
-            on_order_amount_button,
-            on_receive_order,
             on_recipe_quantity,
             on_recipe_unit,
             on_recipe_remove,
@@ -113,8 +122,13 @@ class ArticleDashboardPanel(BoxLayout):
 
         self.bestand_card = BestandCard(on_adjust=on_adjust_stock)
 
-        self.bestellmenge_card = BestellmengeCard(
-            on_amount_button=on_order_amount_button, on_receive=on_receive_order,
+        self.verlauf_card = VerlaufCard()
+
+        # Links stehen Stammdaten und Bestand uebereinander - als eine
+        # Spalte neben dem Verlauf.
+        self.links = BoxLayout(
+            orientation="vertical",
+            spacing=dp(theme.SCREEN_SPACING),
         )
 
         self.rezept_card = RecipeCompositionPanel(
@@ -131,33 +145,51 @@ class ArticleDashboardPanel(BoxLayout):
     # Anzeige
     # =====================================================
 
+    def _leeren(self):
+        """Nimmt alle Karten heraus - auch aus der linken Spalte, sonst
+        haengen sie beim naechsten Artikel noch dort."""
+
+        self.cards_layout.clear_widgets()
+        self.links.clear_widgets()
+
+        self.stammdaten_card.size_hint = (1, 1)
+
     def show_for_new_article(self, category_id=None):
-        """Leerer Artikel-Dialog. Bestand/Bestellmenge/Rezept ergeben
-        erst nach dem ersten Speichern einen Sinn."""
+        """Leerer Artikel-Dialog. Bestand und Rezept ergeben erst nach
+        dem ersten Speichern einen Sinn."""
 
         self.title_label.text = "Neuer Artikel"
         self.stammdaten_card.clear(category_id=category_id)
 
-        self.cards_layout.clear_widgets()
+        self._leeren()
 
         if self.schmal:
+            self.stammdaten_card.set_zweispaltig(False)
             self._untereinander([(self.stammdaten_card, 430)])
             return
 
-        self.stammdaten_card.size_hint_x = 0.5
+        self.cards_layout.orientation = "horizontal"
+
+        self.stammdaten_card.set_zweispaltig(True)
+        self.stammdaten_card.size_hint_x = 0.62
+
         self.cards_layout.add_widget(self.stammdaten_card)
-        self.cards_layout.add_widget(BoxLayout(size_hint_x=0.5))
+        self.cards_layout.add_widget(BoxLayout(size_hint_x=0.38))
 
     def show_for_article(self, article):
 
         self.title_label.text = article["name"]
         self.stammdaten_card.load_article(article)
 
-        self.cards_layout.clear_widgets()
+        self._leeren()
+
+        ist_mix = article["article_type"] == "MIX"
 
         if self.schmal:
 
-            if article["article_type"] == "MIX":
+            self.stammdaten_card.set_zweispaltig(False)
+
+            if ist_mix:
                 self._untereinander([
                     (self.stammdaten_card, 430),
                     (self.rezept_card, 380),
@@ -166,24 +198,49 @@ class ArticleDashboardPanel(BoxLayout):
             else:
                 self._untereinander([
                     (self.stammdaten_card, 430),
-                    (self.bestand_card, 320),
-                    (self.bestellmenge_card, 220),
+                    (self.bestand_card, 90),
+                    (self.verlauf_card, 300),
                 ])
 
             return
 
-        if article["article_type"] == "MIX":
+        if ist_mix:
+
+            # Neben dem Rezept ist fuer zwei Spalten kein Platz.
+            self.cards_layout.orientation = "horizontal"
+
+            self.stammdaten_card.set_zweispaltig(False)
             self.stammdaten_card.size_hint_x = 0.35
             self.rezept_card.size_hint_x = 0.65
+
             self.cards_layout.add_widget(self.stammdaten_card)
             self.cards_layout.add_widget(self.rezept_card)
+
+            return
+
+        self.stammdaten_card.set_zweispaltig(True)
+
+        self.links.add_widget(self.stammdaten_card)
+        self.links.add_widget(self.bestand_card)
+
+        if theme.is_portrait():
+
+            # Hochkant: Stammdaten und Bestand oben, der Verlauf
+            # darunter ueber die volle Breite.
+            self.cards_layout.orientation = "vertical"
+
+            self.links.size_hint = (1, 0.62)
+            self.verlauf_card.size_hint = (1, 0.38)
+
         else:
-            self.stammdaten_card.size_hint_x = 0.30
-            self.bestand_card.size_hint_x = 0.38
-            self.bestellmenge_card.size_hint_x = 0.32
-            self.cards_layout.add_widget(self.stammdaten_card)
-            self.cards_layout.add_widget(self.bestand_card)
-            self.cards_layout.add_widget(self.bestellmenge_card)
+
+            self.cards_layout.orientation = "horizontal"
+
+            self.links.size_hint = (0.62, 1)
+            self.verlauf_card.size_hint = (0.38, 1)
+
+        self.cards_layout.add_widget(self.links)
+        self.cards_layout.add_widget(self.verlauf_card)
 
     def _untereinander(self, karten):
         """Stellt die Karten auf dem Telefon untereinander.

@@ -10,6 +10,8 @@ from kivy.uix.widget import Widget
 
 import theme
 
+from widgets.common.kig_bildknopf import speicherknopf
+
 from database import DatabaseManager
 from widgets.cash.article_tile import CashArticleTile
 from widgets.cash.category_tile import CashCategoryTile
@@ -102,7 +104,14 @@ class ProductSortDialog(KiGPopup):
 
         buttons = BoxLayout(size_hint_y=None, height=dp(72), spacing=dp(theme.ROW_SPACING))
         buttons.add_widget(KiGActionTile(text="Abbrechen", callback=lambda *_: self.dismiss()))
-        buttons.add_widget(KiGActionTile(text="Speichern", callback=self.save))
+        # So gross wie die Kachel "Abbrechen" daneben - sonst nahm die
+        # Diskette den ganzen Rest der Zeile ein.
+        buttons.add_widget(speicherknopf(
+            self.save,
+            size_hint=(None, None),
+            width=dp(theme.CATEGORY_TILE_WIDTH),
+            height=dp(theme.CATEGORY_TILE_HEIGHT),
+        ))
         root.add_widget(buttons)
         return root
 

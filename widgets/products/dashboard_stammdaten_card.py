@@ -35,10 +35,13 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.widget import Widget
 from kivy.uix.switch import Switch
 
 import config
 import theme
+
+from widgets.common.kig_bildknopf import speicherknopf
 
 from widgets.common import schreibschutz
 
@@ -89,14 +92,23 @@ class StammdatenCard(RoundedPanel):
         self._row_order = []
         self._hidden_rows = set()
 
+        # Ueberschrift in einer eigenen Zeile - zweispaltig steht rechts
+        # daneben der Speichern-Knopf (siehe set_zweispaltig).
+        self.kopf = BoxLayout(
+            orientation="horizontal",
+            size_hint_y=None,
+            height=dp(30),
+            spacing=dp(theme.ROW_SPACING),
+        )
+
         title = KiGLabel(text="Stammdaten")
         title.set_font_size(20)
         title.set_bold(True)
         title.set_alignment("left")
         title.set_color(theme.PRIMARY_ORANGE)
-        title.size_hint_y = None
-        title.height = dp(30)
-        self.add_widget(title)
+        self.kopf.add_widget(title)
+
+        self.add_widget(self.kopf)
 
         # -------------------------------------------------
         # Formularfelder: bei Flasche + Shot kommen einige Zeilen
@@ -107,13 +119,35 @@ class StammdatenCard(RoundedPanel):
         # nur der Speichern-Button bleibt immer sichtbar.
         # -------------------------------------------------
 
+        # Zwei Spalten: links die Angaben, daneben die Schalter ("Aktiv",
+        # "Verkauf an Kasse", "Auch als Shot"). Untereinander in einer
+        # schmalen Karte standen die Schalter unter sechs Feldern und
+        # waren nur durch Rollen zu erreichen. Ob die zweite Spalte
+        # genutzt wird, entscheidet das Dashboard (set_zweispaltig) -
+        # neben einem Rezept ist die Karte dafuer zu schmal.
+        self.zweispaltig = False
+        self._schalter_zeilen = set()
+
         self.fields = BoxLayout(
-            orientation="vertical", spacing=dp(theme.ROW_SPACING), size_hint_y=None
+            orientation="vertical", spacing=dp(theme.ROW_SPACING),
         )
-        self.fields.bind(minimum_height=self.fields.setter("height"))
+
+        self.schalter_spalte = BoxLayout(
+            orientation="vertical", spacing=dp(theme.ROW_SPACING),
+        )
+
+        self.spalten = BoxLayout(
+            orientation="horizontal",
+            spacing=dp(theme.CARD_PADDING * 2),
+            size_hint_y=None,
+        )
+        self.spalten.add_widget(self.fields)
+
+        for spalte in (self.fields, self.schalter_spalte):
+            spalte.bind(minimum_height=self._spaltenhoehe)
 
         fields_scroll = ScrollView(bar_width=dp(10), do_scroll_x=False)
-        fields_scroll.add_widget(self.fields)
+        fields_scroll.add_widget(self.spalten)
         self.add_widget(fields_scroll)
 
         # -------------------------------------------------
@@ -215,7 +249,8 @@ class StammdatenCard(RoundedPanel):
         # Speichern-Button bewusst AUSSERHALB des ScrollView, direkt
         # auf der Karte - bleibt so unabhängig von der Scroll-Position
         # immer erreichbar.
-        self.add_widget(self._save_button())
+        self.speichern_knopf = self._save_button()
+        self.add_widget(self.speichern_knopf)
 
     # =====================================================
     # Zeilenaufbau
@@ -271,6 +306,13 @@ class StammdatenCard(RoundedPanel):
             row.add_widget(widget)
 
         self._row_order.append(row)
+
+        # Schalter und die Angaben, die zu einem Schalter gehoeren
+        # (eingerueckt, z. B. die Shot-Details), stehen zweispaltig
+        # rechts - dort, wo ihr Schalter steht.
+        if is_switch or indented:
+            self._schalter_zeilen.add(row)
+
         self.fields.add_widget(row)
         return row
 
@@ -281,10 +323,86 @@ class StammdatenCard(RoundedPanel):
         gerade verborgen sind."""
 
         self.fields.clear_widgets()
+        self.schalter_spalte.clear_widgets()
 
         for row in self._row_order:
-            if row not in self._hidden_rows:
+
+            if row in self._hidden_rows:
+                continue
+
+            if self.zweispaltig and row in self._schalter_zeilen:
+                self.schalter_spalte.add_widget(row)
+            else:
                 self.fields.add_widget(row)
+
+        # Ein dehnbarer Rest unter den Zeilen: Kivy stapelt Zeilen
+        # fester Hoehe in einer senkrechten Reihe von UNTEN auf. Ohne
+        # ihn stand "Verkauf an Kasse" neben dem Einkaufspreis ganz
+        # unten statt oben neben dem Namen.
+        for spalte in (self.fields, self.schalter_spalte):
+            spalte.add_widget(Widget())
+
+        self._spaltenhoehe()
+
+    def _spaltenhoehe(self, *_args):
+        """Der Rollbereich ist so hoch wie die laengere Spalte."""
+
+        hoehen = [self.fields.minimum_height]
+
+        if self.zweispaltig:
+            hoehen.append(self.schalter_spalte.minimum_height)
+
+        self.spalten.height = max(hoehen)
+
+    def set_zweispaltig(self, an):
+        """Schalter neben die Angaben (True) oder darunter (False)."""
+
+        if an == self.zweispaltig:
+            return
+
+        self.zweispaltig = an
+
+        if an and self.schalter_spalte.parent is None:
+            self.spalten.add_widget(self.schalter_spalte)
+
+        if not an and self.schalter_spalte.parent is not None:
+            self.spalten.remove_widget(self.schalter_spalte)
+
+        self._speichern_setzen()
+
+        self._relayout_rows()
+
+    def _speichern_setzen(self):
+        """Zweispaltig oben rechts neben der Ueberschrift, sonst unten.
+
+        Unten ueber die volle Breite kostete der Knopf eine ganze
+        Zeile - nachgemessen genau die, in der der Verkaufspreis stand:
+        Er lag zweispaltig unter dem Rand und war nur durch Rollen zu
+        erreichen. Oben rechts ist er genauso immer sichtbar.
+        """
+
+        knopf = self.speichern_knopf
+
+        if knopf.parent is not None:
+            knopf.parent.remove_widget(knopf)
+
+        if self.zweispaltig:
+
+            self.kopf.height = dp(48)
+
+            knopf.size_hint = (None, 1)
+            knopf.width = dp(96)
+
+            self.kopf.add_widget(knopf)
+
+        else:
+
+            self.kopf.height = dp(30)
+
+            knopf.size_hint = (1, None)
+            knopf.height = dp(54)
+
+            self.add_widget(knopf)
 
     def _shot_detail_rows(self):
 
@@ -384,21 +502,19 @@ class StammdatenCard(RoundedPanel):
         """
 
         return (
-            dp(30)                              # Ueberschrift
-            + self.fields.minimum_height        # alle sichtbaren Zeilen
+            self.kopf.height                    # Ueberschrift
+            + self.spalten.height               # die laengere Spalte
             + dp(54)                            # Speichern
             + dp(theme.CARD_SPACING) * 2
             + dp(theme.CARD_PADDING) * 2
         )
 
     def _save_button(self):
-        button = Button(
-            text="Speichern", size_hint_y=None, height=dp(54),
-            background_normal="", background_down="",
-            background_color=theme.PRIMARY_ORANGE, color=theme.TEXT_WHITE,
+        button = speicherknopf(
+            lambda: self.on_save(),
+            size_hint_y=None, height=dp(54),
             font_size="16sp", bold=True,
         )
-        button.bind(on_release=lambda *_args: self.on_save())
 
         # Ansehen ja, speichern nein: Auf einem Nebengeraet fuehrte
         # dieser Knopf in genau die Meldung, die das Programm anhielt.

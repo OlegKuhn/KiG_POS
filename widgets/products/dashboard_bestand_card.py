@@ -1,16 +1,18 @@
-"""Dashboard-Karte: aktueller Lagerbestand + Änderungshistorie (nur Einzelartikel)."""
+"""Dashboard-Karte: aktueller Lagerbestand und seine Korrektur (nur Einzelartikel).
+
+Der Verlauf steht seit der Aufteilung der Artikelmaske in einer
+eigenen Karte rechts (siehe dashboard_verlauf_card.py).
+"""
 
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
-from kivy.uix.scrollview import ScrollView
 
 import config
 import theme
 
 from widgets.common.rounded_panel import RoundedPanel
-from widgets.inventory.history_tile import HistoryTile
 from widgets.kig_label import KiGLabel
 
 
@@ -25,28 +27,34 @@ class BestandCard(RoundedPanel):
     """
 
     def __init__(self, on_adjust, **kwargs):
+        # Knapper Rand: Die Leiste steht unter den Stammdaten, und jede
+        # Zeile, die sie weniger braucht, bekommen dort die Felder.
         super().__init__(
             orientation="vertical",
-            spacing=dp(theme.CARD_SPACING),
-            padding=dp(theme.CARD_PADDING),
+            spacing=dp(theme.SPACE_XS),
+            padding=(dp(theme.CARD_PADDING), dp(theme.SPACE_S)),
             **kwargs
         )
 
+        # Die Karte ist so hoch wie ihr Inhalt - sie steht als Leiste
+        # unter den Stammdaten, nicht mehr als volle Spalte.
+        self.size_hint_y = None
+        self.bind(minimum_height=self.setter("height"))
+
         self.on_adjust = on_adjust
 
-        header = BoxLayout(size_hint_y=None, height=dp(30), spacing=dp(theme.ROW_SPACING))
+        schmal = theme.is_narrow()
+
+        stock_row = BoxLayout(size_hint_y=None, height=dp(56), spacing=dp(theme.CARD_SPACING))
 
         title = KiGLabel(text="Bestand")
         title.set_font_size(20)
         title.set_bold(True)
         title.set_alignment("left")
         title.set_color(theme.PRIMARY_ORANGE)
-        header.add_widget(title)
-        self.add_widget(header)
-
-        stock_row = BoxLayout(size_hint_y=None, height=dp(56), spacing=dp(theme.CARD_SPACING))
-
-        schmal = theme.is_narrow()
+        title.size_hint_x = None
+        title.width = dp(90 if schmal else 110)
+        stock_row.add_widget(title)
 
         self.stock_label = KiGLabel(text="- Stück")
 
@@ -98,25 +106,6 @@ class BestandCard(RoundedPanel):
         )
         self.add_widget(self.reicht_fuer_container)
 
-        history_title = KiGLabel(text="Änderungshistorie")
-        history_title.set_font_size(16)
-        history_title.set_bold(True)
-        history_title.set_alignment("left")
-        history_title.set_color(theme.TEXT_SECONDARY)
-        history_title.size_hint_y = None
-        history_title.height = dp(26)
-        self.add_widget(history_title)
-
-        self.history_container = BoxLayout(
-            orientation="vertical", spacing=dp(theme.ROW_SPACING), size_hint_y=None
-        )
-        self.history_container.bind(
-            minimum_height=self.history_container.setter("height")
-        )
-
-        history_scroll = ScrollView(bar_width=dp(10))
-        history_scroll.add_widget(self.history_container)
-        self.add_widget(history_scroll)
 
     def set_stock(self, quantity, unit="Stück", bottle_size_ml=None):
 
@@ -172,20 +161,3 @@ class BestandCard(RoundedPanel):
             )
             row.bind(size=lambda instance, value: setattr(instance, "text_size", value))
             self.reicht_fuer_container.add_widget(row)
-
-    def set_history(self, entries):
-
-        self.history_container.clear_widgets()
-
-        if not entries:
-            label = KiGLabel(text="Noch keine Bestandsänderungen vorhanden.")
-            label.set_font_size(14)
-            label.set_alignment("left")
-            label.set_color(theme.TEXT_SECONDARY)
-            label.size_hint_y = None
-            label.height = dp(36)
-            self.history_container.add_widget(label)
-            return
-
-        for entry in entries:
-            self.history_container.add_widget(HistoryTile(entry))

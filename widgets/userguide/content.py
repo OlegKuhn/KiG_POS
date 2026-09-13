@@ -494,11 +494,14 @@ TOPICS = [
             {
                 "heading": "Artikel bearbeiten",
                 "text": (
-                    "\"Bearbeiten\" öffnet das Dashboard eines Artikels "
-                    "und ersetzt dabei die Liste. Bei normalen Artikeln "
-                    "siehst du drei Karten nebeneinander: Stammdaten, "
-                    "Bestand und Einkauf/Bestellmenge. Über \"← Zurück\" "
-                    "kommst du wieder zur Liste."
+                    "Der Stift öffnet das Dashboard eines Artikels "
+                    "und ersetzt dabei die Liste. Links stehen die "
+                    "Stammdaten - die Angaben, daneben die Schalter -, "
+                    "darunter der Bestand mit seiner Korrektur. Rechts "
+                    "läuft der Bestandsverlauf als Tabelle mit.\n\n"
+                    "Die Bestellmenge buchst du direkt in der Liste; im "
+                    "Dashboard steht sie nicht. Über \"← Zurück\" kommst "
+                    "du wieder zur Liste."
                 ),
                 "image": "artikel/03_dashboard_einzelartikel.png",
             },
@@ -513,7 +516,7 @@ TOPICS = [
                     "reine Zutaten schaltest du hier aus. \"Aktiv\" "
                     "blendet einen Artikel komplett aus, ohne die "
                     "Verkaufshistorie zu verlieren. Änderungen werden "
-                    "erst mit \"Speichern\" übernommen."
+                    "erst mit der Diskette oben rechts übernommen."
                 ),
             },
             {
@@ -522,8 +525,8 @@ TOPICS = [
                     "\"Bestand anpassen\" öffnet die Bestandskorrektur "
                     "für eine Inventur oder zum Ausbuchen von Bruch. "
                     "Neben dem neuen Bestand musst du einen Grund und "
-                    "deinen Namen angeben - beides landet in der "
-                    "Änderungshistorie, die direkt darunter mitläuft. So "
+                    "deinen Namen angeben - beides landet im "
+                    "Bestandsverlauf rechts daneben. So "
                     "ist später nachvollziehbar, wer wann was geändert "
                     "hat."
                 ),
@@ -532,7 +535,8 @@ TOPICS = [
             {
                 "heading": "Neuen Artikel anlegen",
                 "text": (
-                    "\"+ Neuer Artikel\" öffnet ein leeres Formular. "
+                    "Das Plus neben der Überschrift öffnet ein leeres "
+                    "Formular. "
                     "Trage zuerst den Namen ein und wähle dann die "
                     "Einheit - davon hängt ab, welche Felder überhaupt "
                     "abgefragt werden. Nach dem Speichern landest du "
@@ -1163,9 +1167,9 @@ TOPICS = [
                     "würde beim Einsammeln von der anderen "
                     "überschrieben - die Hälfte der Abgänge wäre weg, "
                     "ohne Fehlermeldung.\n\n"
-                    "Im Artikel-Dashboard steht die Geschichte wie "
-                    "gewohnt: was passiert ist, wer es war, und wie der "
-                    "Bestand vorher und nachher stand."
+                    "Im Artikel-Dashboard steht die Geschichte rechts "
+                    "als Tabelle: wann, aus welchem Grund, um wie viel, "
+                    "und welcher Bestand danach blieb."
                 ),
             },
             {

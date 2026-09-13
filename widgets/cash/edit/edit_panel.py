@@ -354,7 +354,12 @@ class EditPanel(SlidePanel, BoxLayout):
         self.background.pos = self.pos
         self.background.size = self.size
 
-        y = self.top - self.HEADER_HEIGHT
+        # Unter der Ueberschrift, nicht durch sie hindurch: Die Hoehe
+        # der Ueberschrift ist in dp gerechnet, und oben liegt noch der
+        # Innenabstand. Ohne beides lag der Strich bei 125 % Skalierung
+        # mitten auf "Artikel bearbeiten" - die Zeile sah durchgestrichen
+        # aus.
+        y = self.top - dp(self.PADDING) - dp(self.HEADER_HEIGHT)
 
         self.separator.points = [
             self.x,
@@ -370,7 +375,6 @@ class EditPanel(SlidePanel, BoxLayout):
     def open(self, cart_item):
 
         self.cart_item = cart_item
-        print("EditPanel.open:", cart_item.unit_price)
 
         self.lbl_article.text = cart_item.article.name
 

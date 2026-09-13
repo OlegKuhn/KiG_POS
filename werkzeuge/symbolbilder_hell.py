@@ -49,7 +49,7 @@ import config
 # Nur die drei Handgriffe, die als Schaltfläche erscheinen - die
 # Kacheln der Startseite stehen auf hellen Karten und bleiben, wie
 # sie sind.
-BILDER = ("recycle-bin", "edit", "plus")
+BILDER = ("recycle-bin", "edit", "plus", "save")
 
 
 def hell(quelle, ziel):

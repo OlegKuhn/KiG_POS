@@ -49,12 +49,17 @@ class CategoryPanel(RoundedPanel):
     NARROW_ACTION_WIDTH = 88
     NARROW_COLUMNS = 2
 
+    # Seit "Neu" und "Bearbeiten" nur noch ein Bild tragen, genügt
+    # ihnen ein Quadrat - die Überschrift daneben bekommt den Rest.
+    BILD_AKTION_BREITE = 64
+
     def __init__(
             self,
             on_new,
             on_edit,
             show_actions=True,
             als_liste=None,
+            kopfzeile=None,
             **kwargs
     ):
         """als_liste bestimmt den Aufbau der Karte:
@@ -98,6 +103,13 @@ class CategoryPanel(RoundedPanel):
         # der Ausrichtung.
         self.hochformat = not als_liste
 
+        # Ob Überschrift und Schaltflächen eine Zeile teilen. Im
+        # flachen Band ist das ohnehin so; die Filterleiste der
+        # Artikelverwaltung will es auch bei einer Liste darunter:
+        # Zwei breite Knöpfe unter "Kategorien" belegten dort eine
+        # eigene Zeile, in der sonst schon eine Kategorie stünde.
+        self.kopfzeile = self.hochformat if kopfzeile is None else kopfzeile
+
         title = KiGLabel(
             text="Kategorien"
         )
@@ -110,7 +122,7 @@ class CategoryPanel(RoundedPanel):
         title.size_hint_y = None
         title.height = dp(42)
 
-        if self.hochformat:
+        if self.kopfzeile:
 
             self.header = BoxLayout(
                 orientation="horizontal",
@@ -131,7 +143,7 @@ class CategoryPanel(RoundedPanel):
         # Aktionsleiste
         # -------------------------------------------------
 
-        if self.show_actions and self.hochformat:
+        if self.show_actions and self.kopfzeile:
 
             for text, bauen in (
                 ("Neu", lambda: neuknopf(self.on_new)),
@@ -140,10 +152,7 @@ class CategoryPanel(RoundedPanel):
                 button = bauen()
 
                 button.size_hint = (None, None)
-                button.width = dp(
-                    self.NARROW_ACTION_WIDTH if theme.is_narrow()
-                    else self.PORTRAIT_ACTION_WIDTH
-                )
+                button.width = dp(self.BILD_AKTION_BREITE)
                 button.height = dp(theme.CATEGORY_TILE_HEIGHT)
 
                 self.header.add_widget(button)

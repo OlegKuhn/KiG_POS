@@ -20,6 +20,7 @@ Beschreibung:
         assets/icons/recycle-bin.png    löschen, entfernen
         assets/icons/edit.png           bearbeiten
         assets/icons/plus.png           neu, hinzufügen
+        assets/icons/save.png           speichern
 
     Die Bilder werden wie auf der Startseite gezeichnet
     (schwarze Linien auf durchsichtigem Grund) und deshalb
@@ -34,6 +35,7 @@ Version:
 =========================================================
 """
 
+from kivy.clock import Clock
 from kivy.core.image import Image as CoreImage
 from kivy.graphics import Color, Rectangle
 from kivy.metrics import dp
@@ -63,6 +65,17 @@ def bearbeitenbild():
 
 def neubild():
     return _passend(config.ICON_NEW, config.ICON_NEW_HELL)
+
+
+def speicherbild():
+    """Immer die helle Fassung: Speichern steht auf Orange - in beiden
+    Farbmodi. Weiss darauf ist so gut zu lesen wie die weisse Schrift,
+    die dort vorher stand."""
+
+    if config.ICON_SAVE_HELL.exists():
+        return str(config.ICON_SAVE_HELL)
+
+    return str(config.ICON_SAVE)
 
 
 # Einmal geladen, überall benutzt: Ein Bild je Schaltfläche neu von
@@ -116,7 +129,20 @@ class KiGBildButton(Button):
             else self.BILD_GROESSE
         )
 
-        self.bind(pos=self._zeichnen, size=self._zeichnen, text=self._zeichnen)
+        # Erst im naechsten Bild zeichnen, nicht bei jedem Zwischenschritt
+        # des Layouts - dieselbe Lehre wie bei den gezeichneten Symbolen
+        # (siehe KiGSymbol). Nachgemessen: Im Kategorienfilter stand das
+        # Plus 14 Bildpunkte vom linken Rand eines 218 breiten Knopfes,
+        # also dort, wo es bei einer Zwischenbreite von 60 hingehoert
+        # haette - und blieb dort stehen.
+        self._nachzeichnen = Clock.create_trigger(self._zeichnen, -1)
+
+        self.bind(
+            pos=self._nachzeichnen,
+            size=self._nachzeichnen,
+            text=self._nachzeichnen,
+            disabled=self._nachzeichnen,
+        )
 
         self._zeichnen()
 
@@ -193,6 +219,20 @@ def neuknopf(callback=None, text="", **kwargs):
     """Ein Plus."""
 
     knopf = KiGBildButton(bild=neubild(), text=text, **kwargs)
+
+    if callable(callback):
+        knopf.bind(on_release=lambda *_args: callback())
+
+    return knopf
+
+
+def speicherknopf(callback=None, text="", **kwargs):
+    """Eine Diskette auf Orange - die Hauptaktion eines Formulars."""
+
+    kwargs.setdefault("background_color", theme.PRIMARY_ORANGE)
+    kwargs.setdefault("color", theme.TEXT_WHITE)
+
+    knopf = KiGBildButton(bild=speicherbild(), text=text, **kwargs)
 
     if callable(callback):
         knopf.bind(on_release=lambda *_args: callback())

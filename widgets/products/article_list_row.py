@@ -17,6 +17,30 @@ from widgets.common.kig_bildknopf import (
 )
 
 
+# Die Spalten der Querformat-Fassung: Ueberschrift, Breite in dp (None =
+# der Rest), Ausrichtung. Kopfzeile und Zeile lesen BEIDE hieraus -
+# vorher standen die Breiten an zwei Stellen, und nachdem "Bearbeiten"
+# zum schmalen Stift geworden war, rechnete die Kopfzeile noch mit
+# 100 dp statt 58. Alle Ueberschriften standen dadurch 42 dp neben
+# ihren Werten.
+SPALTEN_QUER = (
+    ("Artikel", None, "left"),
+    ("Verkauf", 78, "right"),
+    ("Einkauf", 78, "right"),
+    ("Bestand", 78, "right"),
+    ("Menge", 80, "left"),
+    ("", 90, "center"),
+    ("", 58, "center"),
+    ("", 58, "center"),
+)
+
+
+def spaltenbreite(position):
+    """Breite der Spalte an dieser Stelle, in Bildpunkten."""
+
+    return dp(SPALTEN_QUER[position][1])
+
+
 class ArticleListRow(BoxLayout):
     """Zeigt Name, Kategorie, Verkaufs-/Einkaufspreis und Bestand eines
     Artikels.
@@ -122,8 +146,12 @@ class ArticleListRow(BoxLayout):
         # Verkaufspreis / Einkaufspreis / Bestand
         # -------------------------------------------------
 
-        self.add_widget(self._value_label(self._format_price(article["price"]), dp(78)))
-        self.add_widget(self._value_label(self._format_price(article["purchase_price"]), dp(78)))
+        self.add_widget(self._value_label(
+            self._format_price(article["price"]), spaltenbreite(1)
+        ))
+        self.add_widget(self._value_label(
+            self._format_price(article["purchase_price"]), spaltenbreite(2)
+        ))
 
         if is_mix:
             stock_text = "–"
@@ -131,7 +159,7 @@ class ArticleListRow(BoxLayout):
             stock_text = f"{self._format_stock(article.get('stock', 0))} ml"
         else:
             stock_text = self._format_stock(article.get("stock", 0))
-        self.add_widget(self._value_label(stock_text, dp(78)))
+        self.add_widget(self._value_label(stock_text, spaltenbreite(3)))
 
         # -------------------------------------------------
         # Bestellmenge: Menge festlegen + direkt buchen
@@ -139,7 +167,7 @@ class ArticleListRow(BoxLayout):
 
         self.amount_button = Feldknopf(
             text=str(order_amount) if not is_mix else "–",
-            size_hint_x=None, width=dp(80),
+            size_hint_x=None, width=spaltenbreite(4),
             disabled=is_mix,
         )
         if not is_mix:
@@ -149,7 +177,7 @@ class ArticleListRow(BoxLayout):
         self.add_widget(self.amount_button)
 
         confirm_button = Button(
-            text="Buchen", size_hint_x=None, width=dp(90),
+            text="Buchen", size_hint_x=None, width=spaltenbreite(5),
             background_normal="", background_down="",
             background_color=theme.SUCCESS, color=theme.TEXT_WHITE,
             font_size="13sp", bold=True,
@@ -169,13 +197,13 @@ class ArticleListRow(BoxLayout):
 
         edit_button = bearbeitenknopf(
             lambda: self.edit_callback(self.article),
-            size_hint_x=None, width=dp(58),
+            size_hint_x=None, width=spaltenbreite(6),
         )
         self.add_widget(edit_button)
 
         delete_button = loeschknopf(
             lambda: self.delete_callback(self.article),
-            size_hint_x=None, width=dp(46),
+            size_hint_x=None, width=spaltenbreite(7),
         )
         self.add_widget(delete_button)
 

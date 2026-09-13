@@ -13,11 +13,13 @@ Beschreibung:
     Inventar und Rezepte an einem Ort zusammen:
 
         • Liste: alle Artikel mit Preis, Bestand und
-          Bestellmenge (Kategorie-Filter links).
-        • "Bearbeiten" öffnet pro Artikel ein Dashboard mit
-          Stammdaten, Bestand (inkl. Historie), Bestellmenge
-          und - bei Mix-/Rezeptartikeln - der Zusammensetzung.
-          Das Dashboard ersetzt dabei die Liste vollständig.
+          Bestellmenge, die dort auch gleich gebucht wird
+          (Kategorie-Filter in der Leiste unten).
+        • Der Stift öffnet pro Artikel ein Dashboard mit
+          Stammdaten, Bestand samt Korrektur und dem
+          Bestandsverlauf - bei Mix-/Rezeptartikeln statt Bestand
+          und Verlauf die Zusammensetzung. Das Dashboard ersetzt
+          dabei die Liste vollständig.
 
 Version:
     3.0.0
@@ -103,8 +105,11 @@ class ProductsScreen(Screen):
             padding=dp(theme.SCREEN_PADDING),
         )
 
+        # In der Filterleiste: Ueberschrift und die beiden schmalen
+        # Knoepfe in einer Reihe, darunter die Kategorien.
         self.category_panel = CategoryPanel(
             on_new=self.new_category, on_edit=self.edit_category,
+            kopfzeile=True,
         )
 
         # Die Kategorien sind der Filter dieses Bildschirms - sie
@@ -137,8 +142,6 @@ class ProductsScreen(Screen):
             on_save=self.save_stammdaten,
             on_numpad=self.open_price_numpad,
             on_adjust_stock=self.open_stock_adjustment,
-            on_order_amount_button=self.open_dashboard_order_numpad,
-            on_receive_order=self.receive_order,
             on_recipe_quantity=self.edit_ingredient_quantity,
             on_recipe_unit=self.change_ingredient_unit,
             on_recipe_remove=self.remove_recipe_ingredient,
@@ -496,14 +499,11 @@ class ProductsScreen(Screen):
             self.dashboard_panel.bestand_card.set_stock(
                 stock, article["stock_unit"], article.get("bottle_size_ml")
             )
-            self.dashboard_panel.bestand_card.set_history(
+            self.dashboard_panel.verlauf_card.set_history(
                 self.db.get_stock_history(article["id"])
             )
             self.dashboard_panel.bestand_card.set_reicht_fuer(
                 self._compute_reicht_fuer(article, stock)
-            )
-            self.dashboard_panel.bestellmenge_card.set_amount(
-                self.order_amounts.get(article["id"], 0)
             )
 
     def _refresh_recipe_summary(self, recipe_article_id):
@@ -579,7 +579,7 @@ class ProductsScreen(Screen):
             # Eine bereits gemerkte Flaschengröße bleibt beim
             # Speichern der Stammdaten unangetastet - sie wird
             # ausschließlich über Wareneingang/Bestandskorrektur
-            # gepflegt (siehe receive_order() / save_stock_adjustment()).
+            # gepflegt (siehe receive_order_from_list() / save_stock_adjustment()).
             saved = self.db.update_article(
                 article_id=self.selected_article["id"], category_id=data["category_id"],
                 name=data["name"], price=data["price"], purchase_price=data["purchase_price"],
@@ -789,7 +789,7 @@ class ProductsScreen(Screen):
         self.dashboard_panel.bestand_card.set_stock(
             new_quantity, self.selected_article["stock_unit"], self.selected_article.get("bottle_size_ml")
         )
-        self.dashboard_panel.bestand_card.set_history(self.db.get_stock_history(article_id))
+        self.dashboard_panel.verlauf_card.set_history(self.db.get_stock_history(article_id))
         self.dashboard_panel.bestand_card.set_reicht_fuer(
             self._compute_reicht_fuer(self.selected_article, new_quantity)
         )
@@ -929,116 +929,6 @@ class ProductsScreen(Screen):
 
         self.db.delete_article(article["id"])
         self.refresh_articles()
-
-    # =====================================================
-    # Bestellmenge (Dashboard)
-    # =====================================================
-
-    def open_dashboard_order_numpad(self):
-
-        if self.selected_article is None:
-            return
-
-        self.numpad_panel.open(
-            value=self.dashboard_panel.bestellmenge_card.get_amount(), mode="integer",
-            confirm_callback=self.dashboard_order_amount_confirmed,
-            cancel_callback=self.numpad_cancelled,
-        )
-
-    def dashboard_order_amount_confirmed(self, value):
-
-        if self.selected_article is None:
-            return
-
-        article_id = self.selected_article["id"]
-        self.dashboard_panel.bestellmenge_card.set_amount(value)
-
-        if value > 0:
-            self.order_amounts[article_id] = value
-        else:
-            self.order_amounts.pop(article_id, None)
-
-        self.db.set_order_quantity(article_id, value)
-
-    def receive_order(self):
-        """Bucht den Wareneingang im Dashboard. Bei Einheit "Flasche"
-        wird vorher die Flaschengröße erfragt, da der Bestand intern
-        immer in ml geführt wird."""
-
-        if self._nur_ansicht():
-            return
-
-        if self.selected_article is None:
-            return
-
-        article = self.selected_article
-        amount = self.dashboard_panel.bestellmenge_card.get_amount()
-
-        if amount <= 0:
-            return
-
-        if article["stock_unit"] == config.BOTTLE_UNIT:
-            BottleSizePopup(
-                article_name=article["name"], bottle_count=amount,
-                default_size_ml=article.get("bottle_size_ml"),
-                default_price=article.get("purchase_price"),
-                on_confirm=lambda bottle_size_ml, preis: self._receive_bottle_dashboard(
-                    amount, bottle_size_ml, preis
-                ),
-            ).open()
-            return
-
-        self._finish_receive_order_dashboard(
-            amount, f"Bestand wurde um {amount} erhöht.",
-            self._kosten_je_einheit(article),
-        )
-
-    def _receive_bottle_dashboard(self, bottle_count, bottle_size_ml, preis_je_flasche):
-
-        if self.selected_article is None:
-            return
-
-        article_id = self.selected_article["id"]
-        self.db.set_bottle_size(article_id, bottle_size_ml)
-        self.selected_article["bottle_size_ml"] = bottle_size_ml
-
-        total_ml = bottle_count * bottle_size_ml
-
-        message = (
-            f"Bestand wurde um {total_ml:g} ml erhöht "
-            f"({bottle_count} Flasche(n) à {bottle_size_ml:g} ml)."
-        )
-
-        if preis_je_flasche:
-            message += (
-                f"\nEinkauf: {preis_je_flasche:.2f} € je Flasche".replace(".", ",")
-            )
-
-        self._finish_receive_order_dashboard(
-            total_ml, message,
-            (preis_je_flasche / bottle_size_ml) if preis_je_flasche else None,
-        )
-
-    def _finish_receive_order_dashboard(
-            self, amount_to_add, message, cost_per_unit=None
-    ):
-
-        article_id = self.selected_article["id"]
-        new_stock = self._credit_stock(article_id, amount_to_add, cost_per_unit)
-
-        self.order_amounts.pop(article_id, None)
-        self.db.clear_order_item(article_id)
-
-        self.dashboard_panel.bestellmenge_card.set_amount(0)
-        self.dashboard_panel.bestand_card.set_stock(
-            new_stock, self.selected_article["stock_unit"], self.selected_article.get("bottle_size_ml")
-        )
-        self.dashboard_panel.bestand_card.set_history(self.db.get_stock_history(article_id))
-        self.dashboard_panel.bestand_card.set_reicht_fuer(
-            self._compute_reicht_fuer(self.selected_article, new_stock)
-        )
-
-        self.message("Wareneingang gebucht", message)
 
     def numpad_cancelled(self):
 

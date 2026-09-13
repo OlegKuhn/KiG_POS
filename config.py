@@ -290,6 +290,9 @@ ICON_EDIT_HELL = ICON_DIR / "edit_hell.png"
 ICON_NEW = ICON_DIR / "plus.png"
 ICON_NEW_HELL = ICON_DIR / "plus_hell.png"
 
+ICON_SAVE = ICON_DIR / "save.png"
+ICON_SAVE_HELL = ICON_DIR / "save_hell.png"
+
 # Programmsymbol, erzeugt aus dem Vereinslogo
 # (siehe werkzeuge/symbol_erzeugen.py). Zwei Dateien, weil zwei
 # verschiedene Stellen es anzeigen:

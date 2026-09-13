@@ -9,6 +9,7 @@ from kivy.uix.scrollview import ScrollView
 import theme
 
 from widgets.common.kig_bildknopf import neuknopf
+from widgets.products.article_list_row import SPALTEN_QUER
 
 from widgets.common.exporthinweis import hinweisfeld_vorbereiten
 from widgets.common import schreibschutz
@@ -40,21 +41,21 @@ class ArticleListPanel(RoundedPanel):
         "sort_button": 130,
         "export_button": 200,
         "teilen_button": 110,
-        "new_button": 160,
+        "new_button": 64,
     }
 
     LANGE_BESCHRIFTUNGEN = {
         "sort_button": "Sortierung",
         "export_button": "Einkaufsliste exportieren",
         "teilen_button": "Teilen",
-        "new_button": "Neuer Artikel",
+        "new_button": "",
     }
 
     KURZE_BESCHRIFTUNGEN = {
         "sort_button": "Sortieren",
         "export_button": "Export",
         "teilen_button": "Teilen",
-        "new_button": "Neu",
+        "new_button": "",
     }
 
     def __init__(
@@ -139,11 +140,9 @@ class ArticleListPanel(RoundedPanel):
         self.teilen_button.bind(on_release=lambda *_args: self.teilen_callback())
         self.header_buttons.add_widget(self.teilen_button)
 
-        self.new_button = neuknopf(
-            self.new_callback,
-            text="Neuer Artikel",
-            font_size="14sp", bold=True,
-        )
+        # Nur das Plus - wofuer es steht, sagt die Ueberschrift
+        # "Artikel" daneben.
+        self.new_button = neuknopf(self.new_callback)
         self.header_buttons.add_widget(self.new_button)
 
         self.header.add_widget(self.header_buttons)
@@ -198,14 +197,32 @@ class ArticleListPanel(RoundedPanel):
                 size_hint_y=None, height=dp(24),
                 spacing=dp(theme.ROW_SPACING), padding=(dp(theme.CARD_SPACING), 0),
             )
-            for text, width in (("Artikel", None), ("Verkauf", dp(78)), ("Einkauf", dp(78)),
-                                ("Bestand", dp(78)), ("Menge", dp(80)), ("", dp(90)),
-                                ("", dp(100)), ("", dp(46))):
-                columns.add_widget(Label(
-                    text=text, color=theme.TEXT_SECONDARY, font_size="11sp", bold=True,
-                    halign="left" if width is None else "right", valign="middle",
-                    size_hint_x=None if width else 1, width=width or 0,
-                ))
+            # Dieselben Spalten wie die Zeilen darunter (siehe
+            # SPALTEN_QUER) - und mit text_size: Ohne sie setzt Kivy den
+            # Text mittig in seine Spalte, gleich welche Ausrichtung
+            # eingestellt ist, und "Verkauf" stand neben statt ueber
+            # "2,50 €".
+            for text, breite, ausrichtung in SPALTEN_QUER:
+
+                kopf = Label(
+                    text=text, color=theme.TEXT_SECONDARY, font_size="11sp",
+                    bold=True, halign=ausrichtung, valign="middle",
+                    size_hint_x=None if breite else 1,
+                    width=dp(breite) if breite else 0,
+                )
+
+                # "Menge" steht ueber einem Feld, dessen Wert 12 dp vom
+                # Rand beginnt - die Ueberschrift ruckt mit.
+                if text == "Menge":
+                    kopf.padding = [dp(12), 0, 0, 0]
+
+                kopf.bind(
+                    size=lambda instanz, groesse: setattr(
+                        instanz, "text_size", groesse
+                    )
+                )
+
+                columns.add_widget(kopf)
             self.add_widget(columns)
 
         # -------------------------------------------------
@@ -257,11 +274,6 @@ class ArticleListPanel(RoundedPanel):
         for name, text in beschriftungen.items():
             getattr(self, name).text = text
 
-        # Der Knopf mit dem Plus kommt ohne Wort aus, sobald es eng
-        # wird: Bild UND "Neu" nebeneinander brachen den Text sonst
-        # buchstabenweise um ("N e u").
-        if beschriftungen is self.KURZE_BESCHRIFTUNGEN:
-            self.new_button.text = ""
 
         # Neben der Überschrift behalten die Schaltflächen ihre Breite,
         # in der eigenen Zeile teilen sie sich den Platz.

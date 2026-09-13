@@ -36,6 +36,20 @@ class CartItem:
 
         self.unit_price = article.price
 
+        # =====================================================
+        # Verstärkung (nur Mischgetränke)
+        #
+        # Zutat (Artikelnummer der Flasche) -> Anzahl zusätzlicher
+        # Shots. Der Aufpreis steckt bereits im Einzelpreis; hier
+        # steht, was dafür zusätzlich ins Glas kommt - für den
+        # Lagerabzug und den Einkaufspreis.
+        # =====================================================
+
+        self.zusatz = {}
+
+        # Dasselbe zum Lesen, für die Warenkorbzeile: "+1 Bacardi".
+        self.zusatz_text = ""
+
     # =========================================================
     # Gesamtpreis der Position
     # =========================================================

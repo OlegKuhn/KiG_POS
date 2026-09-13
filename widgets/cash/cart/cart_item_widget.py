@@ -126,9 +126,14 @@ class CartItemWidget(ButtonBehavior, BoxLayout):
 
         self.lbl_title = KiGLabel()
 
-        self.lbl_title.text = (
-            cart_item.article.name
-        )
+        self.lbl_title.text = cart_item.article.name
+
+        # Ein verstärkter Drink sieht im Warenkorb anders aus als der
+        # normale daneben - an der Bar muss man das sehen.
+        zusatz_text = getattr(cart_item, "zusatz_text", "")
+
+        if zusatz_text:
+            self.lbl_title.text = f"{cart_item.article.name}  {zusatz_text}"
 
         self.lbl_title.set_bold(True)
 

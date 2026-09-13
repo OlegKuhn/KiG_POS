@@ -284,26 +284,16 @@ TOPICS = [
                 ),
             },
             {
-                "heading": "Rezept als Hilfe anzeigen",
-                "text": (
-                    "Tippst du im Warenkorb auf eine Position, die ein "
-                    "Rezept hat (Mix-Artikel), erscheint eine Sprechblase "
-                    "mit allen Zutaten samt Menge und Einheit - gedacht "
-                    "als Gedächtnisstütze für alle hinter der Bar. Die "
-                    "Sprechblase verschwindet wieder, sobald du "
-                    "irgendwo anders hintippst."
-                ),
-                "image": "kasse/04_rezept_hinweis.png",
-            },
-            {
                 "heading": "Position ändern",
                 "text": (
                     "Wähle eine Position im Warenkorb aus und tippe auf "
                     "\"Bearbeiten\". Im Panel kannst du die Menge über "
-                    "Plus/Minus anpassen, den Preis für diesen einen "
-                    "Verkauf abändern (z. B. Sonderpreis), die Position "
-                    "duplizieren oder löschen. \"Übernehmen\" schließt "
-                    "die Bearbeitung ab, \"Abbrechen\" verwirft sie.\n\n"
+                    "Plus/Minus anpassen und den Preis für diesen einen "
+                    "Verkauf abändern (z. B. Sonderpreis). \"Übernehmen\" "
+                    "schreibt beides in den Warenkorb, \"Abbrechen\" "
+                    "verwirft es. Löschen und Duplizieren gibt es hier "
+                    "nicht: Weg ist eine Position mit \"-\" auf null, "
+                    "eine zweite Portion ist \"+\" in der Zeile.\n\n"
                     "Das Panel legt sich dabei über die Oberfläche, "
                     "rechts neben dem Warenkorb: Kategorien, Artikel und "
                     "Warenkorb behalten ihren Platz und rücken nicht "
@@ -313,6 +303,31 @@ TOPICS = [
                     "nebeneinander."
                 ),
                 "image": "kasse/05_position_bearbeiten.png",
+            },
+            {
+                "heading": "Mischgetränk kräftiger",
+                "text": (
+                    "Bei einem Mischgetränk steht im Bearbeiten-Panel "
+                    "zusätzlich die Zutatenliste mit Menge und Einheit - "
+                    "zugleich die Gedächtnisstütze für alle hinter der "
+                    "Bar. Möchte jemand es kräftiger, tippst du bei der "
+                    "Spirituose auf \"+\": Jeder Tipp gibt einen Shot "
+                    "dazu (aus 4 cl werden 6 cl), und der Preis steigt um "
+                    "den Verkaufspreis dieses Shots. \"-\" nimmt nur "
+                    "zurück, was \"+\" dazugegeben hat - unter das Rezept "
+                    "geht es nicht.\n\n"
+                    "Plus und Minus haben nur Zutaten, zu denen es einen "
+                    "Shot gibt (\"Auch als Shot verkaufen\" an der "
+                    "Flasche) - nur dann gibt es einen Preis dafür. Cola, "
+                    "Limette und Co. stehen ohne Tasten da.\n\n"
+                    "Im Warenkorb trägt die Position danach den Zusatz, "
+                    "z. B. \"Jacky Cola  +1 Jack Daniels\". Beim Bezahlen "
+                    "geht der Extra-Shot mit vom Bestand der Flasche ab "
+                    "und zählt im Einkauf mit. Tippst du denselben Drink "
+                    "noch einmal an, ist das eine eigene, normale "
+                    "Position."
+                ),
+                "image": "kasse/04_drink_verstaerken.png",
             },
             {
                 "heading": "Warenkorb leeren",
@@ -393,6 +408,27 @@ TOPICS = [
                     "ab, der Warenkorb bleibt erhalten."
                 ),
                 "image": "kasse/06_bezahlen.png",
+            },
+            {
+                "heading": "KiG Karte und Gutschein",
+                "text": (
+                    "Unter der Schnellwahl sitzen \"KiG Karte\" und "
+                    "\"Gutschein\". Ein Tipp öffnet den Nummernblock für "
+                    "den Betrag, der damit beglichen wird; \"OK\" am "
+                    "Nummernblock zieht ihn ab. Danach stehen über "
+                    "Gegeben und Rückgeld der abgezogene Betrag und was "
+                    "noch bar \"Zu zahlen\" ist, und der Nummernblock "
+                    "nimmt wieder das Bargeld auf. Mehr als der Bon lässt "
+                    "sich nicht entwerten - Rückgeld auf Karte oder "
+                    "Gutschein gibt es nicht. Ist alles entwertet, geht "
+                    "\"OK\" auch ohne Bargeld.\n\n"
+                    "Der Verkauf selbst bleibt so hoch, wie er ist: In "
+                    "der Statistik zählen die Artikel mit vollem Preis, "
+                    "und unter den Kennzahlen steht, was davon als "
+                    "KiG Karte und Gutschein entwertet und was bar "
+                    "eingenommen wurde."
+                ),
+                "image": "kasse/08_kig_karte.png",
             },
             {
                 "heading": "Was beim Abschluss passiert",
@@ -576,8 +612,8 @@ TOPICS = [
                     "Minze, Limettenscheibe, brauner Zucker - gibt es die "
                     "Zeile \"...oder eine Zutat ohne Artikel eintragen\". "
                     "Name, Menge und eine frei wählbare Einheit genügen. "
-                    "Solche Zutaten erscheinen im Rezept und in der "
-                    "Sprechblase an der Kasse, werden aber nicht vom "
+                    "Solche Zutaten erscheinen im Rezept und im "
+                    "Bearbeiten-Panel der Kasse, werden aber nicht vom "
                     "Bestand abgezogen."
                 ),
             },
@@ -1302,9 +1338,13 @@ TOPICS = [
                 "text": (
                     "Oben rechts stehen die Zahlen des gewählten "
                     "Ausschnitts: Einnahmen, Ausgaben und der Gewinn "
-                    "als Differenz. Die Zeile darunter nennt Zeitraum, "
-                    "Event und den Umfang - so ist immer klar, worauf "
-                    "sich die Beträge beziehen.\n\n"
+                    "als Differenz. Wurde mit KiG Karte oder Gutschein "
+                    "bezahlt, steht darunter \"Entwertet\" mit beiden "
+                    "Beträgen und dem, was bar eingenommen wurde - die "
+                    "Einnahmen enthalten diese Beträge, verkauft wurde "
+                    "die Ware ja trotzdem. Die Zeile darunter nennt "
+                    "Zeitraum, Event und den Umfang - so ist immer klar, "
+                    "worauf sich die Beträge beziehen.\n\n"
                     "Das Kreisdiagramm zeigt, wie sich die Einnahmen auf "
                     "die Kategorien verteilen, in den Farben, die du den "
                     "Kategorien gegeben hast. Die Legende nennt Anteil "

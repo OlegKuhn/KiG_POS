@@ -4,18 +4,193 @@ from kivy.graphics import (
     Line
 )
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.widget import Widget
 
 from kivy.metrics import dp
 
+import geldformat
 import theme
-
-from widgets.common.kig_bildknopf import loeschknopf
+import units
 
 from widgets.kig_label import KiGLabel
 from widgets.common.kig_action_tile import KiGActionTile
 from widgets.cash.edit.quantity_editor import QuantityEditor
 from widgets.common.slide_panel import SlidePanel
+
+
+def _menge_text(menge):
+    """4 -> "4", 2.5 -> "2,5"."""
+
+    try:
+        menge = float(menge)
+    except (TypeError, ValueError):
+        return str(menge)
+
+    if menge.is_integer():
+        return str(int(menge))
+
+    return f"{menge:.2f}".rstrip("0").replace(".", ",")
+
+
+class ZutatZeile(BoxLayout):
+    """Eine Zutat im Bearbeiten-Dialog.
+
+    Links Name und Menge, rechts Minus und Plus - aber nur, wenn es
+    zu der Zutat einen Shot gibt. Nur dann gibt es einen Preis, zu dem
+    sie verstärkt werden kann (siehe database.get_verstaerkung).
+
+        Rum                              [ - ] [ + ]
+        6 cl  (+1 Shot, +2,50 €)
+    """
+
+    HOEHE = 54
+    KNOPF_BREITE = 48
+
+    def __init__(self, zutat, anzahl=0, aendern_callback=None, **kwargs):
+
+        super().__init__(
+            orientation="horizontal",
+            size_hint=(1, None),
+            height=dp(self.HOEHE),
+            spacing=dp(theme.SPACE_XS),
+            **kwargs
+        )
+
+        self.zutat = zutat
+        self.anzahl = anzahl
+        self.aendern_callback = aendern_callback
+
+        with self.canvas.before:
+            Color(*theme.CART_BACKGROUND)
+            self._grund = Rectangle()
+
+        self.bind(
+            pos=self._nachziehen,
+            size=self._nachziehen
+        )
+
+        texte = BoxLayout(
+            orientation="vertical",
+            padding=(dp(theme.SPACE_S), dp(4)),
+        )
+
+        self.lbl_name = KiGLabel(text=zutat["name"])
+        self.lbl_name.set_bold(True)
+        self.lbl_name.set_font_size(16)
+        self.lbl_name.set_color(theme.TEXT_PRIMARY)
+        self.lbl_name.set_alignment("left")
+        self.lbl_name.shorten = True
+        self.lbl_name.shorten_from = "right"
+        self.lbl_name.bind(
+            size=lambda instance, value:
+            setattr(instance, "text_size", value)
+        )
+
+        self.lbl_menge = KiGLabel()
+        self.lbl_menge.set_font_size(14)
+        self.lbl_menge.set_color(theme.TEXT_SECONDARY)
+        self.lbl_menge.set_alignment("left")
+        self.lbl_menge.markup = True
+        self.lbl_menge.shorten = True
+        self.lbl_menge.shorten_from = "right"
+        self.lbl_menge.bind(
+            size=lambda instance, value:
+            setattr(instance, "text_size", value)
+        )
+
+        texte.add_widget(self.lbl_name)
+        texte.add_widget(self.lbl_menge)
+
+        self.add_widget(texte)
+
+        self.btn_minus = None
+        self.btn_plus = None
+
+        if zutat.get("verstaerkung"):
+
+            self.btn_minus = self._knopf("-", -1)
+            self.btn_plus = self._knopf("+", +1)
+
+            self.add_widget(self.btn_minus)
+            self.add_widget(self.btn_plus)
+
+        self.aktualisieren()
+
+    def _knopf(self, beschriftung, schritt):
+
+        knopf = Button(
+            text=beschriftung,
+            size_hint=(None, 1),
+            width=dp(self.KNOPF_BREITE),
+            background_normal="", background_down="",
+            background_color=theme.SURFACE,
+            color=theme.TEXT_PRIMARY,
+            disabled_color=theme.TEXT_SECONDARY,
+            font_size="26sp", bold=True,
+        )
+
+        knopf.bind(
+            on_release=lambda *_args: self._geaendert(schritt)
+        )
+
+        return knopf
+
+    def _geaendert(self, schritt):
+
+        if callable(self.aendern_callback):
+            self.aendern_callback(self.zutat, schritt)
+
+    def _nachziehen(self, *_args):
+
+        self._grund.pos = self.pos
+        self._grund.size = self.size
+
+    def set_anzahl(self, anzahl):
+
+        self.anzahl = anzahl
+        self.aktualisieren()
+
+    def aktualisieren(self):
+
+        zutat = self.zutat
+        einheit = zutat.get("einheit") or ""
+        menge = zutat.get("menge") or 0
+
+        verstaerkung = zutat.get("verstaerkung")
+
+        if verstaerkung and self.anzahl:
+
+            # Der Shot kann in einer anderen Einheit hinterlegt sein
+            # als das Rezept (2 cl gegen 20 ml).
+            zusatz = units.convert(
+                verstaerkung["menge"], verstaerkung["einheit"], einheit
+            )
+
+            if zusatz is not None:
+                menge = menge + zusatz * self.anzahl
+
+            aufpreis = geldformat.geld(verstaerkung["preis"] * self.anzahl)
+
+            orange = "".join(
+                f"{int(round(kanal * 255)):02x}"
+                for kanal in theme.PRIMARY_ORANGE[:3]
+            )
+
+            self.lbl_menge.text = (
+                f"{_menge_text(menge)} {einheit}  "
+                f"[color={orange}][b](+{self.anzahl} Shot, "
+                f"+{aufpreis})[/b][/color]"
+            ).strip()
+
+        else:
+            self.lbl_menge.text = f"{_menge_text(menge)} {einheit}".strip()
+
+        if self.btn_minus is not None:
+            # Weniger als das Rezept gibt es nicht - Minus nimmt nur
+            # zurück, was Plus dazugegeben hat.
+            self.btn_minus.disabled = self.anzahl <= 0
 
 
 class EditPanel(SlidePanel, BoxLayout):
@@ -27,6 +202,9 @@ class EditPanel(SlidePanel, BoxLayout):
 
     HEADER_HEIGHT = 60
 
+    # Menge und Preis
+    ZEILEN_HOEHE = 60
+
     BUTTON_SPACING = theme.ROW_SPACING
     BUTTON_WIDTH = 160
     BUTTON_HEIGHT = theme.CATEGORY_TILE_HEIGHT
@@ -36,8 +214,6 @@ class EditPanel(SlidePanel, BoxLayout):
             price_callback=None,
             quantity_callback=None,
             apply_callback=None,
-            delete_callback=None,
-            duplicate_callback=None,
             **kwargs
     ):
 
@@ -49,10 +225,6 @@ class EditPanel(SlidePanel, BoxLayout):
 
         self.apply_callback = apply_callback
 
-        self.delete_callback = delete_callback
-
-        self.duplicate_callback = duplicate_callback
-
         self.orientation = "vertical"
 
         self.init_slide(dp(self.WIDTH))
@@ -61,6 +233,14 @@ class EditPanel(SlidePanel, BoxLayout):
         self.spacing = dp(self.SPACING)
 
         self.cart_item = None
+
+        # Was im Dialog eingestellt, aber noch nicht übernommen ist.
+        # Erst "Übernehmen" schreibt es in die Warenkorbposition;
+        # "Abbrechen" verwirft es.
+        self.preis = 0.0
+        self.zusatz = {}
+        self.zutaten = []
+        self.zutat_zeilen = {}
 
         # =====================================================
         # Hintergrund
@@ -138,151 +318,124 @@ class EditPanel(SlidePanel, BoxLayout):
         )
 
         # =====================================================
-        # Menge
+        # Menge und Preis
         # =====================================================
-
-        self.lbl_quantity = KiGLabel()
-
-        self.lbl_quantity.text = "Menge"
-
-        self.lbl_quantity.set_bold(True)
-        self.lbl_quantity.set_font_size(16)
-        self.lbl_quantity.set_color(theme.TEXT_PRIMARY)
-
-        self.lbl_quantity.horizontal_alignment = "left"
-
-        self.lbl_quantity.size_hint = (1, None)
-        self.lbl_quantity.height = dp(28)
-
-        self.lbl_quantity.bind(
-            size=lambda instance, value:
-            setattr(instance, "text_size", value)
-        )
-
-        self.add_widget(
-            self.lbl_quantity
-        )
-
-        # =====================================================
-        # Quantity Editor
-        # =====================================================
+        #
+        # Beschriftung und Wert in EINER Zeile. Übereinander kosteten
+        # sie 230 dp - bei einem Mischgetränk blieb darunter kaum Platz
+        # für eine einzige Zutat.
 
         self.quantity_container = BoxLayout(
             orientation="horizontal",
             size_hint=(1, None),
-            height=dp(70)
+            height=dp(self.ZEILEN_HOEHE),
+            spacing=dp(theme.ROW_SPACING),
         )
+
+        self.lbl_quantity = self._ueberschrift("Menge")
+        self.lbl_quantity.size_hint_y = 1
 
         self.quantity_editor = QuantityEditor(
             edit_callback=self.quantity_clicked
         )
 
         self.quantity_container.add_widget(
-            Widget()
+            self.lbl_quantity
         )
 
         self.quantity_container.add_widget(
             self.quantity_editor
         )
 
-        self.quantity_container.add_widget(
-            Widget()
-        )
-
         self.add_widget(
             self.quantity_container
         )
 
-        # =====================================================
-        # Preis
-        # =====================================================
-
-        self.lbl_price = KiGLabel()
-
-        self.lbl_price.text = "Preis"
-
-        self.lbl_price.set_bold(True)
-        self.lbl_price.set_font_size(16)
-        self.lbl_price.set_color(theme.TEXT_PRIMARY)
-
-        self.lbl_price.horizontal_alignment = "left"
-
-        self.lbl_price.size_hint = (1, None)
-        self.lbl_price.height = dp(28)
-
-        self.lbl_price.bind(
-            size=lambda instance, value:
-            setattr(instance, "text_size", value)
+        self.price_container = BoxLayout(
+            orientation="horizontal",
+            size_hint=(1, None),
+            height=dp(self.ZEILEN_HOEHE),
+            spacing=dp(theme.ROW_SPACING),
         )
 
-        self.add_widget(
-            self.lbl_price
-        )
-
-        # =====================================================
-        # Preis Button
-        # =====================================================
+        self.lbl_price = self._ueberschrift("Preis")
+        self.lbl_price.size_hint_y = 1
 
         self.btn_price = KiGActionTile(
             text="0,00 €",
             callback=self._price_clicked
         )
 
-        self.btn_price.size_hint = (1, None)
+        # size_hint erst nach der Konstruktion (siehe schaltflaeche).
+        self.btn_price.size_hint = (None, 1)
+        self.btn_price.width = self.quantity_editor.width
 
-        self.btn_price.height = dp(theme.CATEGORY_TILE_HEIGHT)
+        self.price_container.add_widget(
+            self.lbl_price
+        )
 
-        self.add_widget(
+        self.price_container.add_widget(
             self.btn_price
         )
 
+        self.add_widget(
+            self.price_container
+        )
+
         # =====================================================
-        # Spacer
+        # Zutaten (nur Mischgetränke)
         # =====================================================
+        #
+        # Früher kam die Zusammensetzung als Sprechblase, sobald man
+        # eine Position antippte. Hier steht sie dort, wo man sie auch
+        # ändern kann: Wer es kräftiger möchte, bekommt je Plus einen
+        # Shot der Zutat dazu - zum Preis dieses Shots.
+
+        self.zutaten_bereich = BoxLayout(
+            orientation="vertical",
+            spacing=dp(theme.SPACE_XS),
+        )
+
+        self.lbl_zutaten = self._ueberschrift("Zutaten")
+
+        self.zutaten_liste = BoxLayout(
+            orientation="vertical",
+            spacing=dp(theme.SPACE_XS),
+            size_hint_y=None,
+        )
+
+        self.zutaten_liste.bind(
+            minimum_height=self.zutaten_liste.setter("height")
+        )
+
+        self.zutaten_rollbereich = ScrollView(
+            do_scroll_x=False,
+            bar_width=dp(6),
+        )
+
+        self.zutaten_rollbereich.add_widget(
+            self.zutaten_liste
+        )
 
         self.add_widget(
-            Widget()
+            self.zutaten_bereich
         )
 
         # =====================================================
         # Buttons
         # =====================================================
 
+        # Duplizieren und Löschen gibt es hier nicht mehr: Eine
+        # zweite Portion ist Plus in der Warenkorbzeile, weg ist eine
+        # Position mit Minus auf null. Und ein verstärkter Drink wird
+        # nicht dupliziert, sondern neu angetippt und verstärkt.
         self.button_area = BoxLayout(
-            orientation="vertical",
-            spacing=dp(self.BUTTON_SPACING),
-            size_hint=(1, None),
-            height=dp(self.BUTTON_HEIGHT) * 2 + dp(self.BUTTON_SPACING)
-        )
-
-        # -----------------------------------------------------
-        # Erste Reihe
-        # -----------------------------------------------------
-
-        self.row1 = BoxLayout(
             spacing=dp(self.BUTTON_SPACING),
             size_hint=(1, None),
             height=dp(self.BUTTON_HEIGHT)
         )
 
-        # -----------------------------------------------------
-        # Zweite Reihe
-        # -----------------------------------------------------
-
-        self.row2 = BoxLayout(
-            spacing=dp(self.BUTTON_SPACING),
-            size_hint=(1, None),
-            height=dp(self.BUTTON_HEIGHT)
-        )
-
-        # -----------------------------------------------------
-        # Buttons
-        # -----------------------------------------------------
-
-        # Zwei Kacheln zu je 160 px plus Abstand ergeben 328 px und
-        # passen damit NICHT in die 318 px zwischen den Innenrändern
-        # des Panels - sie ragten bisher beidseitig heraus. Die Breite
-        # bestimmt deshalb die Reihe, nicht die Kachel (wie in
+        # Die Breite bestimmt die Reihe, nicht die Kachel (wie in
         # cart_footer.py). size_hint erst NACH der Konstruktion setzen:
         # KiGActionTile überschreibt im Konstruktor übergebene Werte.
         def schaltflaeche(text, callback):
@@ -298,52 +451,49 @@ class EditPanel(SlidePanel, BoxLayout):
 
             return kachel
 
-        self.btn_duplicate = schaltflaeche("Duplizieren", self._duplicate_clicked)
-
-        self.btn_delete = loeschknopf(
-            lambda: self._delete_clicked(None, None),
-            text="Löschen",
-            size_hint=(1, None),
-            height=dp(self.BUTTON_HEIGHT),
-            font_size="16sp", bold=True,
-        )
-
         self.btn_cancel = schaltflaeche("Abbrechen", self._cancel_clicked)
 
         self.btn_apply = schaltflaeche("Übernehmen", self._apply_clicked)
 
-        # -----------------------------------------------------
-        # Zusammenbauen
-        # -----------------------------------------------------
-
-        self.row1.add_widget(
-            self.btn_duplicate
-        )
-
-        self.row1.add_widget(
-            self.btn_delete
-        )
-
-        self.row2.add_widget(
+        self.button_area.add_widget(
             self.btn_cancel
         )
 
-        self.row2.add_widget(
+        self.button_area.add_widget(
             self.btn_apply
-        )
-
-        self.button_area.add_widget(
-            self.row1
-        )
-
-        self.button_area.add_widget(
-            self.row2
         )
 
         self.add_widget(
             self.button_area
         )
-        pass
+
+    # =====================================================
+    # Bausteine
+    # =====================================================
+
+    @staticmethod
+    def _ueberschrift(text):
+
+        label = KiGLabel()
+
+        label.text = text
+
+        label.set_bold(True)
+        label.set_font_size(16)
+        label.set_color(theme.TEXT_PRIMARY)
+
+        label.horizontal_alignment = "left"
+        label.vertical_alignment = "middle"
+
+        label.size_hint = (1, None)
+        label.height = dp(28)
+
+        label.bind(
+            size=lambda instance, value:
+            setattr(instance, "text_size", value)
+        )
+
+        return label
 
     # =====================================================
     # Canvas
@@ -372,7 +522,13 @@ class EditPanel(SlidePanel, BoxLayout):
     # Öffnen
     # =====================================================
 
-    def open(self, cart_item):
+    def open(self, cart_item, zutaten=None):
+        """Öffnet den Dialog für eine Warenkorbposition.
+
+        zutaten: die Rezeptzeilen eines Mischgetränks, je ein
+        Wörterbuch mit id, name, menge, einheit und verstaerkung
+        (siehe CashScreen._zutaten_fuer). Leer bei allem anderen.
+        """
 
         self.cart_item = cart_item
 
@@ -382,16 +538,63 @@ class EditPanel(SlidePanel, BoxLayout):
             cart_item.quantity
         )
 
-        price = int(cart_item.unit_price * 100)
+        self.preis = cart_item.unit_price
 
-        euro = price // 100
-        cent = price % 100
+        self.zusatz = dict(getattr(cart_item, "zusatz", {}) or {})
 
-        self.btn_price.set_title(
-            f"{price // 100},{price % 100:02d} €"
-        )
+        self._zutaten_zeigen(zutaten or [])
+
+        self._preis_zeigen()
 
         self.slide_open()
+
+    # -----------------------------------------------------
+
+    def _zutaten_zeigen(self, zutaten):
+
+        self.zutaten = list(zutaten)
+
+        self.zutaten_bereich.clear_widgets()
+        self.zutaten_liste.clear_widgets()
+
+        self.zutat_zeilen = {}
+
+        if not self.zutaten:
+            # Kein Mischgetränk: Der Platz bleibt leer, die Knöpfe
+            # stehen trotzdem unten.
+            return
+
+        self.zutaten_bereich.add_widget(self.lbl_zutaten)
+        self.zutaten_bereich.add_widget(self.zutaten_rollbereich)
+
+        # Was sich verstärken lässt, steht oben - darum geht es, wenn
+        # man hier ist. Cola und Limette kommen danach.
+        reihenfolge = sorted(
+            self.zutaten,
+            key=lambda zutat: 0 if zutat.get("verstaerkung") else 1,
+        )
+
+        for zutat in reihenfolge:
+
+            zeile = ZutatZeile(
+                zutat,
+                anzahl=self.zusatz.get(zutat["id"], 0),
+                aendern_callback=self._zutat_geaendert,
+            )
+
+            self.zutat_zeilen[zutat["id"]] = zeile
+
+            self.zutaten_liste.add_widget(zeile)
+
+        self.zutaten_rollbereich.scroll_y = 1
+
+    # -----------------------------------------------------
+
+    def _preis_zeigen(self):
+
+        self.btn_price.set_title(
+            geldformat.geld(self.preis)
+        )
 
     # =====================================================
     # Schließen
@@ -409,11 +612,23 @@ class EditPanel(SlidePanel, BoxLayout):
 
         self.lbl_article.text = ""
 
+        self.preis = 0.0
+        self.zusatz = {}
+
         self.btn_price.set_title("0,00 €")
 
     # =====================================================
     # Preis
     # =====================================================
+
+    def set_preis(self, preis):
+        """Der am Nummernblock eingetippte Einzelpreis."""
+
+        self.preis = max(0.0, float(preis))
+
+        self._preis_zeigen()
+
+    # -----------------------------------------------------
 
     def _price_clicked(self, tile, action):
 
@@ -424,22 +639,58 @@ class EditPanel(SlidePanel, BoxLayout):
             )
 
     # =====================================================
-    # Buttons
+    # Zutaten
     # =====================================================
 
-    def _duplicate_clicked(self, tile, action):
+    def _zutat_geaendert(self, zutat, schritt):
+        """Ein Shot mehr oder weniger von dieser Zutat.
 
-        if callable(self.duplicate_callback):
-            self.duplicate_callback(self.cart_item)
+        Der Preis wandert mit: je Shot um dessen Verkaufspreis.
+        """
 
-    # -----------------------------------------------------
+        verstaerkung = zutat.get("verstaerkung")
 
-    def _delete_clicked(self, tile, action):
+        if not verstaerkung:
+            return
 
-        if callable(self.delete_callback):
-            self.delete_callback(self.cart_item)
+        alt = self.zusatz.get(zutat["id"], 0)
+        neu = alt + schritt
 
-    # -----------------------------------------------------
+        if neu < 0:
+            return
+
+        if neu:
+            self.zusatz[zutat["id"]] = neu
+        else:
+            self.zusatz.pop(zutat["id"], None)
+
+        self.preis = round(self.preis + schritt * verstaerkung["preis"], 2)
+
+        zeile = self.zutat_zeilen.get(zutat["id"])
+
+        if zeile is not None:
+            zeile.set_anzahl(neu)
+
+        self._preis_zeigen()
+
+    def zusatz_text(self):
+        """Kurz, was dazukommt: "+1 Bacardi, +2 Jack Daniels"."""
+
+        teile = []
+
+        for zutat in self.zutaten:
+
+            anzahl = self.zusatz.get(zutat["id"], 0)
+            verstaerkung = zutat.get("verstaerkung")
+
+            if anzahl and verstaerkung:
+                teile.append(f"+{anzahl} {verstaerkung['name']}")
+
+        return ", ".join(teile)
+
+    # =====================================================
+    # Buttons
+    # =====================================================
 
     def _cancel_clicked(self, tile, action):
 
@@ -452,7 +703,9 @@ class EditPanel(SlidePanel, BoxLayout):
         if callable(self.apply_callback):
             self.apply_callback(
                 self.cart_item,
-                self.quantity_editor.quantity
+                self.quantity_editor.quantity,
+                self.preis,
+                dict(self.zusatz),
             )
 
     def quantity_clicked(self, quantity):

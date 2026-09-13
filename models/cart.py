@@ -22,14 +22,16 @@ class Cart:
     # Artikel hinzufügen
     #
     # Existiert der Artikel bereits im Warenkorb,
-    # wird die Menge erhöht.
+    # wird die Menge erhöht - aber nicht bei einer
+    # verstärkten Position: Der nächste Cuba Libre ist
+    # ein normaler, kein zweiter mit doppeltem Rum.
     # =====================================================
 
     def add(self, article):
 
         for item in self.items:
 
-            if item.article.id == article.id:
+            if item.article.id == article.id and not item.zusatz:
 
                 item.quantity += 1
 
@@ -48,7 +50,6 @@ class Cart:
     # =====================================================
     # Bereits erzeugtes CartItem hinzufügen
     #
-    # Wird z. B. beim Duplizieren verwendet.
     # Hier erfolgt keine Zusammenfassung.
     # =====================================================
 

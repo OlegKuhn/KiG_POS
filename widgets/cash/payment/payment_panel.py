@@ -53,6 +53,7 @@ class PaymentPanel(SlidePanel, BoxLayout):
             cancel_callback=None,
             ok_callback=None,
             shortcut_callback=None,
+            entwertung_callback=None,
             **kwargs
     ):
 
@@ -120,7 +121,8 @@ class PaymentPanel(SlidePanel, BoxLayout):
         # =====================================================
 
         self.summary = PaymentSummary(
-            shortcut_callback=shortcut_callback
+            shortcut_callback=shortcut_callback,
+            entwertung_callback=entwertung_callback,
         )
 
         self.add_widget(
@@ -163,6 +165,9 @@ class PaymentPanel(SlidePanel, BoxLayout):
         # Scheine.
         self.summary.scheine_zuruecksetzen()
 
+        # ... und ohne KiG Karte und Gutschein.
+        self.summary.entwertungen_zuruecksetzen()
+
         self.slide_open()
 
     # -----------------------------------------------------
@@ -190,6 +195,31 @@ class PaymentPanel(SlidePanel, BoxLayout):
     def scheine_zuruecksetzen(self):
 
         self.summary.scheine_zuruecksetzen()
+
+    # -----------------------------------------------------
+
+    def set_entwertet(self, art, betrag):
+
+        return self.summary.set_entwertet(art, betrag)
+
+    # -----------------------------------------------------
+
+    def entwertet(self, art):
+
+        return self.summary.entwertet(art)
+
+    # -----------------------------------------------------
+
+    def entwertung_markieren(self, art):
+
+        self.summary.entwertung_markieren(art)
+
+    # -----------------------------------------------------
+
+    @property
+    def zu_zahlen(self):
+
+        return self.summary.zu_zahlen
 
     # -----------------------------------------------------
 

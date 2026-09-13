@@ -21,7 +21,14 @@ Beschreibung:
     diese Zeile müsste man sich merken, wie oft man getippt
     hat - und genau dabei verzählt man sich.
 
-    Unten steht, was zählt: gegeben und Rückgeld.
+    Darunter "KiG Karte" und "Gutschein": Ein Tipp öffnet den
+    Nummernblock für den Betrag, der damit beglichen wird. Er
+    geht von dem ab, was bar zu zahlen ist - der Verkauf selbst
+    bleibt so hoch, wie er ist (siehe database.save_sale).
+
+    Unten steht, was zählt: gegeben und Rückgeld. Ist etwas
+    entwertet, stehen darüber die abgezogenen Beträge und was
+    danach noch zu zahlen bleibt.
 
     Der zu zahlende Betrag steht bewusst NICHT mehr hier -
     er steht schon groß im Warenkorb daneben. Zweimal
@@ -62,11 +69,21 @@ class PaymentSummary(BoxLayout):
     # sonst 57 dp je Knopf - zu wenig für einen Daumen.
     SPALTEN = 3
 
-    BUTTON_HEIGHT = 62
+    # Knapp bemessen: Mit KiG Karte und Gutschein muss eine Reihe
+    # mehr in die Höhe des Tablets passen.
+    BUTTON_HEIGHT = 54
     CAPTION_HEIGHT = 26
-    ROW_HEIGHT = 46
+    ROW_HEIGHT = 40
 
-    def __init__(self, shortcut_callback=None, **kwargs):
+    # Die beiden Arten, einen Teil des Betrags nicht bar zu begleichen:
+    # Schlüssel (so heißen auch die Spalten in sales) und Beschriftung.
+    ENTWERTUNGEN = (
+        ("kig_karte", "KiG Karte"),
+        ("gutschein", "Gutschein"),
+    )
+
+    def __init__(self, shortcut_callback=None, entwertung_callback=None,
+                 **kwargs):
 
         super().__init__(**kwargs)
 
@@ -74,9 +91,15 @@ class PaymentSummary(BoxLayout):
         self.spacing = dp(self.SPACING)
 
         self.shortcut_callback = shortcut_callback
+        self.entwertung_callback = entwertung_callback
 
         self._paid = 0.0
         self._total = 0.0
+
+        # Mit KiG Karte und Gutschein beglichen - und welcher der
+        # beiden Beträge gerade am Nummernblock eingetippt wird.
+        self._entwertet = {art: 0.0 for art, _text in self.ENTWERTUNGEN}
+        self._aktive_entwertung = None
 
         # Welcher Schein wurde wie oft gelegt? Nur für die Anzeige -
         # maßgeblich ist immer der Betrag im Nummernblock.
@@ -86,9 +109,27 @@ class PaymentSummary(BoxLayout):
         # Oben: Schnellwahl
         # =====================================================
 
-        self.add_widget(
+        kopf = BoxLayout(
+            orientation="horizontal",
+            size_hint=(1, None),
+            height=dp(self.CAPTION_HEIGHT),
+        )
+
+        kopf.add_widget(
             self._caption("Schnellwahl")
         )
+
+        # Daneben, was gelegt wurde ("2 × 20 €") - rechtsbündig, damit
+        # es nicht an der Überschrift klebt.
+        self.lbl_scheine = KiGLabel()
+        self.lbl_scheine.set_font_size(15)
+        self.lbl_scheine.set_bold(True)
+        self.lbl_scheine.set_alignment("right")
+        self.lbl_scheine.set_color(theme.PRIMARY_ORANGE)
+
+        kopf.add_widget(self.lbl_scheine)
+
+        self.add_widget(kopf)
 
         zeilen = -(-len(self.SCHNELLWAHL) // self.SPALTEN)
 
@@ -124,14 +165,43 @@ class PaymentSummary(BoxLayout):
 
         self.add_widget(self.shortcut_grid)
 
-        self.lbl_scheine = KiGLabel()
-        self.lbl_scheine.set_font_size(15)
-        self.lbl_scheine.set_alignment("left")
-        self.lbl_scheine.set_color(theme.PRIMARY_ORANGE)
-        self.lbl_scheine.size_hint_y = None
-        self.lbl_scheine.height = dp(self.CAPTION_HEIGHT)
+        # =====================================================
+        # KiG Karte und Gutschein
+        # =====================================================
 
-        self.add_widget(self.lbl_scheine)
+        self.entwertung_buttons = {}
+
+        entwertung_reihe = BoxLayout(
+            orientation="horizontal",
+            spacing=dp(theme.ROW_SPACING),
+            size_hint=(1, None),
+            height=dp(self.BUTTON_HEIGHT),
+        )
+
+        for art, text in self.ENTWERTUNGEN:
+
+            # Der entwertete Betrag steht im Knopf selbst, unter dem
+            # Namen - eine eigene Zeile je Art kostete die Höhe, die
+            # das Tablet nicht hat.
+            knopf = Button(
+                text=text,
+                background_normal="", background_down="",
+                background_color=theme.SURFACE,
+                color=theme.TEXT_PRIMARY,
+                font_size="17sp", bold=True,
+                halign="center", valign="middle",
+            )
+            knopf.bind(size=knopf.setter("text_size"))
+
+            knopf.bind(
+                on_release=lambda _instanz, wert=art:
+                self._entwertung_gewaehlt(wert)
+            )
+
+            self.entwertung_buttons[art] = knopf
+            entwertung_reihe.add_widget(knopf)
+
+        self.add_widget(entwertung_reihe)
 
         # =====================================================
         # Unten: gegeben und Rückgeld
@@ -141,17 +211,36 @@ class PaymentSummary(BoxLayout):
         # das Darunter ist Ergebnis. Die Trennung soll man sehen.
         self.add_widget(BoxLayout())
 
+        # Was nach KiG Karte und Gutschein noch zu zahlen ist - nur,
+        # wenn etwas entwertet ist. Sonst stünde der Betrag doppelt da:
+        # Er steht schon groß im Warenkorb.
+        #
+        # Die Zeilen stehen in einem eigenen Block ohne Abstand
+        # dazwischen; ausgeblendet wird "Zu zahlen", indem es aus dem
+        # Block genommen wird. Eine Zeile mit Höhe 0 behielte ihren
+        # Abstand und schöbe alles darüber aus dem Panel.
+        self.ergebnis = BoxLayout(
+            orientation="vertical",
+            size_hint=(1, None),
+        )
+        self.ergebnis.bind(minimum_height=self.ergebnis.setter("height"))
+
+        self.lbl_due = self._value_label()
+
+        self.due_row = self._row("Zu zahlen", self.lbl_due)
+
         self.lbl_paid = self._value_label()
 
-        self.add_widget(
-            self._row("Gegeben", self.lbl_paid)
-        )
+        self.paid_row = self._row("Gegeben", self.lbl_paid)
 
         self.lbl_change = self._value_label()
 
-        self.add_widget(
-            self._row("Rückgeld", self.lbl_change)
-        )
+        self.change_row = self._row("Rückgeld", self.lbl_change)
+
+        self.ergebnis.add_widget(self.paid_row)
+        self.ergebnis.add_widget(self.change_row)
+
+        self.add_widget(self.ergebnis)
 
         self.update()
 
@@ -179,10 +268,10 @@ class PaymentSummary(BoxLayout):
         return geldformat.geld(betrag)
 
     @staticmethod
-    def _value_label():
+    def _value_label(schrift=28):
 
         label = KiGLabel()
-        label.set_font_size(28)
+        label.set_font_size(schrift)
         label.set_bold(True)
         label.set_alignment("right")
         label.set_color(theme.TEXT_PRIMARY)
@@ -218,6 +307,65 @@ class PaymentSummary(BoxLayout):
 
         if callable(self.shortcut_callback):
             self.shortcut_callback(betrag)
+
+    def _entwertung_gewaehlt(self, art):
+
+        if callable(self.entwertung_callback):
+            self.entwertung_callback(art)
+
+    # -----------------------------------------------------
+
+    def set_entwertet(self, art, betrag):
+        """Setzt den mit KiG Karte oder Gutschein beglichenen Betrag.
+
+        Mehr als der Bon kann nicht entwertet werden - Rückgeld auf
+        eine Karte oder einen Gutschein gibt es nicht. Die KiG Karte
+        wird zuerst angerechnet, der Gutschein höchstens mit dem, was
+        danach noch offen ist.
+
+        Liefert den Betrag, der tatsächlich angerechnet wurde.
+        """
+
+        self._entwertet[art] = max(0.0, round(float(betrag), 2))
+
+        self._entwertet_kappen()
+
+        self.update()
+
+        return self._entwertet[art]
+
+    def _entwertet_kappen(self):
+
+        rest = self._total
+
+        for art, _text in self.ENTWERTUNGEN:
+
+            self._entwertet[art] = round(
+                min(self._entwertet[art], max(rest, 0)), 2
+            )
+
+            rest -= self._entwertet[art]
+
+    def entwertet(self, art):
+
+        return self._entwertet.get(art, 0.0)
+
+    def entwertung_markieren(self, art):
+        """Hebt den Knopf hervor, dessen Betrag gerade eingetippt
+        wird (None: keiner)."""
+
+        self._aktive_entwertung = art
+
+        self.update()
+
+    def entwertungen_zuruecksetzen(self):
+
+        self._entwertet = {art: 0.0 for art, _text in self.ENTWERTUNGEN}
+        self._aktive_entwertung = None
+
+        self.update()
+
+    # -----------------------------------------------------
 
     def schein_gelegt(self, betrag):
         """Merkt sich, dass dieser Schein einmal mehr gelegt wurde."""
@@ -298,6 +446,8 @@ class PaymentSummary(BoxLayout):
 
         self._total = amount
 
+        self._entwertet_kappen()
+
         self.update()
 
     # =====================================================
@@ -315,10 +465,18 @@ class PaymentSummary(BoxLayout):
         return self._total
 
     @property
+    def zu_zahlen(self):
+        """Was nach KiG Karte und Gutschein noch bar zu zahlen ist."""
+
+        return round(
+            max(self._total - sum(self._entwertet.values()), 0.0), 2
+        )
+
+    @property
     def change(self):
 
-        if self._paid >= self._total:
-            return self._paid - self._total
+        if self._paid >= self.zu_zahlen:
+            return self._paid - self.zu_zahlen
 
         return 0.0
 
@@ -338,9 +496,40 @@ class PaymentSummary(BoxLayout):
         # Reicht das Gegebene noch nicht, ist das Rückgeld keine
         # Aussage - dann steht dort 0,00, und zwar zurückhaltend.
         self.lbl_change.set_color(
-            theme.SUCCESS if self.paid >= self.total and self.paid
+            theme.SUCCESS if self.paid >= self.zu_zahlen and self.paid
             else theme.TEXT_SECONDARY
         )
+
+        irgendwas_entwertet = False
+
+        for art, text in self.ENTWERTUNGEN:
+
+            betrag = self._entwertet[art]
+
+            if betrag:
+                irgendwas_entwertet = True
+
+            knopf = self.entwertung_buttons[art]
+
+            knopf.text = (
+                f"{text}\n- {self.geld(betrag)}" if betrag else text
+            )
+
+            hervorheben = bool(betrag) or self._aktive_entwertung == art
+
+            knopf.background_color = (
+                theme.PRIMARY_ORANGE if hervorheben else theme.SURFACE
+            )
+            knopf.color = (
+                theme.TEXT_WHITE if hervorheben else theme.TEXT_PRIMARY
+            )
+
+        self.lbl_due.text = self.geld(self.zu_zahlen)
+
+        if irgendwas_entwertet and self.due_row.parent is None:
+            self.ergebnis.add_widget(self.due_row, index=len(self.ergebnis.children))
+        elif not irgendwas_entwertet and self.due_row.parent is not None:
+            self.ergebnis.remove_widget(self.due_row)
 
         self._scheine_beschriften()
 

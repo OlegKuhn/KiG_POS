@@ -559,9 +559,9 @@ class CartPanel(RoundedPanel):
 
         widget.select()
 
-        # Bei Mix-/Rezeptartikeln zusätzlich die Zusammensetzung als
-        # Hilfe für die Bar einblenden (siehe cash_screen.py:
-        # show_recipe_tooltip / recipe_tooltip.py).
+        # Die Zusammensetzung eines Mischgetränks kommt nicht mehr als
+        # Sprechblase beim Antippen - sie steht unter "Bearbeiten",
+        # wo sie sich auch verstärken lässt (siehe edit_panel.py).
         if callable(self.tap_callback):
             self.tap_callback(widget, cart_item)
 

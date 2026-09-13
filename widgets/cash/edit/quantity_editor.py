@@ -10,7 +10,8 @@ from widgets.cash.edit.quantity_button import QuantityButton
 
 class QuantityEditor(BoxLayout):
 
-    LABEL_WIDTH = 120
+    # Schmal genug, dass "Menge" im Bearbeiten-Panel daneben passt.
+    LABEL_WIDTH = 72
     HEIGHT = 60
     SPACING = theme.ROW_SPACING
 
@@ -64,7 +65,7 @@ class QuantityEditor(BoxLayout):
 
         self.lbl_quantity.size_hint = (None, None)
         self.lbl_quantity.width = dp(self.LABEL_WIDTH)
-        self.lbl_quantity.height = self.HEIGHT
+        self.lbl_quantity.height = dp(self.HEIGHT)
 
         self.lbl_quantity.bind(
             size=lambda instance, value:

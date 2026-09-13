@@ -479,6 +479,20 @@ class StatisticsScreen(Screen):
 
         panel.add_widget(self._kennzahlen_block())
 
+        # Was davon mit KiG Karte oder Gutschein beglichen wurde. Der
+        # Umsatz darüber enthält diese Beträge: Verkauft wurde die Ware
+        # ja - sie ging nur nicht bar in die Kasse.
+        self.entwertet_label = Label(
+            text="", color=theme.TEXT_PRIMARY, font_size="13sp",
+            markup=True,
+            size_hint_y=None, height=dp(22),
+            halign="left", valign="middle",
+        )
+        self.entwertet_label.bind(
+            size=lambda instance, value: setattr(instance, "text_size", value)
+        )
+        panel.add_widget(self.entwertet_label)
+
         self.period_label = Label(
             text="", color=theme.TEXT_SECONDARY, font_size="13sp",
             size_hint_y=None, height=dp(22),
@@ -744,9 +758,27 @@ class StatisticsScreen(Screen):
 
         self.period_label.text = self._period_text(kennzahlen)
 
+        self.entwertet_label.text = self._entwertet_text(kennzahlen)
+
         # Das Bild oben zeigt denselben Zeitraum - es wird gleich
         # danach mit denselben Grenzen gefuellt
         # (siehe _refresh_auswertung).
+
+    def _entwertet_text(self, kennzahlen):
+        """"Entwertet: KiG Karte 12,00 € | Gutschein 5,00 € | bar
+        83,00 €" - leer, solange nichts entwertet wurde."""
+
+        karte = kennzahlen.get("kig_karte") or 0
+        gutschein = kennzahlen.get("gutschein") or 0
+
+        if not karte and not gutschein:
+            return ""
+
+        return (
+            f"[b]Entwertet:[/b] KiG Karte {self.money(karte)} | "
+            f"Gutschein {self.money(gutschein)} | "
+            f"bar {self.money(kennzahlen['bar'])}"
+        )
 
     def _period_text(self, kennzahlen):
         """Eine Zeile, die sagt, worauf sich die Zahlen beziehen.
@@ -890,6 +922,25 @@ class StatisticsScreen(Screen):
             revenue_chart.set_categories(categories)
             revenue_chart.width, revenue_chart.height = 16, 9
             summary_sheet.add_chart(revenue_chart, f"D{revenue_start_row}")
+
+        # Umsatz und was davon entwertet wurde
+        kennzahlen = self.db.get_period_totals(date_from, date_to, event_id)
+
+        zeile = revenue_data_end + 3 if revenues else revenue_start_row + 3
+
+        summary_sheet.cell(row=zeile, column=1, value="Einnahmen und Entwertungen").font = bold
+
+        for versatz, (beschriftung, schluessel) in enumerate((
+                ("Einnahmen gesamt", "revenue"),
+                ("davon entwertet: KiG Karte", "kig_karte"),
+                ("davon entwertet: Gutschein", "gutschein"),
+                ("davon bar", "bar"),
+        ), start=1):
+            summary_sheet.cell(row=zeile + versatz, column=1, value=beschriftung)
+            summary_sheet.cell(
+                row=zeile + versatz, column=2,
+                value=round(kennzahlen[schluessel] or 0, 2),
+            )
 
         summary_sheet.column_dimensions["A"].width = 28
         summary_sheet.column_dimensions["B"].width = 14

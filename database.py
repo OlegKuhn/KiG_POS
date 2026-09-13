@@ -844,6 +844,24 @@ class DatabaseManager:
             self.logger.info("Migration: device_id zu sales hinzugefügt.")
 
         # ---------------------------------------------------------
+        # Entwertet: KiG Karte und Gutschein
+        # ---------------------------------------------------------
+        #
+        # Ein Bon über 12 EUR, von dem 5 EUR mit der KiG Karte und
+        # 2 EUR mit einem Gutschein beglichen werden, bleibt ein
+        # Verkauf über 12 EUR - total ändert sich nicht, sonst
+        # stimmten die Verkaufszahlen nicht mehr. Die beiden Beträge
+        # stehen daneben und sagen, welcher Teil davon nicht bar
+        # über den Tresen ging.
+        for spalte in ("kig_karte", "gutschein"):
+            if spalte not in sales_columns:
+                self.cursor.execute(
+                    f"ALTER TABLE sales ADD COLUMN {spalte} "
+                    f"REAL NOT NULL DEFAULT 0"
+                )
+                self.logger.info("Migration: %s zu sales hinzugefügt.", spalte)
+
+        # ---------------------------------------------------------
         # Bestand: aus der Zahl wird eine Bewegung
         # ---------------------------------------------------------
         #
@@ -1484,6 +1502,59 @@ class DatabaseManager:
 
         return self.get_article(row["linked_shot_article_id"])
 
+    def get_verstaerkung(self, bottle_article_id):
+        """Ein Shot mehr von dieser Zutat - was er kostet und wie viel
+        er ist.
+
+        Wer seinen Mischdrink kräftiger möchte, bekommt je Tipp auf
+        Plus einen Shot der Zutat dazu und zahlt dafür, was dieser
+        Shot an der Kasse kostet. Maßgeblich ist deshalb der mit der
+        Flasche verknüpfte Shot-Artikel: seine Portion und sein Preis.
+
+        Liefert ein Wörterbuch
+
+            name        Name des Shots
+            preis       Verkaufspreis des Shots
+            menge       Portion in der Einheit des Shot-Rezepts
+            einheit     diese Einheit (meist "ml")
+            menge_lager Portion in der Lagereinheit der Flasche
+
+        oder None, wenn die Zutat keinen (aktiven) Shot hat - dann gibt
+        es keinen Preis, zu dem man sie verstärken könnte.
+        """
+
+        if bottle_article_id is None:
+            return None
+
+        shot = self.get_linked_shot(bottle_article_id)
+
+        if shot is None or not shot["active"]:
+            return None
+
+        for zutat in self.get_recipe_ingredients(shot["id"]):
+
+            if zutat["ingredient_article_id"] != bottle_article_id:
+                continue
+
+            menge_lager = units.convert(
+                zutat["quantity"],
+                zutat["unit"],
+                units.stock_dimension_unit(zutat["article_stock_unit"]),
+            )
+
+            if not menge_lager or menge_lager <= 0:
+                return None
+
+            return {
+                "name": shot["name"],
+                "preis": float(shot["price"] or 0),
+                "menge": zutat["quantity"],
+                "einheit": zutat["unit"],
+                "menge_lager": menge_lager,
+            }
+
+        return None
+
     def set_linked_shot(self, bottle_article_id, shot_article_id):
         """Verknüpft (oder löst, bei shot_article_id=None) den
         Shot-Artikel einer Flasche."""
@@ -2076,6 +2147,10 @@ class DatabaseManager:
             change REAL,
 
             created_at TEXT,
+
+            kig_karte REAL NOT NULL DEFAULT 0,
+
+            gutschein REAL NOT NULL DEFAULT 0,
 
             FOREIGN KEY(event_id)
                 REFERENCES events(id)
@@ -3021,8 +3096,8 @@ class DatabaseManager:
     def add_recipe_free_text_ingredient(self, recipe_article_id, name, quantity, unit):
         """Fügt eine Rezeptzutat OHNE eigenen Artikelstamm hinzu (z. B.
         "Minze", "Limette", "brauner Zucker") - dient nur der Anzeige
-        im Rezept und an der Kasse (siehe cash_screen.py:
-        show_recipe_tooltip), ohne Bestandsführung oder Einkaufspreis.
+        im Rezept und an der Kasse (siehe edit_panel.py:
+        ZutatZeile), ohne Bestandsführung oder Einkaufspreis.
 
         unit ist hier bewusst freier Text (z. B. "Blätter", "TL",
         "Scheiben") statt einer geprüften Lagereinheit - eine
@@ -4688,9 +4763,20 @@ class DatabaseManager:
 
         change,
 
-        items
+        items,
+
+        kig_karte=0,
+
+        gutschein=0
 
     ):
+        """Speichert einen Bon samt Positionen.
+
+        total ist immer der volle Warenwert. kig_karte und gutschein
+        sind die Teile davon, die nicht bar bezahlt, sondern entwertet
+        wurden - sie mindern nicht den Umsatz, nur das, was in die
+        Kasse ging (siehe get_period_totals).
+        """
 
         now = datetime.now()
 
@@ -4728,11 +4814,15 @@ class DatabaseManager:
 
                 created_at,
 
-                device_id
+                device_id,
+
+                kig_karte,
+
+                gutschein
 
             )
 
-            VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 
         """, (
 
@@ -4758,7 +4848,11 @@ class DatabaseManager:
 
             created,
 
-            self.geraet["id"]
+            self.geraet["id"],
+
+            kig_karte or 0,
+
+            gutschein or 0
 
         ))
 
@@ -5113,13 +5207,54 @@ class DatabaseManager:
         einnahmen = sum(row["quantity"] * row["unit_price"] for row in rows)
         ausgaben = sum(row["quantity"] * row["purchase_price"] for row in rows)
 
+        entwertet = self.get_entwertet(date_from, date_to, event_id)
+
         return {
             "revenue": einnahmen,
             "expenses": ausgaben,
             "profit": einnahmen - ausgaben,
             "quantity": sum(row["quantity"] for row in rows),
             "receipts": len({row["sale_id"] for row in rows}),
+            "kig_karte": entwertet["kig_karte"],
+            "gutschein": entwertet["gutschein"],
+            "bar": einnahmen - entwertet["kig_karte"] - entwertet["gutschein"],
         }
+
+    def get_entwertet(self, date_from=None, date_to=None, event_id=None):
+        """Was im Zeitraum mit KiG Karte und Gutschein beglichen wurde.
+
+        Diese Beträge sind im Umsatz enthalten - verkauft wurde die
+        Ware ja. Sie gingen nur nicht bar in die Kasse.
+        """
+
+        business_day = self._sales_business_day_sql()
+
+        query = f"""
+            SELECT COALESCE(SUM(s.kig_karte), 0) AS kig_karte,
+                   COALESCE(SUM(s.gutschein), 0) AS gutschein
+            FROM sales s
+            WHERE 1 = 1
+        """
+
+        parameters = []
+
+        if date_from:
+            query += f" AND {business_day} >= ?"
+            parameters.append(date_from)
+
+        if date_to:
+            query += f" AND {business_day} <= ?"
+            parameters.append(date_to)
+
+        if event_id is not None:
+            query += " AND s.event_id = ?"
+            parameters.append(event_id)
+
+        self.cursor.execute(query, parameters)
+
+        zeile = self.cursor.fetchone()
+
+        return {"kig_karte": zeile["kig_karte"], "gutschein": zeile["gutschein"]}
 
     def delete_sale_item(self, sale_item_id):
         """Löscht eine Verkaufsposition und bereinigt den zugehörigen Bon."""
@@ -5146,9 +5281,38 @@ class DatabaseManager:
                 "UPDATE sales SET subtotal = ?, total = ? WHERE id = ?",
                 (total, total, sale_id),
             )
+            self._entwertet_kappen(sale_id, total)
 
         self.commit()
         return True
+
+    def _entwertet_kappen(self, sale_id, total):
+        """Nach einem Teilstorno: Entwertet werden kann nicht mehr, als
+        der Bon noch wert ist.
+
+        Bleiben von einem 12-EUR-Bon, der ganz mit der KiG Karte
+        bezahlt wurde, 4 EUR übrig, stehen auch nur noch 4 EUR als
+        entwertet in der Statistik - sonst wiese sie mehr Entwertetes
+        als Umsatz aus. Die KiG Karte wird zuerst angerechnet, der
+        Gutschein mit dem Rest.
+        """
+
+        self.cursor.execute(
+            "SELECT kig_karte, gutschein FROM sales WHERE id = ?", (sale_id,)
+        )
+
+        zeile = self.cursor.fetchone()
+
+        if zeile is None:
+            return
+
+        karte = min(zeile["kig_karte"] or 0, max(total, 0))
+        gutschein = min(zeile["gutschein"] or 0, max(total - karte, 0))
+
+        self.cursor.execute(
+            "UPDATE sales SET kig_karte = ?, gutschein = ? WHERE id = ?",
+            (karte, gutschein, sale_id),
+        )
 
     def delete_sale_units(self, sale_item_id, quantity):
         """Löscht einzelne Einheiten einer Verkaufsposition."""
@@ -5179,6 +5343,7 @@ class DatabaseManager:
             "UPDATE sales SET subtotal = ?, total = ? WHERE id = ?",
             (total, total, row["sale_id"]),
         )
+        self._entwertet_kappen(row["sale_id"], total)
         self.commit()
         return True
 

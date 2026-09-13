@@ -33,14 +33,12 @@ import theme
 import units
 
 from models.cart import Cart
-from models.cart_item import CartItem
 from models.article import Article
 
 from database import DatabaseManager
 
 from widgets.cash.left_panel import CashLeftPanel
 from widgets.cash.cart.cart_panel import CartPanel
-from widgets.cash.cart.recipe_tooltip import RecipeTooltip
 from widgets.cash.edit.edit_panel import EditPanel
 from widgets.common.kig_popup import KiGPopup
 from widgets.common.confirm_popup import ConfirmPopup
@@ -72,6 +70,10 @@ class CashScreen(Screen):
         # zurück, und die Rückmeldung muss unterscheiden können,
         # woher der Betrag kam.
         self._schnellwahl_laeuft = False
+
+        # Wird gerade der Betrag für KiG Karte oder Gutschein
+        # eingetippt? Dann der Schlüssel ("kig_karte"/"gutschein").
+        self._entwertung_art = None
 
         # Im Storno-Modus sammelt derselbe Warenkorb die Artikel, die
         # zurückgenommen werden sollen. Gebucht wird daraus dann eine
@@ -117,8 +119,6 @@ class CashScreen(Screen):
             price_callback=self.edit_price_clicked,
             quantity_callback=self.edit_quantity_clicked,
             apply_callback=self.edit_confirmed,
-            delete_callback=self.delete_clicked,
-            duplicate_callback=self.duplicate_clicked
         )
 
         # =====================================================
@@ -129,6 +129,7 @@ class CashScreen(Screen):
             cancel_callback=self.payment_cancelled,
             ok_callback=self.payment_confirmed,
             shortcut_callback=self.payment_shortcut,
+            entwertung_callback=self.payment_entwertung,
         )
 
         # =====================================================
@@ -147,7 +148,6 @@ class CashScreen(Screen):
             edit_callback=self.edit_clicked,
             pay_callback=self.pay_clicked,
             clear_callback=self.clear_cart_clicked,
-            tap_callback=self.show_recipe_tooltip,
             quantity_callback=self.change_cart_quantity,
             storno_callback=lambda *_args: self.start_storno(),
             storno_confirm_callback=lambda *_args: self.confirm_storno(),
@@ -639,34 +639,6 @@ class CashScreen(Screen):
 
     # -----------------------------------------------------
 
-    def show_recipe_tooltip(self, widget, cart_item):
-        """Zeigt bei Mix-/Rezeptartikeln die Zusammensetzung als
-        Sprechblasen-Hinweis - eine Gedächtnisstütze für die Bar, was
-        genau in den Warenkorb-Artikel hineingehört. Schließt sich
-        automatisch, sobald irgendwo anders hingetippt wird (siehe
-        RecipeTooltip.auto_dismiss)."""
-
-        article = cart_item.article
-
-        if article.article_type != "MIX":
-            return
-
-        ingredients = self.database.get_recipe_ingredients(article.id)
-
-        lines = []
-        for ingredient in ingredients:
-            quantity = ingredient["quantity"]
-            quantity_text = (
-                str(int(quantity)) if float(quantity).is_integer()
-                else f"{quantity:.2f}".replace(".", ",")
-            )
-            unit = ingredient["unit"] or ""
-            lines.append(f"{quantity_text} {unit}  {ingredient['name']}".strip())
-
-        RecipeTooltip(article_name=article.name, ingredient_lines=lines).open()
-
-    # -----------------------------------------------------
-
     def edit_clicked(self, tile, action):
 
         cart_item = self.right_panel.selected_item
@@ -674,7 +646,40 @@ class CashScreen(Screen):
         if cart_item is None:
             return
 
-        self.edit_panel.open(cart_item)
+        self.edit_panel.open(cart_item, self._zutaten_fuer(cart_item))
+
+    # -----------------------------------------------------
+
+    def _zutaten_fuer(self, cart_item):
+        """Die Rezeptzeilen eines Mischgetränks für den Bearbeiten-
+        Dialog - samt dem Shot, um den jede Zutat verstärkt werden
+        kann (None, wenn es zu ihr keinen gibt).
+
+        Bei allem, was kein Mischgetränk ist: eine leere Liste.
+        """
+
+        article = cart_item.article
+
+        if article.article_type != "MIX":
+            return []
+
+        zutaten = []
+
+        for zutat in self.database.get_recipe_ingredients(article.id):
+
+            zutat_id = zutat["ingredient_article_id"]
+
+            zutaten.append({
+                # Freitext-Zutaten (z. B. "Minze") haben keine
+                # Artikelnummer - sie werden nur angezeigt.
+                "id": zutat_id if zutat_id is not None else f"text-{zutat['id']}",
+                "name": zutat["name"],
+                "menge": zutat["quantity"],
+                "einheit": zutat["unit"] or "",
+                "verstaerkung": self.database.get_verstaerkung(zutat_id),
+            })
+
+        return zutaten
 
     # -----------------------------------------------------
 
@@ -706,7 +711,9 @@ class CashScreen(Screen):
 
         self.current_cart_item = cart_item
 
-        price = int(cart_item.unit_price * 100)
+        # Der Preis, der im Dialog steht - samt Aufpreis für einen
+        # Shot mehr, der noch nicht übernommen ist.
+        price = int(round(self.edit_panel.preis * 100))
 
         self.open_numpad(
             value=price,
@@ -748,21 +755,12 @@ class CashScreen(Screen):
 
     def numpad_confirmed(self, value):
 
-        print("Numpad bestätigt:", value)
-
         if self.current_cart_item is None:
-            print("Kein current_cart_item")
             return
 
-        print("Alt:", self.current_cart_item.unit_price)
-
-        self.current_cart_item.unit_price = value / 100
-
-        print("Neu:", self.current_cart_item.unit_price)
-
-        self.right_panel.refresh(self.cart)
-
-        self.edit_panel.open(self.current_cart_item)
+        # Erst "Übernehmen" schreibt den Preis in die Position -
+        # "Abbrechen" soll ihn verwerfen können.
+        self.edit_panel.set_preis(value / 100)
 
         self.current_cart_item = None
 
@@ -775,10 +773,22 @@ class CashScreen(Screen):
     def edit_confirmed(
             self,
             cart_item,
-            quantity
+            quantity,
+            preis=None,
+            zusatz=None
     ):
 
+        if cart_item is None:
+            return
+
         cart_item.quantity = quantity
+
+        if preis is not None:
+            cart_item.unit_price = preis
+
+        if zusatz is not None:
+            cart_item.zusatz = dict(zusatz)
+            cart_item.zusatz_text = self.edit_panel.zusatz_text()
 
         self.right_panel.refresh(self.cart)
 
@@ -805,36 +815,6 @@ class CashScreen(Screen):
         self.edit_panel.quantity_editor.set_quantity(value)
 
         self.numpad_panel.close()
-
-    def delete_clicked(self, cart_item):
-
-        if cart_item is None:
-            return
-
-        self.cart.remove(cart_item)
-
-        self.right_panel.refresh(self.cart)
-
-        self.edit_panel.close()
-
-        self.current_cart_item = None
-
-    def duplicate_clicked(self, cart_item):
-        if cart_item is None:
-            return
-
-        new_item = CartItem(cart_item.article)
-
-        new_item.quantity = 1
-        new_item.unit_price = cart_item.unit_price
-
-        self.cart.add_item(new_item)
-
-        self.right_panel.refresh(self.cart)
-
-        self.edit_panel.close()
-
-        self.current_cart_item = None
 
     def clear_cart_clicked(self):
 
@@ -873,6 +853,11 @@ class CashScreen(Screen):
         seinem alten Stand zu stehen.
         """
 
+        # Solange ein Betrag für KiG Karte oder Gutschein eingetippt
+        # wird, gehört der Nummernblock nicht dem Bargeld.
+        if self._entwertung_art is not None:
+            return
+
         neuer_wert = (
             self.numpad_panel.get_value() + int(round(betrag * 100))
         )
@@ -889,7 +874,67 @@ class CashScreen(Screen):
 
         self.payment_panel.schein_gelegt(betrag)
 
+    def payment_entwertung(self, art):
+        """Ein Tipp auf "KiG Karte" oder "Gutschein".
+
+        Der Nummernblock nimmt jetzt diesen Betrag auf. Mit OK geht
+        er vom zu zahlenden Betrag ab, mit Abbrechen bleibt es beim
+        alten - in beiden Fällen gehört der Nummernblock danach
+        wieder dem Bargeld.
+        """
+
+        self._entwertung_art = art
+
+        self.payment_panel.entwertung_markieren(art)
+
+        self.open_numpad(
+            value=int(round(self.payment_panel.entwertet(art) * 100)),
+            mode="price",
+            confirm_callback=self.payment_entwertung_confirmed,
+            cancel_callback=self.payment_entwertung_cancelled,
+            change_callback=None
+        )
+
+    def payment_entwertung_confirmed(self, value):
+
+        art = self._entwertung_art
+
+        if art is not None:
+            self.payment_panel.set_entwertet(art, value / 100)
+
+        self._bargeld_eingeben()
+
+    def payment_entwertung_cancelled(self):
+
+        self._bargeld_eingeben()
+
+    def _bargeld_eingeben(self):
+        """Nummernblock zurück auf "Gegeben"."""
+
+        self._entwertung_art = None
+
+        self.payment_panel.entwertung_markieren(None)
+
+        # Der Zahlvorgang kann inzwischen abgebrochen sein.
+        if self.payment_panel.disabled:
+            return
+
+        self._schnellwahl_laeuft = True
+
+        try:
+            self.open_numpad(
+                value=int(round(self.payment_panel.paid * 100)),
+                mode="price",
+                confirm_callback=None,
+                cancel_callback=self.payment_cancelled,
+                change_callback=self.payment_amount_changed
+            )
+        finally:
+            self._schnellwahl_laeuft = False
+
     def payment_cancelled(self):
+
+        self._entwertung_art = None
 
         self.payment_panel.close()
 
@@ -897,8 +942,12 @@ class CashScreen(Screen):
 
     def payment_confirmed(self):
 
-        if self.payment_panel.paid < self.payment_panel.total:
+        # Auf den Cent gerundet: 3 x 0,10 EUR sind als Gleitkommazahl
+        # nicht ganz 0,30 - und dann fehlte fürs OK ein Hauch.
+        if round(self.payment_panel.paid, 2) < round(self.payment_panel.zu_zahlen, 2):
             return
+
+        self._entwertung_art = None
 
         # Der Bestand wird ausschließlich nach erfolgreicher Zahlung
         # angepasst. Das bloße Leeren des Warenkorbs bleibt folgenlos.
@@ -939,6 +988,11 @@ class CashScreen(Screen):
                 for ingredient in self.database.get_recipe_ingredients(article.id):
                     ingredient_id = ingredient["ingredient_article_id"]
 
+                    # Freitext-Zutat (z. B. "Limette") - kein Bestand,
+                    # also nichts abzuziehen.
+                    if ingredient_id is None:
+                        continue
+
                     # "Flasche" hat keinen festen ml-Wert - der
                     # tatsächliche Bestand einer Flasche-Zutat wird
                     # immer in ml geführt (siehe config.BOTTLE_UNIT),
@@ -972,6 +1026,21 @@ class CashScreen(Screen):
                     quantities[ingredient_id] = (
                         quantities.get(ingredient_id, 0)
                         + converted * cart_item.quantity
+                    )
+
+                # Ein Shot mehr: Er kommt aus derselben Flasche und
+                # geht genauso vom Bestand ab.
+                for ingredient_id, anzahl in cart_item.zusatz.items():
+
+                    verstaerkung = self.database.get_verstaerkung(ingredient_id)
+
+                    if verstaerkung is None or not anzahl:
+                        continue
+
+                    quantities[ingredient_id] = (
+                        quantities.get(ingredient_id, 0)
+                        + verstaerkung["menge_lager"] * anzahl
+                        * cart_item.quantity
                     )
             else:
                 quantities[article.id] = (
@@ -1011,7 +1080,7 @@ class CashScreen(Screen):
                 "name": item.article.name,
                 "quantity": item.quantity,
                 "price": item.unit_price,
-                "purchase_price": self._purchase_price_for_sale(item.article),
+                "purchase_price": self._purchase_price_for_sale(item),
                 "line_total": item.total_price,
             }
             for item in self.cart.items
@@ -1027,22 +1096,42 @@ class CashScreen(Screen):
             received=self.payment_panel.paid,
             change=self.payment_panel.change,
             items=items,
+            kig_karte=self.payment_panel.entwertet("kig_karte"),
+            gutschein=self.payment_panel.entwertet("gutschein"),
         )
 
-    def _purchase_price_for_sale(self, article):
+    def _purchase_price_for_sale(self, cart_item):
         """Einkaufspreis für die Statistik: bei Mix-/Rezeptartikeln
         (deren eigener purchase_price immer 0 ist - der Preis steckt
         ja in den Zutaten, siehe dashboard_stammdaten_card.py) wird er
         aus den aktuellen Zutatenpreisen berechnet (siehe
         database.py:get_recipe_cost). Bei Einzelartikeln gilt weiter
-        direkt der hinterlegte Einkaufspreis."""
+        direkt der hinterlegte Einkaufspreis.
+
+        Ein verstärkter Drink kostet im Einkauf auch den zusätzlichen
+        Shot - sonst stiege mit dem Aufpreis nur der Gewinn."""
+
+        article = cart_item.article
 
         if article.article_type != "MIX":
             return article.purchase_price
 
         cost = self.database.get_recipe_cost(article.id)
 
-        return cost if cost is not None else article.purchase_price
+        if cost is None:
+            return article.purchase_price
+
+        for ingredient_id, anzahl in cart_item.zusatz.items():
+
+            verstaerkung = self.database.get_verstaerkung(ingredient_id)
+            kosten_je_einheit = self.database.get_cost_per_unit(ingredient_id)
+
+            if verstaerkung is None or kosten_je_einheit is None:
+                continue
+
+            cost += verstaerkung["menge_lager"] * kosten_je_einheit * anzahl
+
+        return cost
 
     def refresh_article_stock_display(self):
         """Aktualisiert die sichtbaren Kacheln mit den neuen Beständen."""

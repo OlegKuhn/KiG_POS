@@ -275,13 +275,31 @@ KATALOG = [
 
         ("Position bearbeiten",
          "Warenkorb, Position antippen, \"Bearbeiten\"",
-         "Preis und Menge lassen sich ändern, Löschen und Duplizieren "
-         "gehen.",
+         "Preis und Menge lassen sich ändern; kein Löschen, kein "
+         "Duplizieren. \"Abbrechen\" verwirft auch einen geänderten Preis.",
          "RTH"),
 
-        ("Rezept als Hilfe",
+        ("Mix antippen: keine Sprechblase",
          "Kasse, Mix-Artikel im Warenkorb antippen",
-         "Die Zusammensetzung wird eingeblendet.",
+         "Die Position wird nur ausgewählt, es geht nichts auf.",
+         "RTH"),
+
+        ("Mischgetränk verstärken",
+         "Mix-Position, \"Bearbeiten\", Zutatenliste",
+         "Zutaten mit Menge stehen da; \"+\" nur bei Zutaten mit Shot, "
+         "je Tipp ein Shot mehr und Preis + Shotpreis; \"-\" nicht unter "
+         "das Rezept.",
+         "RTH"),
+
+        ("Verstärkter Drink im Warenkorb",
+         "Nach \"Übernehmen\"",
+         "Zeile heißt z. B. \"Jacky Cola  +1 Jack Daniels\"; derselbe "
+         "Drink neu angetippt wird eine eigene Position zum Normalpreis.",
+         "RTH"),
+
+        ("Extra-Shot im Bestand",
+         "Verstärkten Drink bezahlen, Flasche ansehen",
+         "Der Bestand der Flasche sinkt um Rezept plus Extra-Shot.",
          "RTH"),
 
         ("Warenkorb leeren",
@@ -334,6 +352,25 @@ KATALOG = [
          "Bezahlen",
          "Gegeben und Rückgeld stimmen; Rückgeld wird erst grün, wenn "
          "es reicht.",
+         "RTH"),
+
+        ("Bezahlen: KiG Karte",
+         "Bezahlen, \"KiG Karte\", Betrag, OK",
+         "Nummernblock nimmt den Kartenbetrag auf; danach stehen \"KiG "
+         "Karte - x\" und \"Zu zahlen\" da, der Nummernblock nimmt "
+         "wieder Bargeld.",
+         "RTH"),
+
+        ("Bezahlen: Gutschein",
+         "Bezahlen, \"Gutschein\", Betrag, OK",
+         "Wie KiG Karte; mehr als der offene Betrag wird nicht "
+         "angerechnet, ganz entwertet geht OK ohne Bargeld.",
+         "RTH"),
+
+        ("Entwertet in der Statistik",
+         "Statistik nach Verkauf mit KiG Karte/Gutschein",
+         "Einnahmen mit vollem Preis; darunter \"Entwertet: KiG Karte | "
+         "Gutschein | bar\". Auch im Excel-Export.",
          "RTH"),
 
         ("Verkauf abschließen",

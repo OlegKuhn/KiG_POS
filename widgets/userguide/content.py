@@ -502,10 +502,15 @@ TOPICS = [
                 "heading": "Einkaufsliste exportieren",
                 "text": (
                     "\"Einkaufsliste exportieren\" schreibt alle Artikel "
-                    "mit eingetragener Bestellmenge in eine CSV-Datei "
-                    "(Kategorie, Artikel, Menge). Sie landet im Ordner "
-                    "exports/csv des Programmverzeichnisses und lässt "
-                    "sich mit Excel öffnen oder direkt verschicken.\n\n"
+                    "mit eingetragener Bestellmenge in eine Excel-Datei - "
+                    "nach Kategorien gegliedert, mit einem Kästchen zum "
+                    "Abhaken beim Einkauf. Sie landet im Ordner "
+                    "exports/excel des Programmverzeichnisses.\n\n"
+                    "Wie alle Ausgaben trägt die Datei oben das KiG-Logo, "
+                    "den Titel und das Erstellungsdatum; Tabellen haben "
+                    "eine orangefarbene Kopfzeile, beim Drucken steht "
+                    "unten \"Seite x von y\".\n\n"
+
                     "Nach dem Export steht unter dem Knopf, wie die Datei "
                     "heißt und in welchem Ordner sie liegt.\n\n"
                     "Daneben sitzt \"Teilen\". Auf dem Tablet öffnet das "
@@ -562,9 +567,13 @@ TOPICS = [
                     "für eine Inventur oder zum Ausbuchen von Bruch. "
                     "Neben dem neuen Bestand musst du einen Grund und "
                     "deinen Namen angeben - beides landet im "
-                    "Bestandsverlauf rechts daneben. So "
-                    "ist später nachvollziehbar, wer wann was geändert "
-                    "hat."
+                    "Bestandsverlauf rechts daneben, der Name in der "
+                    "Spalte \"Bearbeiter\". So ist später "
+                    "nachvollziehbar, wer wann was geändert hat.\n\n"
+                    "Verkäufe an der Kasse und Wareneingänge bucht das "
+                    "Programm selbst - bei ihnen bleibt \"Bearbeiter\" "
+                    "leer, der Grund sagt schon, woher die Bewegung "
+                    "kommt."
                 ),
                 "image": "artikel/04_bestandskorrektur.png",
             },
@@ -819,10 +828,12 @@ TOPICS = [
                 "heading": "Kassenbuch exportieren",
                 "text": (
                     "\"Excel exportieren\" schreibt den angezeigten "
-                    "Monat als Tabelle in den Ordner exports/excel - "
-                    "eingerichtet zum Ausdrucken: Querformat, auf eine "
-                    "Seitenbreite passend, mit wiederholter Kopfzeile "
-                    "und einer Summenzeile.\n\n"
+                    "Monat in den Ordner exports/excel - eingerichtet "
+                    "zum Ausdrucken: oben Logo, Titel und eine Übersicht "
+                    "mit Einnahmen, Ausgaben und Endbestand, darunter "
+                    "die Einträge im Querformat, auf eine Seitenbreite "
+                    "passend, mit wiederholter Kopfzeile, Summenzeile "
+                    "und \"Seite x von y\".\n\n"
                     "Die letzte Spalte \"Hinweis\" nennt bei "
                     "auffälligen Zeilen den Grund im Klartext. Auf "
                     "Papier hilft ein rotes \"Prüfen\" ohne Erklärung "
@@ -944,9 +955,14 @@ TOPICS = [
                     "\"Excel exportieren\" schreibt die gewählte Liste "
                     "in den Ordner exports/excel, eingerichtet zum "
                     "Ausdrucken. So kann die Liste am Stand hängen, ohne "
-                    "dass jemand das Tablet mit sich herumträgt - "
-                    "erledigte Punkte sind dort mit einem x "
-                    "gekennzeichnet.\n\n"
+                    "dass jemand das Tablet mit sich herumträgt. "
+                    "Erledigte Punkte tragen einen Haken und stehen grau, "
+                    "offene ein leeres Kästchen.\n\n"
+                    "Wie alle Ausgaben trägt die Datei oben das KiG-Logo, "
+                    "den Titel und das Erstellungsdatum; Tabellen haben "
+                    "eine orangefarbene Kopfzeile, beim Drucken steht "
+                    "unten \"Seite x von y\".\n\n"
+
                     "Nach dem Export steht unter dem Knopf, wie die Datei "
                     "heißt und in welchem Ordner sie liegt.\n\n"
                     "Daneben sitzt \"Teilen\". Auf dem Tablet öffnet das "
@@ -1054,7 +1070,13 @@ TOPICS = [
                     "\"Excel exportieren\" schreibt den Plan zum "
                     "Ausdrucken: Tätigkeit, Zeit, Soll, Ist, wie viele "
                     "fehlen und die Namen. So hängt der Plan am Stand, "
-                    "ohne dass jemand das Tablet mit sich herumträgt.\n\n"
+                    "ohne dass jemand das Tablet mit sich herumträgt. "
+                    "Schichten, denen noch Helfer fehlen, stehen rot.\n\n"
+                    "Wie alle Ausgaben trägt die Datei oben das KiG-Logo, "
+                    "den Titel und das Erstellungsdatum; Tabellen haben "
+                    "eine orangefarbene Kopfzeile, beim Drucken steht "
+                    "unten \"Seite x von y\".\n\n"
+
                     "Nach dem Export steht unter dem Knopf, wie die Datei "
                     "heißt und in welchem Ordner sie liegt.\n\n"
                     "Daneben sitzt \"Teilen\". Auf dem Tablet öffnet das "
@@ -1247,9 +1269,9 @@ TOPICS = [
                     "Einnahmen, Ausgaben und Gewinn.\n\n"
                     "Rechts stehen die einzelnen Verkäufe als Beleg "
                     "dazu.\n\n"
-                    "Alles bezieht sich auf den unten eingestellten "
-                    "Zeitraum und das gewählte Event. Ist kein Filter "
-                    "gesetzt, siehst du sämtliche Verkäufe."
+                    "Alles bezieht sich auf die unten eingestellte "
+                    "Auswahl: Zeitraum, Event und Kategorie. Ist kein "
+                    "Filter gesetzt, siehst du sämtliche Verkäufe."
                 ),
                 "image": "statistik/01_uebersicht.png",
             },
@@ -1262,6 +1284,24 @@ TOPICS = [
                     "angelegtes Event einschränken. \"Alle Events\" "
                     "zeigt wieder sämtliche Verkäufe ohne "
                     "Event-Einschränkung."
+                ),
+            },
+            {
+                "heading": "Nach Kategorie filtern",
+                "text": (
+                    "Unter \"Veranstaltung\" steht in der Filterleiste "
+                    "das Feld \"Kategorie\". Wählst du eine Kategorie, "
+                    "zeigen Balken, Kreis, Kennzahlen, die "
+                    "Einzelverkäufe und auch die Ausgabe nach Excel oder "
+                    "PDF nur noch deren Artikel. \"Alle Kategorien\" "
+                    "hebt die Einschränkung auf.\n\n"
+                    "KiG Karte und Gutschein gelten für einen ganzen Bon, "
+                    "nicht für einzelne Artikel. Mit Kategoriefilter "
+                    "werden sie deshalb anteilig gerechnet: Bestand ein "
+                    "Bon zur Hälfte aus Getränken der Kategorie, zählt "
+                    "auch die Hälfte der Karte dazu.\n\n"
+                    "\"Zeitraum löschen\" richtet sich nur nach Von und "
+                    "Bis - Event und Kategorie grenzen dort nichts ein."
                 ),
             },
             {
@@ -1313,14 +1353,25 @@ TOPICS = [
                 ),
             },
             {
-                "heading": "Nach Excel exportieren",
+                "heading": "Als Excel oder PDF ausgeben",
                 "text": (
-                    "\"Excel exportieren\" schreibt die aktuelle "
-                    "Auswertung in eine Excel-Datei: ein Blatt mit allen "
-                    "Verkaufspositionen und ein Blatt mit der "
-                    "Zusammenfassung inklusive Diagrammen. Die Datei "
-                    "landet im Ordner exports/excel des "
-                    "Programmverzeichnisses.\n\n"
+                    "\"Excel\" und \"PDF\" schreiben die Auswertung der "
+                    "aktuellen Auswahl - Zeitraum, Event, Kategorie.\n\n"
+                    "Die Excel-Mappe hat zwei Blätter: \"Zusammenfassung\" "
+                    "mit den Kennzahlen, dem Umsatz je Kategorie samt "
+                    "Kreisdiagramm und den Verkäufen je Artikel samt "
+                    "Balkendiagramm, jeweils in den Farben der "
+                    "Kategorien - und \"Einzelverkäufe\" mit jeder "
+                    "verkauften Einheit und einem Filter in der "
+                    "Kopfzeile. Sie landet in exports/excel.\n\n"
+                    "Das PDF ist der Bericht zum Ausdrucken und "
+                    "Weiterschicken: Kennzahlen als Kacheln, Kreis mit "
+                    "Legende, Balken je Artikel und die Tabelle je "
+                    "Artikel. Die Einzelverkäufe stehen nur in Excel. "
+                    "Es landet in exports/pdf und entsteht auch auf dem "
+                    "Tablet.\n\n"
+                    "Beide tragen oben das KiG-Logo, den Titel und "
+                    "wofür die Zahlen gelten.\n\n"
                     "Nach dem Export steht unter dem Knopf, wie die Datei "
                     "heißt und in welchem Ordner sie liegt.\n\n"
                     "Daneben sitzt \"Teilen\". Auf dem Tablet öffnet das "

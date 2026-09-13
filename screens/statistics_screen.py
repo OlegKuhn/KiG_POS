@@ -127,6 +127,8 @@ class SaleRow(ButtonBehavior, BoxLayout):
 class StatisticsScreen(Screen):
     """Tabellarische Umsatz- und Gewinnübersicht je Verkaufsposition."""
 
+    ALLE_KATEGORIEN = "Alle Kategorien"
+
     # Höhe einer Kennzahlenzeile (Einnahmen, Ausgaben, Gewinn)
     TOTAL_ROW_HEIGHT = 34
     NARROW_TOTAL_ROW_HEIGHT = 28
@@ -140,6 +142,7 @@ class StatisticsScreen(Screen):
         # Zuletzt ausgegebene Datei - sie haengt am Teilen-Knopf.
         self.letzte_ausgabe = None
         self.event_options = {"Alle Events": None}
+        self.category_options = {self.ALLE_KATEGORIEN: None}
 
         # Im Hochformat steht die Auswertung unter der Verkaufstabelle
         # statt daneben (siehe theme.set_orientation).
@@ -232,6 +235,15 @@ class StatisticsScreen(Screen):
 
         filters.add_widget(zeile("Veranstaltung", self.event_filter))
 
+        # Nur die Artikel einer Kategorie - Balken, Kreis, Kennzahlen,
+        # Tabelle und Ausgabe folgen alle demselben Filter.
+        self.category_filter = RoundedSpinner(
+            text=self.ALLE_KATEGORIEN, values=(self.ALLE_KATEGORIEN,),
+        )
+        self.category_filter.bind(text=lambda *_args: self._filter_geaendert())
+
+        filters.add_widget(zeile("Kategorie", self.category_filter))
+
         self.date_from_value = None
         self.date_to_value = None
 
@@ -258,9 +270,9 @@ class StatisticsScreen(Screen):
             titel="Auswahl",
             zusammenfassung=self._filter_text,
             inhalt_hoehe=(
-                3 * (24 + theme.FELD_HOEHE)
+                4 * (24 + theme.FELD_HOEHE)
                 + theme.FELD_HOEHE
-                + 3 * theme.ROW_SPACING
+                + 4 * theme.ROW_SPACING
                 + 2 * theme.CARD_PADDING
             ),
         )
@@ -274,7 +286,10 @@ class StatisticsScreen(Screen):
             # 170 + 110 dp neben einem Platzhalter passen auf ein
             # Telefon nicht - dort teilen sich beide, was da ist.
             actions_top.add_widget(
-                self._button("Export", self.export_excel)
+                self._button("Excel", self.export_excel)
+            )
+            actions_top.add_widget(
+                self._button("PDF", self.export_pdf)
             )
             actions_top.add_widget(
                 self._button("Teilen", self.teilen_clicked)
@@ -282,8 +297,9 @@ class StatisticsScreen(Screen):
 
         else:
             actions_top.add_widget(Widget())
-            actions_top.add_widget(self._button("Excel exportieren", self.export_excel, width=dp(170)))
-            actions_top.add_widget(self._button("Teilen", self.teilen_clicked, width=dp(110)))
+            actions_top.add_widget(self._button("Excel", self.export_excel, width=dp(100)))
+            actions_top.add_widget(self._button("PDF", self.export_pdf, width=dp(90)))
+            actions_top.add_widget(self._button("Teilen", self.teilen_clicked, width=dp(100)))
 
         panel.add_widget(actions_top)
 
@@ -399,9 +415,11 @@ class StatisticsScreen(Screen):
 
         return self.repair_row
 
-    def _refresh_repair_hint(self, date_from, date_to, event_id):
+    def _refresh_repair_hint(self, date_from, date_to, event_id, category_id=None):
 
-        offen = self.db.count_missing_recipe_costs(date_from, date_to, event_id)
+        offen = self.db.count_missing_recipe_costs(
+            date_from, date_to, event_id, category_id
+        )
 
         if not offen:
             self.repair_row.height = 0
@@ -420,10 +438,9 @@ class StatisticsScreen(Screen):
 
     def repair_costs(self):
 
-        date_from, date_to = self._period()
-        event_id = self.event_options.get(self.event_filter.text)
+        auswahl = self._auswahl()
 
-        offen = self.db.count_missing_recipe_costs(date_from, date_to, event_id)
+        offen = self.db.count_missing_recipe_costs(*auswahl)
 
         if not offen:
             return
@@ -431,13 +448,15 @@ class StatisticsScreen(Screen):
         self._confirm(
             f"Bei {offen} Verkaufsposition(en) den heute gültigen "
             "Rezeptpreis als Einkaufspreis nachtragen?",
-            lambda: self._repair_costs_confirmed(date_from, date_to, event_id),
+            lambda: self._repair_costs_confirmed(*auswahl),
             confirm_text="Nachtragen",
         )
 
-    def _repair_costs_confirmed(self, date_from, date_to, event_id):
+    def _repair_costs_confirmed(self, date_from, date_to, event_id, category_id=None):
 
-        nachgetragen = self.db.repair_recipe_costs(date_from, date_to, event_id)
+        nachgetragen = self.db.repair_recipe_costs(
+            date_from, date_to, event_id, category_id
+        )
 
         self.refresh()
 
@@ -600,7 +619,23 @@ class StatisticsScreen(Screen):
 
     def on_pre_enter(self, *_args):
         self._populate_event_filter()
+        self._populate_category_filter()
         self.refresh()
+
+    def _populate_category_filter(self):
+        """Bietet die Kategorien der Artikelverwaltung als Filter an."""
+
+        current_selection = self.category_filter.text
+        self.category_options = {self.ALLE_KATEGORIEN: None}
+
+        for kategorie in self.db.get_categories():
+            self.category_options[kategorie["name"]] = kategorie["id"]
+
+        self.category_filter.values = tuple(self.category_options)
+        self.category_filter.text = (
+            current_selection if current_selection in self.category_options
+            else self.ALLE_KATEGORIEN
+        )
 
     def _populate_event_filter(self):
         """Bietet alle im Kalender gepflegten Events als optionalen Filter an."""
@@ -623,6 +658,19 @@ class StatisticsScreen(Screen):
     def _period(self):
         return self.date_from_value, self.date_to_value
 
+    def _auswahl(self):
+        """Zeitraum, Event und Kategorie - so, wie die Datenbank sie
+        erwartet: (date_from, date_to, event_id, category_id)."""
+
+        date_from, date_to = self._period()
+
+        return (
+            date_from,
+            date_to,
+            self.event_options.get(self.event_filter.text),
+            self.category_options.get(self.category_filter.text),
+        )
+
     def _filter_geaendert(self):
 
         self.refresh()
@@ -634,6 +682,9 @@ class StatisticsScreen(Screen):
         """Was in der zugeklappten Filterleiste steht."""
 
         teile = [self.event_filter.text]
+
+        if self.category_filter.text != self.ALLE_KATEGORIEN:
+            teile.append(self.category_filter.text)
 
         von = self.date_from_value
         bis = self.date_to_value
@@ -724,21 +775,20 @@ class StatisticsScreen(Screen):
         self.filterleiste.aktualisieren()
 
     def refresh(self):
-        date_from, date_to = self._period()
-        event_id = self.event_options.get(self.event_filter.text)
+        auswahl = self._auswahl()
         self.selected_rows.clear()
         self.sales_rows.clear_widgets()
 
-        rows = self.db.get_statistic_sale_items(date_from, date_to, event_id)
+        rows = self.db.get_statistic_sale_items(*auswahl)
         if not rows:
             self.sales_rows.add_widget(self._empty_label("Keine Verkäufe im gewählten Zeitraum."))
         else:
             for row in rows:
                 self.sales_rows.add_widget(SaleRow(row, self._row_selected))
 
-        self._refresh_totals(date_from, date_to, event_id)
-        self._refresh_auswertung(date_from, date_to, event_id)
-        self._refresh_repair_hint(date_from, date_to, event_id)
+        self._refresh_totals(*auswahl)
+        self._refresh_auswertung(*auswahl)
+        self._refresh_repair_hint(*auswahl)
 
     def _row_selected(self, row, selected):
         row_key = row.sale["row_key"]
@@ -747,11 +797,13 @@ class StatisticsScreen(Screen):
         else:
             self.selected_rows.pop(row_key, None)
 
-    def _refresh_totals(self, date_from, date_to, event_id):
+    def _refresh_totals(self, date_from, date_to, event_id, category_id=None):
         """Kennzahlen und Kreisdiagramm - beide für denselben Zeitraum
         wie die Tabelle links."""
 
-        kennzahlen = self.db.get_period_totals(date_from, date_to, event_id)
+        kennzahlen = self.db.get_period_totals(
+            date_from, date_to, event_id, category_id
+        )
 
         for schluessel, label in self.total_labels.items():
             label.text = self.money(kennzahlen[schluessel])
@@ -801,6 +853,9 @@ class StatisticsScreen(Screen):
         if self.event_filter.text != "Alle Events":
             zeitraum = f"{self.event_filter.text} | {zeitraum}"
 
+        if self.category_filter.text != self.ALLE_KATEGORIEN:
+            zeitraum = f"{self.category_filter.text} | {zeitraum}"
+
         bons = kennzahlen["receipts"]
 
         return (
@@ -808,12 +863,12 @@ class StatisticsScreen(Screen):
             f"{bons} {'Bon' if bons == 1 else 'Bons'}"
         )
 
-    def _refresh_auswertung(self, date_from, date_to, event_id):
+    def _refresh_auswertung(self, date_from, date_to, event_id, category_id=None):
         """Fuellt Balken und Kreis - beide aus demselben Zeitraum."""
 
         self.auswertung.set_data(
-            self.db.get_article_sales(date_from, date_to, event_id),
-            self.db.get_category_revenues(date_from, date_to, event_id),
+            self.db.get_article_sales(date_from, date_to, event_id, category_id),
+            self.db.get_category_revenues(date_from, date_to, event_id, category_id),
         )
 
     @staticmethod
@@ -824,138 +879,79 @@ class StatisticsScreen(Screen):
         )
 
     # =====================================================
-    # Excel-Export
+    # Ausgabe: Excel und PDF
     # =====================================================
 
-    def export_excel(self):
-        """Exportiert die aktuell gefilterten Verkaufszahlen inklusive
-        Diagrammen als Excel-Arbeitsmappe (zwei Blätter: Rohdaten und
-        Auswertung mit Balkendiagrammen)."""
-
-        from openpyxl import Workbook
-        from openpyxl.chart import BarChart, Reference
-        from openpyxl.styles import Font
+    def _beschreibung(self):
+        """Wofür die Zahlen gelten - in Worten, für den Kopf der
+        Ausgabe."""
 
         date_from, date_to = self._period()
-        event_id = self.event_options.get(self.event_filter.text)
 
-        sale_items = self.db.get_statistic_sale_items(date_from, date_to, event_id)
-        top_articles = self.db.get_top_selling_articles(date_from, date_to, event_id, limit=5)
-        revenues = self.db.get_article_revenues(date_from, date_to, event_id)
+        if date_from and date_to:
+            zeitraum = f"{self.format_date(date_from)} - {self.format_date(date_to)}"
+        elif date_from:
+            zeitraum = f"ab {self.format_date(date_from)}"
+        elif date_to:
+            zeitraum = f"bis {self.format_date(date_to)}"
+        else:
+            zeitraum = "gesamter Zeitraum"
 
-        if not sale_items:
-            self.export_status.text = "Keine Verkäufe im gewählten Zeitraum zum Exportieren."
+        teile = []
+
+        if self.event_filter.text != "Alle Events":
+            teile.append(self.event_filter.text)
+
+        if self.category_filter.text != self.ALLE_KATEGORIEN:
+            teile.append(f"Kategorie {self.category_filter.text}")
+
+        teile.append(zeitraum)
+
+        return " | ".join(teile)
+
+    def export_excel(self):
+        """Die Statistik der aktuellen Auswahl als Excel-Mappe:
+        Zusammenfassung mit Diagrammen und die Einzelverkäufe (siehe
+        berichte/statistik_bericht.py)."""
+
+        self._ausgeben("excel")
+
+    def export_pdf(self):
+        """Dieselbe Auswahl als PDF-Bericht - Kennzahlen, Kreis, Balken
+        und die Tabelle je Artikel."""
+
+        self._ausgeben("pdf")
+
+    def _ausgeben(self, art):
+
+        from berichte import statistik_bericht
+
+        auswahl = self._auswahl()
+
+        daten = statistik_bericht.sammeln(self.db, auswahl, self._beschreibung())
+
+        if not daten["einzeln"]:
+            self.export_status.text = "Keine Verkäufe in der gewählten Auswahl zum Exportieren."
             return
 
-        workbook = Workbook()
-        bold = Font(bold=True)
+        stempel = datetime.now().strftime("%Y-%m-%d_%H-%M")
 
-        # -------------------------------------------------
-        # Blatt 1: Verkäufe (Rohdaten)
-        # -------------------------------------------------
+        try:
+            if art == "pdf":
+                pfad = storage.export_dir("pdf") / f"statistik_{stempel}.pdf"
+                statistik_bericht.pdf(daten, pfad)
+            else:
+                pfad = storage.export_dir("excel") / f"statistik_{stempel}.xlsx"
+                statistik_bericht.excel(daten, pfad)
 
-        sales_sheet = workbook.active
-        sales_sheet.title = "Verkäufe"
+        except OSError as fehler:
+            # Meist ist die Datei gerade in Excel geöffnet.
+            self.export_status.text = f"Ausgabe fehlgeschlagen: {fehler}"
+            return
 
-        headers = ("Event", "Datum", "Kategorie", "Artikel", "Menge", "Verkauf", "Einkauf", "Gewinn")
-        sales_sheet.append(headers)
-        for cell in sales_sheet[1]:
-            cell.font = bold
+        self.letzte_ausgabe = pfad
 
-        for row in sale_items:
-            sales_sheet.append((
-                row["event_name"], self.format_date(row["business_date"]), row["category_name"],
-                row["article_name"], row["quantity"], row["unit_price"], row["purchase_price"],
-                row["profit"],
-            ))
-
-        for column_cells in sales_sheet.columns:
-            width = max(len(str(cell.value or "")) for cell in column_cells)
-            sales_sheet.column_dimensions[column_cells[0].column_letter].width = max(10, width + 2)
-
-        # -------------------------------------------------
-        # Blatt 2: Auswertung (Top 5 + Gesamtverkaufszahlen)
-        # -------------------------------------------------
-
-        summary_sheet = workbook.create_sheet("Auswertung")
-
-        summary_sheet.append(("Top 5 Positionen (Menge)",))
-        summary_sheet["A1"].font = bold
-        summary_sheet.append(("Artikel", "Menge"))
-        for cell in summary_sheet[2]:
-            cell.font = bold
-        top_start_row = 3
-        for name, quantity in top_articles:
-            summary_sheet.append((name, quantity))
-        top_end_row = top_start_row + len(top_articles) - 1
-
-        if top_articles:
-            top_chart = BarChart()
-            top_chart.title = "Top 5 Positionen"
-            top_chart.y_axis.title = "Menge"
-            data = Reference(summary_sheet, min_col=2, min_row=2, max_row=top_end_row)
-            categories = Reference(summary_sheet, min_col=1, min_row=top_start_row, max_row=top_end_row)
-            top_chart.add_data(data, titles_from_data=True)
-            top_chart.set_categories(categories)
-            top_chart.width, top_chart.height = 16, 9
-            summary_sheet.add_chart(top_chart, "D2")
-
-        revenue_start_row = top_end_row + 3
-        summary_sheet.cell(row=revenue_start_row, column=1, value="Gesamtverkaufszahlen (Einnahmen)").font = bold
-        header_row = revenue_start_row + 1
-        summary_sheet.cell(row=header_row, column=1, value="Artikel").font = bold
-        summary_sheet.cell(row=header_row, column=2, value="Einnahmen").font = bold
-
-        revenue_data_start = header_row + 1
-        for offset, (name, revenue) in enumerate(revenues):
-            summary_sheet.cell(row=revenue_data_start + offset, column=1, value=name)
-            summary_sheet.cell(row=revenue_data_start + offset, column=2, value=round(revenue, 2))
-        revenue_data_end = revenue_data_start + len(revenues) - 1
-
-        if revenues:
-            revenue_chart = BarChart()
-            revenue_chart.title = "Gesamtverkaufszahlen"
-            revenue_chart.y_axis.title = "Einnahmen (€)"
-            data = Reference(summary_sheet, min_col=2, min_row=header_row, max_row=revenue_data_end)
-            categories = Reference(summary_sheet, min_col=1, min_row=revenue_data_start, max_row=revenue_data_end)
-            revenue_chart.add_data(data, titles_from_data=True)
-            revenue_chart.set_categories(categories)
-            revenue_chart.width, revenue_chart.height = 16, 9
-            summary_sheet.add_chart(revenue_chart, f"D{revenue_start_row}")
-
-        # Umsatz und was davon entwertet wurde
-        kennzahlen = self.db.get_period_totals(date_from, date_to, event_id)
-
-        zeile = revenue_data_end + 3 if revenues else revenue_start_row + 3
-
-        summary_sheet.cell(row=zeile, column=1, value="Einnahmen und Entwertungen").font = bold
-
-        for versatz, (beschriftung, schluessel) in enumerate((
-                ("Einnahmen gesamt", "revenue"),
-                ("davon entwertet: KiG Karte", "kig_karte"),
-                ("davon entwertet: Gutschein", "gutschein"),
-                ("davon bar", "bar"),
-        ), start=1):
-            summary_sheet.cell(row=zeile + versatz, column=1, value=beschriftung)
-            summary_sheet.cell(
-                row=zeile + versatz, column=2,
-                value=round(kennzahlen[schluessel] or 0, 2),
-            )
-
-        summary_sheet.column_dimensions["A"].width = 28
-        summary_sheet.column_dimensions["B"].width = 14
-
-        # -------------------------------------------------
-        # Speichern
-        # -------------------------------------------------
-
-        filename = datetime.now().strftime("statistik_%Y-%m-%d_%H-%M.xlsx")
-        export_path = storage.export_dir("excel") / filename
-        workbook.save(export_path)
-
-        self.letzte_ausgabe = export_path
-
-        self.export_status.text = export_hinweis(export_path)
+        self.export_status.text = export_hinweis(pfad)
 
     def delete_selected(self):
         if not self.selected_rows:
@@ -981,8 +977,11 @@ class StatisticsScreen(Screen):
         if not date_from or not date_to or date_from > date_to:
             self._confirm("Bitte zuerst einen gültigen Zeitraum eingeben.", None)
             return
+        # Gelöscht wird der ganze Zeitraum - Event und Kategorie
+        # grenzen hier nichts ein. Das muss in der Frage stehen.
         self._confirm(
-            "Alle Verkäufe im gewählten Zeitraum löschen?",
+            "Alle Verkäufe im gewählten Zeitraum löschen?\n"
+            "(unabhängig von Event und Kategorie)",
             lambda: self._delete_period_confirmed(date_from, date_to),
         )
 

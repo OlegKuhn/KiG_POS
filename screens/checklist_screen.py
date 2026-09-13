@@ -586,7 +586,8 @@ class ChecklistScreen(Screen):
             return
 
         from openpyxl import Workbook
-        from openpyxl.styles import Alignment, Font
+
+        from berichte.excel_layout import Exportblatt, GRAU, blattname
 
         liste = self.db.get_checklist(self.selected_checklist_id)
         punkte = self.db.get_checklist_items(self.selected_checklist_id)
@@ -595,54 +596,39 @@ class ChecklistScreen(Screen):
             self.status_label.text = "Diese Liste ist noch leer."
             return
 
-        workbook = Workbook()
-        blatt = workbook.active
-        blatt.title = liste["name"][:31] or "Checkliste"
-
-        fett = Font(bold=True)
-
-        blatt.append((liste["name"],))
-        blatt["A1"].font = Font(bold=True, size=14)
-
-        blatt.append(())
-
-        blatt.append((
-            "Erledigt", "Aufgabe", "Frist", "Verantwortlich",
-            "Ansprechpartner", "Infos",
-        ))
-
-        for zelle in blatt[3]:
-            zelle.font = fett
-
-        for punkt in punkte:
-
-            blatt.append((
-                "x" if punkt["done"] else "",
-                punkt["task"],
-                ChecklistItemRow.format_deadline(punkt["deadline"])
-                if punkt["deadline"] else "",
-                punkt["responsible"] or "",
-                punkt["contact"] or "",
-                punkt["info"] or "",
-            ))
-
         erledigt, gesamt = self.db.get_checklist_progress(liste["id"])
 
-        blatt.append(())
-        blatt.append((f"{erledigt} von {gesamt} erledigt",))
-        blatt[blatt.max_row][0].font = fett
+        workbook = Workbook()
 
-        for spalte, breite in zip("ABCDEF", (10, 42, 12, 20, 20, 34)):
-            blatt.column_dimensions[spalte].width = breite
+        blatt = Exportblatt(
+            workbook.active,
+            f"Checkliste {liste['name']}",
+            f"{erledigt} von {gesamt} erledigt",
+            breiten=(10, 44, 13, 20, 20, 36),
+        )
+        blatt.blatt.title = blattname(liste["name"], "Checkliste")
 
-        for zeile in blatt.iter_rows(min_row=4, min_col=2, max_col=6):
-            for zelle in zeile:
-                zelle.alignment = Alignment(wrap_text=True, vertical="top")
+        blatt.tabelle(
+            ("Erledigt", "Aufgabe", "Frist", "Verantwortlich",
+             "Ansprechpartner", "Infos"),
+            [
+                (
+                    "✓" if punkt["done"] else "☐",
+                    punkt["task"],
+                    ChecklistItemRow.format_deadline(punkt["deadline"])
+                    if punkt["deadline"] else "",
+                    punkt["responsible"] or "",
+                    punkt["contact"] or "",
+                    punkt["info"] or "",
+                )
+                for punkt in punkte
+            ],
+            umbrechen=(1, 3, 4, 5),
+            # Erledigtes tritt zurück, Offenes springt ins Auge.
+            hervorheben=lambda werte: GRAU if werte[0] == "✓" else None,
+        )
 
-        blatt.page_setup.orientation = "landscape"
-        blatt.page_setup.fitToWidth = 1
-        blatt.sheet_properties.pageSetUpPr.fitToPage = True
-        blatt.print_title_rows = "3:3"
+        blatt.drucken()
 
         sicherer_name = "".join(
             zeichen if zeichen.isalnum() or zeichen in " -_" else "_"

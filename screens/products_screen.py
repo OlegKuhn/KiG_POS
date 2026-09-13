@@ -26,7 +26,6 @@ Version:
 =========================================================
 """
 
-import csv
 from datetime import datetime
 
 from kivy.graphics import Color, Rectangle
@@ -377,13 +376,22 @@ class ProductsScreen(Screen):
         ProductSortDialog().open()
 
     # =====================================================
-    # Einkaufsliste exportieren (CSV)
+    # Einkaufsliste exportieren
     # =====================================================
 
     def export_order_list(self):
         """Exportiert alle Artikel mit gesetzter Bestellmenge als
-        Excel-kompatible CSV-Datei, um eine Einkaufsliste verschicken
-        zu können."""
+        Einkaufsliste zum Verschicken und Ausdrucken.
+
+        Früher eine CSV-Datei - die sah in Excel aus wie ein
+        Datenabzug. Jetzt eine Mappe im Aussehen der übrigen
+        Ausgaben: Logo, Titel, nach Kategorien gegliedert, mit einer
+        Spalte zum Abhaken beim Einkauf.
+        """
+
+        from openpyxl import Workbook
+
+        from berichte.excel_layout import Exportblatt
 
         items = self.db.get_order_items()
 
@@ -393,18 +401,40 @@ class ProductsScreen(Screen):
             )
             return
 
-        filename = datetime.now().strftime("einkaufsliste_%Y-%m-%d_%H-%M.csv")
-        export_path = storage.export_dir("csv") / filename
+        workbook = Workbook()
 
-        with export_path.open("w", newline="", encoding="utf-8-sig") as export_file:
-            writer = csv.writer(export_file, delimiter=";")
-            writer.writerow(["Kategorie", "Artikel", "Bestellmenge"])
-            for item in items:
-                writer.writerow([
-                    item["category_name"] or "-",
-                    item["article_name"],
-                    item["quantity"],
-                ])
+        blatt = Exportblatt(
+            workbook.active,
+            "Einkaufsliste",
+            f"{len(items)} {'Artikel' if len(items) == 1 else 'Artikel'}",
+            breiten=(8, 36, 14),
+            quer=False,
+        )
+        blatt.blatt.title = "Einkaufsliste"
+
+        # Je Kategorie ein Abschnitt - so, wie man im Großmarkt durch
+        # die Gänge geht.
+        gruppen = {}
+
+        for item in items:
+            gruppen.setdefault(item["category_name"] or "Ohne Kategorie", []).append(item)
+
+        for kategorie, eintraege in gruppen.items():
+
+            blatt.ueberschrift(kategorie)
+
+            blatt.tabelle(
+                ("", "Artikel", "Menge"),
+                [("☐", e["article_name"], e["quantity"]) for e in eintraege],
+                formate=("text", "text", "zahl"),
+            )
+
+        blatt.drucken(titel_wiederholen=False)
+
+        filename = datetime.now().strftime("einkaufsliste_%Y-%m-%d_%H-%M.xlsx")
+        export_path = storage.export_dir("excel") / filename
+
+        workbook.save(export_path)
 
         self.letzte_ausgabe = export_path
 

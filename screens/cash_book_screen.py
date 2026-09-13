@@ -1043,7 +1043,8 @@ class CashBookScreen(Screen):
         """
 
         from openpyxl import Workbook
-        from openpyxl.styles import Alignment, Font
+
+        from berichte.excel_layout import ROT, Exportblatt, blattname
 
         eintraege, befunde = self.db.get_cash_book_entries_checked(
             self.selected_year, self.selected_month
@@ -1055,91 +1056,74 @@ class CashBookScreen(Screen):
 
         monat = MONTH_NAMES[self.selected_month - 1]
 
-        workbook = Workbook()
-        blatt = workbook.active
-        blatt.title = f"{monat} {self.selected_year}"
-
-        fett = Font(bold=True)
-
-        blatt.append((f"Kassenbuch {monat} {self.selected_year}",))
-        blatt["A1"].font = Font(bold=True, size=14)
-
-        blatt.append(())
-
-        ueberschriften = (
-            "Datum", "Startbestand", "Einnahmen", "Ausgaben",
-            "Endbestand", "Kommentar", "Prüfer", "Hinweis",
-        )
-
-        blatt.append(ueberschriften)
-
-        for zelle in blatt[3]:
-            zelle.font = fett
-
-        auffaellig = 0
-
-        for eintrag in eintraege:
-
-            meldungen = befunde.get(eintrag["id"]) or []
-
-            if meldungen:
-                auffaellig += 1
-
-            blatt.append((
-                self.format_date(eintrag["entry_date"]),
-                round(eintrag["opening_balance"] or 0, 2),
-                round(eintrag["income"] or 0, 2),
-                round(eintrag["expenses"] or 0, 2),
-                round(eintrag["closing_balance"] or 0, 2),
-                eintrag["comment"] or "",
-                eintrag["auditor"] or "",
-                "Prüfen: " + "; ".join(meldungen) if meldungen else "",
-            ))
-
         summen = self.db.get_cash_book_totals(
             self.selected_year, self.selected_month
         )
 
-        blatt.append(())
+        auffaellig = sum(1 for eintrag in eintraege if befunde.get(eintrag["id"]))
 
-        summenzeile = blatt.max_row + 1
+        workbook = Workbook()
 
-        blatt.append((
-            "Summe",
-            "",
-            round(summen["income"], 2),
-            round(summen["expenses"], 2),
-            round(summen["closing_balance"], 2),
-            "",
-            "",
+        blatt = Exportblatt(
+            workbook.active,
+            f"Kassenbuch {monat} {self.selected_year}",
             (
-                f"{auffaellig} {'Zeile' if auffaellig == 1 else 'Zeilen'} "
-                "zu prüfen" if auffaellig else "alle Zeilen gehen auf"
+                f"{len(eintraege)} {'Eintrag' if len(eintraege) == 1 else 'Einträge'}"
+                " · "
+                + (
+                    f"{auffaellig} {'Zeile' if auffaellig == 1 else 'Zeilen'} zu prüfen"
+                    if auffaellig else "alle Zeilen gehen auf"
+                )
             ),
+            breiten=(12, 14, 13, 13, 14, 26, 14, 44),
+        )
+        blatt.blatt.title = blattname(f"{monat} {self.selected_year}")
+
+        blatt.ueberschrift("Übersicht")
+        blatt.kennzahlen((
+            ("Einnahmen", round(summen["income"], 2)),
+            ("Ausgaben", round(summen["expenses"], 2)),
+            ("Endbestand", round(summen["closing_balance"], 2)),
         ))
 
-        for zelle in blatt[summenzeile]:
-            zelle.font = fett
+        blatt.ueberschrift("Einträge")
 
-        # Beträge als Währung, damit die Ausgabe ohne Nacharbeit
-        # ausgedruckt werden kann.
-        for zeile in blatt.iter_rows(min_row=4, min_col=2, max_col=5):
-            for zelle in zeile:
-                zelle.number_format = '#,##0.00 "€"'
+        blatt.tabelle(
+            (
+                "Datum", "Startbestand", "Einnahmen", "Ausgaben",
+                "Endbestand", "Kommentar", "Prüfer", "Hinweis",
+            ),
+            [
+                (
+                    self.format_date(eintrag["entry_date"]),
+                    round(eintrag["opening_balance"] or 0, 2),
+                    round(eintrag["income"] or 0, 2),
+                    round(eintrag["expenses"] or 0, 2),
+                    round(eintrag["closing_balance"] or 0, 2),
+                    eintrag["comment"] or "",
+                    eintrag["auditor"] or "",
+                    (
+                        "Prüfen: " + "; ".join(befunde.get(eintrag["id"]))
+                        if befunde.get(eintrag["id"]) else ""
+                    ),
+                )
+                for eintrag in eintraege
+            ],
+            formate=("text", "geld", "geld", "geld", "geld", "text", "text", "text"),
+            summe=(
+                "Summe", "",
+                round(summen["income"], 2),
+                round(summen["expenses"], 2),
+                round(summen["closing_balance"], 2),
+                "", "", "",
+            ),
+            umbrechen=(5, 7),
+            # Auffällige Zeilen rot - auf Papier sieht man sie sonst
+            # erst beim Lesen der letzten Spalte.
+            hervorheben=lambda werte: ROT if werte[7] else None,
+        )
 
-        for spalte, breite in zip("ABCDEFGH", (12, 14, 12, 12, 14, 24, 14, 46)):
-            blatt.column_dimensions[spalte].width = breite
-
-        for zeile in blatt.iter_rows(min_row=4, min_col=8, max_col=8):
-            for zelle in zeile:
-                zelle.alignment = Alignment(wrap_text=True, vertical="top")
-
-        # Fürs Drucken: quer, auf eine Seitenbreite, Kopfzeile
-        # wiederholen.
-        blatt.page_setup.orientation = "landscape"
-        blatt.page_setup.fitToWidth = 1
-        blatt.sheet_properties.pageSetUpPr.fitToPage = True
-        blatt.print_title_rows = "3:3"
+        blatt.drucken()
 
         dateiname = (
             f"kassenbuch_{self.selected_year}-{self.selected_month:02d}.xlsx"

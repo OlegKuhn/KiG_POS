@@ -4925,8 +4925,14 @@ class DatabaseManager:
             f"THEN date({iso_date}, '-1 day') ELSE date({iso_date}) END"
         )
 
-    def get_statistic_sale_items(self, date_from=None, date_to=None, event_id=None):
-        """Liefert Verkaufspositionen mit Event, Kategorie und Gewinn."""
+    def get_statistic_sale_items(self, date_from=None, date_to=None, event_id=None,
+                                 category_id=None):
+        """Liefert Verkaufspositionen mit Event, Kategorie und Gewinn.
+
+        category_id grenzt auf die Artikel einer Kategorie ein (None:
+        alle). Wie Zeitraum und Event gilt der Filter für jede
+        Auswertung, die auf dieser Abfrage aufbaut.
+        """
 
         business_day = self._sales_business_day_sql()
         query = f"""
@@ -4939,6 +4945,7 @@ class DatabaseManager:
                    si.quantity,
                    si.unit_price,
                    si.purchase_price,
+                   c.color AS category_color,
                    (si.unit_price - si.purchase_price) * si.quantity AS profit
             FROM sale_items si
             JOIN sales s ON s.id = si.sale_id
@@ -4958,6 +4965,9 @@ class DatabaseManager:
         if event_id is not None:
             query += " AND s.event_id = ?"
             parameters.append(event_id)
+        if category_id is not None:
+            query += " AND a.category_id = ?"
+            parameters.append(category_id)
 
         query += " ORDER BY business_date DESC, s.id DESC, si.id DESC"
         self.cursor.execute(query, parameters)
@@ -4993,10 +5003,13 @@ class DatabaseManager:
 
         return individual_items
 
-    def get_top_selling_articles(self, date_from=None, date_to=None, event_id=None, limit=5):
+    def get_top_selling_articles(self, date_from=None, date_to=None, event_id=None, limit=5,
+            category_id=None):
         """Liefert die meistverkauften Artikel im gewählten Zeitraum."""
 
-        rows = self.get_statistic_sale_items(date_from, date_to, event_id)
+        rows = self.get_statistic_sale_items(
+            date_from, date_to, event_id, category_id
+        )
         totals = {}
         for row in rows:
             totals[row["article_name"]] = (
@@ -5006,10 +5019,13 @@ class DatabaseManager:
             totals.items(), key=lambda item: (-item[1], item[0])
         )[:limit]
 
-    def get_article_revenues(self, date_from=None, date_to=None, event_id=None):
+    def get_article_revenues(self, date_from=None, date_to=None, event_id=None,
+            category_id=None):
         """Liefert die Einnahmen pro Artikel, absteigend nach Umsatz."""
 
-        rows = self.get_statistic_sale_items(date_from, date_to, event_id)
+        rows = self.get_statistic_sale_items(
+            date_from, date_to, event_id, category_id
+        )
         totals = {}
         for row in rows:
             totals[row["article_name"]] = (
@@ -5020,7 +5036,8 @@ class DatabaseManager:
             totals.items(), key=lambda item: (-item[1], item[0])
         )
 
-    def get_article_sales(self, date_from=None, date_to=None, event_id=None):
+    def get_article_sales(self, date_from=None, date_to=None, event_id=None,
+            category_id=None):
         """Die summierten Verkäufe je Artikel, absteigend nach Umsatz.
 
         Je Artikel ein Wörterbuch:
@@ -5042,7 +5059,9 @@ class DatabaseManager:
 
         farben = {row["name"]: row["color"] for row in self.cursor.fetchall()}
 
-        zeilen = self.get_statistic_sale_items(date_from, date_to, event_id)
+        zeilen = self.get_statistic_sale_items(
+            date_from, date_to, event_id, category_id
+        )
 
         summen = {}
 
@@ -5070,7 +5089,8 @@ class DatabaseManager:
             key=lambda eintrag: (-eintrag["umsatz"], eintrag["name"]),
         )
 
-    def get_category_revenues(self, date_from=None, date_to=None, event_id=None):
+    def get_category_revenues(self, date_from=None, date_to=None, event_id=None,
+            category_id=None):
         """Liefert die Einnahmen pro Kategorie, absteigend nach Umsatz.
 
         Je Kategorie ein Tupel (Name, Einnahmen, Farbe). Die Farbe ist
@@ -5082,7 +5102,9 @@ class DatabaseManager:
         self.cursor.execute("SELECT name, color FROM categories")
         farben = {row["name"]: row["color"] for row in self.cursor.fetchall()}
 
-        rows = self.get_statistic_sale_items(date_from, date_to, event_id)
+        rows = self.get_statistic_sale_items(
+            date_from, date_to, event_id, category_id
+        )
 
         totals = {}
 
@@ -5096,7 +5118,8 @@ class DatabaseManager:
 
         return [(name, betrag, farben.get(name)) for name, betrag in sortiert]
 
-    def count_missing_recipe_costs(self, date_from=None, date_to=None, event_id=None):
+    def count_missing_recipe_costs(self, date_from=None, date_to=None, event_id=None,
+            category_id=None):
         """Zählt Verkaufspositionen von Mix-/Rezeptartikeln, bei denen
         kein Einkaufspreis erfasst wurde.
 
@@ -5107,12 +5130,13 @@ class DatabaseManager:
         """
 
         sale_item_ids = self._sale_items_ohne_einkaufspreis(
-            date_from, date_to, event_id
+            date_from, date_to, event_id, category_id
         )
 
         return len(sale_item_ids)
 
-    def repair_recipe_costs(self, date_from=None, date_to=None, event_id=None):
+    def repair_recipe_costs(self, date_from=None, date_to=None, event_id=None,
+            category_id=None):
         """Trägt bei diesen Positionen den heute gültigen Rezeptpreis
         nach.
 
@@ -5127,7 +5151,7 @@ class DatabaseManager:
         geaendert = 0
 
         for sale_item_id, article_id in self._sale_items_ohne_einkaufspreis(
-            date_from, date_to, event_id
+            date_from, date_to, event_id, category_id
         ):
 
             kosten = self.get_recipe_cost(article_id)
@@ -5151,7 +5175,7 @@ class DatabaseManager:
         return geaendert
 
     def _sale_items_ohne_einkaufspreis(
-            self, date_from=None, date_to=None, event_id=None
+            self, date_from=None, date_to=None, event_id=None, category_id=None
     ):
         """Verkaufspositionen von Rezeptartikeln ohne Einkaufspreis -
         als Liste aus (sale_item_id, article_id)."""
@@ -5182,6 +5206,10 @@ class DatabaseManager:
             query += " AND s.event_id = ?"
             parameters.append(event_id)
 
+        if category_id is not None:
+            query += " AND a.category_id = ?"
+            parameters.append(category_id)
+
         self.cursor.execute(query, parameters)
 
         return [
@@ -5189,7 +5217,8 @@ class DatabaseManager:
             for row in self.cursor.fetchall()
         ]
 
-    def get_period_totals(self, date_from=None, date_to=None, event_id=None):
+    def get_period_totals(self, date_from=None, date_to=None, event_id=None,
+            category_id=None):
         """Kennzahlen des gewählten Zeitraums.
 
             revenue    Einnahmen (verkaufte Menge x Verkaufspreis)
@@ -5202,12 +5231,14 @@ class DatabaseManager:
         ziehen die Beträge damit von selbst wieder ab.
         """
 
-        rows = self.get_statistic_sale_items(date_from, date_to, event_id)
+        rows = self.get_statistic_sale_items(
+            date_from, date_to, event_id, category_id
+        )
 
         einnahmen = sum(row["quantity"] * row["unit_price"] for row in rows)
         ausgaben = sum(row["quantity"] * row["purchase_price"] for row in rows)
 
-        entwertet = self.get_entwertet(date_from, date_to, event_id)
+        entwertet = self.get_entwertet(date_from, date_to, event_id, category_id)
 
         return {
             "revenue": einnahmen,
@@ -5220,12 +5251,24 @@ class DatabaseManager:
             "bar": einnahmen - entwertet["kig_karte"] - entwertet["gutschein"],
         }
 
-    def get_entwertet(self, date_from=None, date_to=None, event_id=None):
+    def get_entwertet(self, date_from=None, date_to=None, event_id=None,
+                      category_id=None):
         """Was im Zeitraum mit KiG Karte und Gutschein beglichen wurde.
 
         Diese Beträge sind im Umsatz enthalten - verkauft wurde die
         Ware ja. Sie gingen nur nicht bar in die Kasse.
+
+        Mit Kategoriefilter wird anteilig gerechnet: Die KiG Karte
+        gilt für den ganzen Bon, nicht für einzelne Artikel. Bestand
+        ein 10-EUR-Bon zu 6 EUR aus Getränken, entfallen von 5 EUR
+        Karte 3 EUR auf die Getränke. So bleibt "bar" in jeder
+        Kategorie Umsatz minus Entwertetes.
         """
+
+        if category_id is not None:
+            return self._entwertet_anteilig(
+                date_from, date_to, event_id, category_id
+            )
 
         business_day = self._sales_business_day_sql()
 
@@ -5255,6 +5298,56 @@ class DatabaseManager:
         zeile = self.cursor.fetchone()
 
         return {"kig_karte": zeile["kig_karte"], "gutschein": zeile["gutschein"]}
+
+    def _entwertet_anteilig(self, date_from, date_to, event_id, category_id):
+        """Siehe get_entwertet: KiG Karte und Gutschein im Verhältnis
+        des Kategorieanteils am Bon."""
+
+        business_day = self._sales_business_day_sql()
+
+        query = f"""
+            SELECT s.id, s.total, s.kig_karte, s.gutschein,
+                   COALESCE(SUM(CASE WHEN a.category_id = ?
+                                     THEN si.line_total ELSE 0 END), 0)
+                       AS kategorie_summe
+            FROM sales s
+            JOIN sale_items si ON si.sale_id = s.id
+            LEFT JOIN articles a ON a.id = si.article_id
+            WHERE (s.kig_karte > 0 OR s.gutschein > 0)
+        """
+
+        parameters = [category_id]
+
+        if date_from:
+            query += f" AND {business_day} >= ?"
+            parameters.append(date_from)
+
+        if date_to:
+            query += f" AND {business_day} <= ?"
+            parameters.append(date_to)
+
+        if event_id is not None:
+            query += " AND s.event_id = ?"
+            parameters.append(event_id)
+
+        query += " GROUP BY s.id"
+
+        self.cursor.execute(query, parameters)
+
+        karte = 0.0
+        gutschein = 0.0
+
+        for zeile in self.cursor.fetchall():
+
+            if not zeile["total"]:
+                continue
+
+            anteil = zeile["kategorie_summe"] / zeile["total"]
+
+            karte += (zeile["kig_karte"] or 0) * anteil
+            gutschein += (zeile["gutschein"] or 0) * anteil
+
+        return {"kig_karte": round(karte, 2), "gutschein": round(gutschein, 2)}
 
     def delete_sale_item(self, sale_item_id):
         """Löscht eine Verkaufsposition und bereinigt den zugehörigen Bon."""

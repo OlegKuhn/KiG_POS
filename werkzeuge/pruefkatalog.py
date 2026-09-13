@@ -473,6 +473,12 @@ KATALOG = [
          "Zugänge, Abgänge und Korrekturen mit Grund und Gerät.",
          "RTH"),
 
+        ("Bearbeiter im Bestandsverlauf",
+         "Artikel, Bearbeiten, Bestand anpassen mit Namen",
+         "Die Korrektur zeigt den Namen in \"Bearbeiter\"; bei Verkauf "
+         "und Wareneingang bleibt die Spalte leer.",
+         "RTH"),
+
         ("Reihenfolge festlegen",
          "Artikel, \"Sortierung\"",
          "Die gewählte Reihenfolge gilt auch in der Kasse.",
@@ -513,7 +519,8 @@ KATALOG = [
 
         ("Einkaufsliste exportieren",
          "Artikel, \"Einkaufsliste exportieren\"",
-         "CSV entsteht; darunter stehen Dateiname und Ordner.",
+         "Excel-Datei mit Logo, nach Kategorien gegliedert, mit "
+         "Abhakkästchen; darunter stehen Dateiname und Ordner.",
          "RTH"),
 
     ]),
@@ -591,8 +598,8 @@ KATALOG = [
 
         ("Exportieren",
          "Kassenbuch, \"Excel exportieren\"",
-         "Datei entsteht, zum Ausdrucken eingerichtet, mit "
-         "Hinweisspalte.",
+         "Datei mit Logo, Übersicht und Einträgen; zum Ausdrucken "
+         "eingerichtet, auffällige Zeilen rot mit Hinweis.",
          "RTH"),
 
         ("Vier Spalten statt sieben",
@@ -632,8 +639,8 @@ KATALOG = [
 
         ("Exportieren",
          "Checkliste, \"Excel exportieren\"",
-         "Datei entsteht; leere Liste gibt einen Hinweis statt einer "
-         "leeren Datei.",
+         "Datei mit Logo und Haken/Kästchen entsteht; leere Liste gibt "
+         "einen Hinweis statt einer leeren Datei.",
          "RTH"),
 
     ]),
@@ -667,7 +674,8 @@ KATALOG = [
 
         ("Exportieren",
          "Schichtplan, \"Excel exportieren\"",
-         "Datei entsteht; darunter stehen Name und Ordner.",
+         "Datei mit Logo; Schichten mit fehlenden Helfern rot; darunter "
+         "stehen Name und Ordner.",
          "RTH"),
 
     ]),
@@ -683,6 +691,12 @@ KATALOG = [
          "Statistik, Leiste unten \"Auswahl\"",
          "Nur Verkäufe dieser Veranstaltung; die zugeklappte Leiste "
          "nennt das gewählte Event.",
+         "RTH"),
+
+        ("Nach Kategorie filtern",
+         "Statistik, Leiste unten \"Auswahl\", Kategorie",
+         "Balken, Kreis, Kennzahlen und Tabelle zeigen nur diese "
+         "Kategorie; die zugeklappte Leiste nennt sie.",
          "RTH"),
 
         ("Nach Zeitraum filtern",
@@ -723,9 +737,16 @@ KATALOG = [
          "stimmt danach.",
          "RTH"),
 
-        ("Exportieren",
-         "Statistik, \"Excel exportieren\"",
-         "Datei entsteht; darunter stehen Name und Ordner.",
+        ("Excel ausgeben",
+         "Statistik, \"Excel\"",
+         "Mappe mit Logo: Zusammenfassung mit Kreis- und "
+         "Balkendiagramm, Blatt Einzelverkäufe; folgt der Auswahl.",
+         "RTH"),
+
+        ("PDF ausgeben",
+         "Statistik, \"PDF\"",
+         "Bericht mit Logo, Kennzahlen, Kreis, Balken und Tabelle; "
+         "auch auf dem Tablet; folgt der Auswahl.",
          "RTH"),
 
     ]),

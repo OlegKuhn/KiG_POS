@@ -16,11 +16,16 @@ Beschreibung:
     Datum, Grund und Mengen stehen untereinander, wo man sie
     vergleichen kann.
 
-        Datum         Grund          Änderung   Bestand
-        13.09. 11:17  Bruch          -3         45
-        13.09. 11:17  Wareneingang   +48        48
+        Datum         Grund          Bearbeiter  Änderung  Bestand
+        13.09. 11:17  Bruch          Oleg        -3        45
+        13.09. 11:17  Wareneingang               +48       48
 
     Neueste zuerst - so, wie get_stock_history sie liefert.
+
+    Der Bearbeiter steht nur bei einer Korrektur von Hand - dort
+    fragt der Dialog nach dem Namen. Verkauf und Wareneingang bucht
+    das Programm selbst; "Kasse" oder "Einkauf" in jeder zweiten
+    Zeile sagte nichts, was der Grund nicht schon sagt.
 
 Version:
     1.0.0
@@ -44,11 +49,28 @@ from widgets.kig_label import KiGLabel
 # Ueberschrift, Anteil an der Breite, Ausrichtung. Kopf und Zeilen lesen
 # beide hieraus - sonst stehen Ueberschrift und Wert nicht uebereinander.
 SPALTEN = (
-    ("Datum", 0.28, "left"),
-    ("Grund", 0.34, "left"),
-    ("Änderung", 0.19, "right"),
-    ("Bestand", 0.19, "right"),
+    ("Datum", 0.25, "left"),
+    ("Grund", 0.25, "left"),
+    ("Bearbeiter", 0.20, "left"),
+    ("Änderung", 0.15, "right"),
+    ("Bestand", 0.15, "right"),
 )
+
+# Wer so heisst, ist kein Mensch, sondern das Programm selbst
+# (siehe cash_screen.py und database.book_goods_receipt).
+AUTOMATISCH = {"", "kasse", "einkauf"}
+
+
+def bearbeiter(eintrag):
+    """Der Name dessen, der den Bestand von Hand geaendert hat - leer
+    bei Verkauf und Wareneingang."""
+
+    try:
+        name = (eintrag["changed_by"] or "").strip()
+    except (KeyError, IndexError, TypeError):
+        return ""
+
+    return "" if name.lower() in AUTOMATISCH else name
 
 
 def _zahl(wert):
@@ -71,7 +93,10 @@ def _datum(zeitstempel):
     if not zeitstempel:
         return "-"
 
-    for muster in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+    # Der Korrektur-Dialog schreibt deutsch ("13.09.2026 11:17:11"),
+    # alles andere ISO.
+    for muster in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d",
+                   "%d.%m.%Y %H:%M:%S", "%d.%m.%Y %H:%M"):
         try:
             return datetime.strptime(str(zeitstempel), muster).strftime(
                 "%d.%m.%y %H:%M"
@@ -119,6 +144,7 @@ class _Zeile(BoxLayout):
         werte = (
             _datum(eintrag["changed_at"]),
             eintrag["reason"] or "-",
+            bearbeiter(eintrag),
             f"{vorzeichen}{_zahl(aenderung)}",
             _zahl(neu),
         )
@@ -131,12 +157,12 @@ class _Zeile(BoxLayout):
 
             # Abgaenge rot: Ein Minus ist das, wonach man in einem
             # Bestandsverlauf sucht.
-            if position == 2 and aenderung < 0:
+            if position == 3 and aenderung < 0:
                 farbe = theme.ERROR
 
             beschriftung = Label(
                 text=str(wert), color=farbe, font_size="13sp",
-                bold=position == 3,
+                bold=position == 4,
                 halign=ausrichtung, valign="middle",
                 size_hint_x=anteil,
                 shorten=True, shorten_from="right",

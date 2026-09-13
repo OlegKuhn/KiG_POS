@@ -925,7 +925,8 @@ class ShiftPlanScreen(Screen):
             return
 
         from openpyxl import Workbook
-        from openpyxl.styles import Alignment, Font
+
+        from berichte.excel_layout import ROT, Exportblatt, blattname
 
         plan = self.db.get_shift_plan(self.selected_plan_id)
         schichten = self.db.get_shifts(self.selected_plan_id)
@@ -935,26 +936,23 @@ class ShiftPlanScreen(Screen):
             self.status_label.color = theme.TEXT_SECONDARY
             return
 
+        besetzt, plaetze, offen = self.db.get_shift_plan_summary(plan["id"])
+
         workbook = Workbook()
-        blatt = workbook.active
-        blatt.title = (plan["event_name"][:31] or "Schichtplan")
 
-        fett = Font(bold=True)
+        blatt = Exportblatt(
+            workbook.active,
+            f"Schichtplan {plan['event_name']}",
+            (
+                f"{self.format_date(plan['event_date'])} · "
+                f"{besetzt} von {plaetze} Plätzen besetzt"
+                + (f", {offen} Schichten brauchen noch Helfer" if offen else "")
+            ),
+            breiten=(28, 10, 10, 8, 8, 10, 50),
+        )
+        blatt.blatt.title = blattname(plan["event_name"], "Schichtplan")
 
-        blatt.append((
-            f"Schichtplan {plan['event_name']} "
-            f"{self.format_date(plan['event_date'])}",
-        ))
-        blatt["A1"].font = Font(bold=True, size=14)
-
-        blatt.append(())
-
-        blatt.append((
-            "Tätigkeit", "von", "bis", "Soll", "Ist", "fehlen", "Helfer",
-        ))
-
-        for zelle in blatt[3]:
-            zelle.font = fett
+        zeilen = []
 
         for schicht in schichten:
 
@@ -965,7 +963,7 @@ class ShiftPlanScreen(Screen):
 
             fehlen = max(0, schicht["needed"] - schicht["besetzt"])
 
-            blatt.append((
+            zeilen.append((
                 schicht["task"],
                 schicht["start_time"] or "",
                 schicht["end_time"] or "",
@@ -975,26 +973,20 @@ class ShiftPlanScreen(Screen):
                 namen,
             ))
 
-        besetzt, plaetze, offen = self.db.get_shift_plan_summary(plan["id"])
+        blatt.tabelle(
+            ("Tätigkeit", "von", "bis", "Soll", "Ist", "fehlen", "Helfer"),
+            zeilen,
+            formate=("text", "text", "text", "zahl", "zahl", "zahl", "text"),
+            summe=(
+                "Summe", "", "", plaetze, besetzt,
+                (plaetze - besetzt) if plaetze > besetzt else "", "",
+            ),
+            umbrechen=(0, 6),
+            # Wo noch Helfer fehlen, steht die Zeile rot.
+            hervorheben=lambda werte: ROT if werte[5] else None,
+        )
 
-        blatt.append(())
-        blatt.append((
-            f"{besetzt} von {plaetze} Plätzen besetzt"
-            + (f", {offen} Schichten brauchen noch Helfer" if offen else ""),
-        ))
-        blatt[blatt.max_row][0].font = fett
-
-        for spalte, breite in zip("ABCDEFG", (26, 10, 10, 8, 8, 10, 48)):
-            blatt.column_dimensions[spalte].width = breite
-
-        for zeile in blatt.iter_rows(min_row=4, min_col=7, max_col=7):
-            for zelle in zeile:
-                zelle.alignment = Alignment(wrap_text=True, vertical="top")
-
-        blatt.page_setup.orientation = "landscape"
-        blatt.page_setup.fitToWidth = 1
-        blatt.sheet_properties.pageSetUpPr.fitToPage = True
-        blatt.print_title_rows = "3:3"
+        blatt.drucken()
 
         sicherer_name = "".join(
             zeichen if zeichen.isalnum() or zeichen in " -_" else "_"

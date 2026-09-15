@@ -686,11 +686,25 @@ TOPICS = [
             {
                 "heading": "Artikel löschen",
                 "text": (
-                    "Das rote Kreuz am Ende einer Listenzeile entfernt "
+                    "Der Mülleimer am Ende einer Listenzeile entfernt "
                     "einen Artikel nach einer Sicherheitsabfrage aus der "
                     "Übersicht. Er wird dabei nur deaktiviert, nicht "
                     "wirklich gelöscht - bereits erfasste Verkäufe "
                     "bleiben in der Statistik also vollständig erhalten."
+                ),
+            },
+            {
+                "heading": "Inaktive Artikel zurückholen",
+                "text": (
+                    "Über der Liste stehen zwei Reiter: \"Aktive Artikel\" "
+                    "und \"Inaktiv\". Die Zahl hinter \"Inaktiv\" sagt, "
+                    "wie viele Artikel gerade abgeschaltet sind.\n\n"
+                    "Im Reiter \"Inaktiv\" steht jeder gelöschte Artikel "
+                    "mit Preis und Bestand. \"Wieder aktivieren\" holt "
+                    "ihn in die Liste und an die Kasse zurück; der Stift "
+                    "daneben öffnet ihn vorher, etwa um den Preis "
+                    "anzupassen. Auch der Kategorienfilter gilt in "
+                    "diesem Reiter."
                 ),
             },
         ],
@@ -1053,6 +1067,39 @@ TOPICS = [
                 ),
             },
             {
+                "heading": "Nach einem Helfer suchen",
+                "text": (
+                    "Über den Schichten steht das Feld \"Helfer suchen\". "
+                    "Tippst du einen Namen - oder nur einen Teil davon - "
+                    "ein, bleiben nur die Schichten stehen, in denen "
+                    "jemand mit diesem Namen eingetragen ist. Darüber "
+                    "steht, wie viele es sind und wann: \"Anna: 2 "
+                    "Schichten - Theke 18:00–21:00, Theke spät "
+                    "21:00–02:00\". Das Kreuz daneben leert die Suche.\n\n"
+                    "Ist die Suche aktiv, geben \"Excel\" und \"PDF\" "
+                    "den Schichtplan dieses Helfers aus - zum "
+                    "Weiterschicken an ihn."
+                ),
+            },
+            {
+                "heading": "Überschneidungen",
+                "text": (
+                    "Steht jemand zur selben Zeit in zwei Schichten, "
+                    "färbt sich die Helferspalte beider Zeilen rot, der "
+                    "Name bekommt ein \"!\" davor, und über den Schichten "
+                    "steht, wo es sich überschneidet: \"Tim: Theke "
+                    "18:00–21:00 und Grill 20:00–22:00\". Schon beim "
+                    "Eintragen weist der Helfer-Dialog darauf hin.\n\n"
+                    "Endet eine Schicht genau, wenn die andere beginnt "
+                    "(Theke bis 21:00, Grill ab 21:00), ist das keine "
+                    "Überschneidung. Uhrzeiten vor 6 Uhr gehören zur "
+                    "Nacht der Veranstaltung: Eine Abbauschicht um "
+                    "02:00 liegt nach der Theke bis Mitternacht, nicht "
+                    "am Morgen davor. Schichten ohne Uhrzeit werden "
+                    "nicht geprüft."
+                ),
+            },
+            {
                 "heading": "Schichten übernehmen",
                 "text": (
                     "\"Schichten übernehmen\" holt das Gerüst einer "
@@ -1067,11 +1114,24 @@ TOPICS = [
             {
                 "heading": "Schichtplan exportieren",
                 "text": (
-                    "\"Excel exportieren\" schreibt den Plan zum "
-                    "Ausdrucken: Tätigkeit, Zeit, Soll, Ist, wie viele "
-                    "fehlen und die Namen. So hängt der Plan am Stand, "
-                    "ohne dass jemand das Tablet mit sich herumträgt. "
-                    "Schichten, denen noch Helfer fehlen, stehen rot.\n\n"
+                    "\"Excel\" und \"PDF\" schreiben den Plan zum "
+                    "Aushängen - als Matrix: Nach rechts läuft die Zeit, "
+                    "nach unten stehen die Tätigkeiten. Jede Schicht ist "
+                    "ein Block über ihre Uhrzeit, darin die Namen der "
+                    "Helfer und \"Ist / Soll\", in der Farbe der Ampel: "
+                    "grün besetzt, orange teilweise, rot noch niemand. "
+                    "Laufen zwei Schichten derselben Tätigkeit "
+                    "gleichzeitig, bekommt die zweite eine eigene Zeile. "
+                    "Sortiert ist nach Uhrzeit - gleich, in welcher "
+                    "Reihenfolge die Schichten angelegt wurden: oben "
+                    "steht, was zuerst dran ist, der Abbau nach "
+                    "Mitternacht unten. "
+                    "Darunter stehen Überschneidungen und Schichten ohne "
+                    "Uhrzeit.\n\n"
+                    "Die Excel-Mappe hat zusätzlich das Blatt \"Liste\" "
+                    "mit Tätigkeit, Zeit, Soll, Ist, wie viele fehlen und "
+                    "den Namen. Das PDF ist im Querformat und entsteht "
+                    "auch auf dem Tablet.\n\n"
                     "Wie alle Ausgaben trägt die Datei oben das KiG-Logo, "
                     "den Titel und das Erstellungsdatum; Tabellen haben "
                     "eine orangefarbene Kopfzeile, beim Drucken steht "
@@ -1357,18 +1417,27 @@ TOPICS = [
                 "text": (
                     "\"Excel\" und \"PDF\" schreiben die Auswertung der "
                     "aktuellen Auswahl - Zeitraum, Event, Kategorie.\n\n"
-                    "Die Excel-Mappe hat zwei Blätter: \"Zusammenfassung\" "
+                    "Die Excel-Mappe hat drei Blätter: \"Zusammenfassung\" "
                     "mit den Kennzahlen, dem Umsatz je Kategorie samt "
                     "Kreisdiagramm und den Verkäufen je Artikel samt "
                     "Balkendiagramm, jeweils in den Farben der "
-                    "Kategorien - und \"Einzelverkäufe\" mit jeder "
+                    "Kategorien - \"Nach Kategorie\" mit einer Tabelle "
+                    "je Kategorie - und \"Einzelverkäufe\" mit jeder "
                     "verkauften Einheit und einem Filter in der "
                     "Kopfzeile. Sie landet in exports/excel.\n\n"
                     "Das PDF ist der Bericht zum Ausdrucken und "
-                    "Weiterschicken: Kennzahlen als Kacheln, Kreis mit "
-                    "Legende, Balken je Artikel und die Tabelle je "
-                    "Artikel. Die Einzelverkäufe stehen nur in Excel. "
-                    "Es landet in exports/pdf und entsteht auch auf dem "
+                    "Weiterschicken, in fester Seitenfolge:\n"
+                    "Seite 1 ist das Dashboard - Kennzahlen, Kreis je "
+                    "Kategorie und die umsatzstärksten Artikel als "
+                    "Balken, so viele wie auf die Seite passen.\n"
+                    "Seite 2 zeigt die Verkäufe nach Kategorie: je "
+                    "Kategorie Stückzahl, Umsatz und Anteil, darunter "
+                    "ihre Artikel als Balken im selben Maßstab.\n"
+                    "Danach folgen die Tabellen auf eigenen Seiten: "
+                    "Umsatz nach Kategorie und Verkäufe je Artikel, nach "
+                    "Kategorie gegliedert.\n"
+                    "Die Einzelverkäufe stehen nur in Excel. Das PDF "
+                    "landet in exports/pdf und entsteht auch auf dem "
                     "Tablet.\n\n"
                     "Beide tragen oben das KiG-Logo, den Titel und "
                     "wofür die Zahlen gelten.\n\n"

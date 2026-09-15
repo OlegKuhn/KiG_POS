@@ -448,8 +448,21 @@ KATALOG = [
          "H"),
 
         ("Artikel löschen",
-         "Artikel, Kreuz in der Zeile",
-         "Nach Rückfrage verschwindet der Artikel.",
+         "Artikel, Mülleimer in der Zeile",
+         "Nach Rückfrage verschwindet der Artikel; \"Inaktiv\" zählt eins "
+         "hoch.",
+         "RTH"),
+
+        ("Inaktive Artikel",
+         "Artikel, Reiter \"Inaktiv\"",
+         "Gelöschte Artikel stehen dort mit Preis und Bestand; die Zahl "
+         "im Reiter stimmt.",
+         "RTH"),
+
+        ("Wieder aktivieren",
+         "Artikel, Reiter \"Inaktiv\", \"Wieder aktivieren\"",
+         "Der Artikel verschwindet aus \"Inaktiv\", steht wieder in der "
+         "Liste und an der Kasse.",
          "RTH"),
 
         ("Bestellmenge erfassen",
@@ -672,10 +685,42 @@ KATALOG = [
          "Die Schichten eines anderen Plans werden kopiert.",
          "RTH"),
 
-        ("Exportieren",
-         "Schichtplan, \"Excel exportieren\"",
-         "Datei mit Logo; Schichten mit fehlenden Helfern rot; darunter "
-         "stehen Name und Ordner.",
+        ("Nach Helfer suchen",
+         "Schichtplan, Feld \"Helfer suchen\"",
+         "Nur Schichten mit diesem Namen; darüber Anzahl und Zeiten; "
+         "Kreuz leert die Suche.",
+         "RTH"),
+
+        ("Überschneidung",
+         "Schichtplan, denselben Namen in zwei gleichzeitige Schichten",
+         "Warnung im Helfer-Dialog; beide Zeilen rot mit \"!\"; darüber "
+         "steht, wo es sich überschneidet. Anschluss 21:00/21:00 ist "
+         "keine.",
+         "RTH"),
+
+        ("Matrix als Excel",
+         "Schichtplan, \"Excel\"",
+         "Blatt \"Plan\": Zeit nach rechts, Tätigkeiten nach unten, "
+         "Blöcke mit Namen in Ampelfarben; Blatt \"Liste\"; Name und "
+         "Ordner darunter.",
+         "RTH"),
+
+        ("Ausdruck nach Uhrzeit",
+         "Schichtplan mit Schichten in beliebiger Reihenfolge, \"PDF\"",
+         "Matrix und Liste nach Beginn sortiert; was zuerst dran ist, "
+         "steht oben, Schichten nach Mitternacht unten.",
+         "RTH"),
+
+        ("Matrix als PDF",
+         "Schichtplan, \"PDF\"",
+         "Dieselbe Matrix im Querformat, auch auf dem Tablet; Abbau "
+         "nach Mitternacht steht am Ende der Zeitleiste.",
+         "RTH"),
+
+        ("Plan eines Helfers ausgeben",
+         "Schichtplan, Suche aktiv, \"PDF\" oder \"Excel\"",
+         "Nur dessen Schichten; der Name steht im Titel und im "
+         "Dateinamen.",
          "RTH"),
 
     ]),
@@ -685,6 +730,12 @@ KATALOG = [
         ("Verkaufsliste",
          "Statistik",
          "Verkäufe des Zeitraums stehen in der Tabelle.",
+         "RTH"),
+
+        ("Viele Verkäufe laden schnell",
+         "Statistik nach einem langen Abend (tausende Verkäufe)",
+         "Der Bildschirm ist in wenigen Sekunden da; die Tabelle rollt "
+         "flüssig; Auswahl bleibt beim Rollen an der richtigen Zeile.",
          "RTH"),
 
         ("Nach Event filtern",
@@ -745,8 +796,9 @@ KATALOG = [
 
         ("PDF ausgeben",
          "Statistik, \"PDF\"",
-         "Bericht mit Logo, Kennzahlen, Kreis, Balken und Tabelle; "
-         "auch auf dem Tablet; folgt der Auswahl.",
+         "Seite 1 Dashboard (Kennzahlen, Kreis, stärkste Artikel), "
+         "Seite 2 Verkäufe nach Kategorie, danach die Tabellen auf "
+         "eigenen Seiten; auch auf dem Tablet; folgt der Auswahl.",
          "RTH"),
 
     ]),

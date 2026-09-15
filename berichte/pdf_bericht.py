@@ -106,7 +106,13 @@ def farbe_aus_hex(wert, ersatz=ORANGE):
 
 class PdfBericht:
 
-    def __init__(self, titel, untertitel=""):
+    def __init__(self, titel, untertitel="", quer=False):
+
+        # Querformat für breite Inhalte wie die Schichtplan-Matrix -
+        # die Zeitachse braucht die lange Seite.
+        self.quer = quer
+        self.breite, self.hoehe = (HOEHE, BREITE) if quer else (BREITE, HOEHE)
+        self.unten = self.hoehe - 110
 
         self.titel = titel
         self.untertitel = untertitel
@@ -153,7 +159,7 @@ class PdfBericht:
 
     def _neue_seite(self):
 
-        self.seite = Image.new("RGB", (BREITE, HOEHE), WEISS)
+        self.seite = Image.new("RGB", (self.breite, self.hoehe), WEISS)
         self.malen = ImageDraw.Draw(self.seite)
         self.seiten.append(self.seite)
 
@@ -171,7 +177,7 @@ class PdfBericht:
         rechts = "KiG POS"
         f = schrift(22, fett=True)
         malen.text(
-            (BREITE - RAND - malen.textlength(rechts, font=f), RAND + 60),
+            (self.breite - RAND - malen.textlength(rechts, font=f), RAND + 60),
             rechts, font=f, fill=ORANGE,
         )
 
@@ -186,7 +192,7 @@ class PdfBericht:
         malen.text((RAND, y), "   ·   ".join(teile), font=schrift(20), fill=GRAU)
 
         y += 44
-        malen.rectangle((RAND, y, BREITE - RAND, y + 4), fill=ORANGE)
+        malen.rectangle((RAND, y, self.breite - RAND, y + 4), fill=ORANGE)
 
         self.y = y + 40
 
@@ -202,14 +208,28 @@ class PdfBericht:
         )
 
         y = RAND + 36
-        malen.rectangle((RAND, y, BREITE - RAND, y + 2), fill=ORANGE)
+        malen.rectangle((RAND, y, self.breite - RAND, y + 2), fill=ORANGE)
 
         self.y = y + 34
+
+    def seitenumbruch(self):
+        """Das Folgende beginnt auf einer neuen Seite - es sei denn, die
+        aktuelle ist noch leer."""
+
+        leer = self.y <= (RAND + 36 + 34 if len(self.seiten) > 1 else RAND + 258)
+
+        if not leer:
+            self._neue_seite()
+
+    def platz_uebrig(self):
+        """Wie viel Höhe auf der Seite noch frei ist."""
+
+        return self.unten - self.y
 
     def _platz(self, hoehe):
         """Neue Seite, wenn das Folgende nicht mehr darauf passt."""
 
-        if self.y + hoehe > UNTEN:
+        if self.y + hoehe > self.unten:
             self._neue_seite()
             return True
 
@@ -243,11 +263,11 @@ class PdfBericht:
         self.malen.text((RAND, self.y), text, font=schrift(30, fett=True), fill=ORANGE)
 
         self.y += 44
-        self.malen.rectangle((RAND, self.y, BREITE - RAND, self.y + 1), fill=ORANGE_HELL)
+        self.malen.rectangle((RAND, self.y, self.breite - RAND, self.y + 1), fill=ORANGE_HELL)
 
         self.y += 22
 
-    def text(self, inhalt, grau=True, groesse=20):
+    def text(self, inhalt, grau=True, groesse=20, farbe=None):
 
         font = schrift(groesse)
 
@@ -257,7 +277,7 @@ class PdfBericht:
 
         for wort in str(inhalt).split():
             probe = f"{zeile} {wort}".strip()
-            if self.malen.textlength(probe, font=font) > BREITE - 2 * RAND:
+            if self.malen.textlength(probe, font=font) > self.breite - 2 * RAND:
                 zeilen.append(zeile)
                 zeile = wort
             else:
@@ -268,7 +288,10 @@ class PdfBericht:
 
         for zeile in zeilen:
             self._platz(groesse + 14)
-            self.malen.text((RAND, self.y), zeile, font=font, fill=GRAU if grau else TEXT)
+            self.malen.text(
+                (RAND, self.y), zeile, font=font,
+                fill=farbe or (GRAU if grau else TEXT),
+            )
             self.y += groesse + 12
 
         self.y += 8
@@ -288,7 +311,7 @@ class PdfBericht:
         """
 
         abstand = 20
-        breite = (BREITE - 2 * RAND - (spalten - 1) * abstand) / spalten
+        breite = (self.breite - 2 * RAND - (spalten - 1) * abstand) / spalten
         hoehe = 108
 
         for start in range(0, len(paare), spalten):
@@ -328,7 +351,7 @@ class PdfBericht:
     # Diagramme
     # =====================================================
 
-    def kreisdiagramm(self, eintraege, betrag_text=str):
+    def kreisdiagramm(self, eintraege, betrag_text=str, durchmesser=420):
         """Kreis links, Legende rechts.
 
         eintraege: ((Name, Betrag, "#RRGGBB"), ...) - nur positive
@@ -342,11 +365,10 @@ class PdfBericht:
 
         gesamt = sum(e[1] for e in eintraege)
 
-        durchmesser = 420
         zeilen_hoehe = 44
         hoehe = max(durchmesser, len(eintraege) * zeilen_hoehe) + 20
 
-        self._platz(min(hoehe, UNTEN - 300))
+        self._platz(min(hoehe, self.unten - 300))
 
         # Dreifach gerechnet und verkleinert - sonst hat der Kreis
         # Treppenkanten.
@@ -375,14 +397,14 @@ class PdfBericht:
         # Legende
         x = RAND + durchmesser + 60
         y = self.y + 10
-        rest = BREITE - RAND - x
+        rest = self.breite - RAND - x
 
         f = schrift(21)
         f_fett = schrift(21, fett=True)
 
         for name, betrag, farbe in eintraege:
 
-            if y + zeilen_hoehe > UNTEN:
+            if y + zeilen_hoehe > self.unten:
                 break
 
             self.malen.rounded_rectangle(
@@ -401,11 +423,11 @@ class PdfBericht:
                 font=f, fill=TEXT,
             )
             self.malen.text(
-                (BREITE - RAND - breite_wert - breite_anteil, y + 2),
+                (self.breite - RAND - breite_wert - breite_anteil, y + 2),
                 wert, font=f_fett, fill=TEXT,
             )
             self.malen.text(
-                (BREITE - RAND - self.malen.textlength(anteil, font=f), y + 2),
+                (self.breite - RAND - self.malen.textlength(anteil, font=f), y + 2),
                 anteil, font=f, fill=GRAU,
             )
 
@@ -413,7 +435,37 @@ class PdfBericht:
 
         self.y += hoehe + 10
 
-    def balkendiagramm(self, eintraege, betrag_text=str, zusatz_text=None):
+    def gruppenkopf(self, name, rechts, farbe):
+        """Kopf eines Abschnitts innerhalb einer Überschrift - etwa eine
+        Kategorie: Farbfeld, Name, rechts die Summe."""
+
+        hoehe = 56
+
+        self._platz(hoehe + 60)
+
+        self.malen.rounded_rectangle(
+            (RAND, self.y, self.breite - RAND, self.y + hoehe),
+            radius=10, fill=ZEBRA,
+        )
+        self.malen.rounded_rectangle(
+            (RAND, self.y, RAND + 12, self.y + hoehe),
+            radius=6, fill=farbe_aus_hex(farbe),
+        )
+
+        f = schrift(26, fett=True)
+        f_rechts = schrift(21, fett=True)
+
+        self.malen.text((RAND + 30, self.y + 12), name, font=f, fill=TEXT)
+        self.malen.text(
+            (self.breite - RAND - 20 - self.malen.textlength(rechts, font=f_rechts),
+             self.y + 16),
+            rechts, font=f_rechts, fill=TEXT,
+        )
+
+        self.y += hoehe + 12
+
+    def balkendiagramm(self, eintraege, betrag_text=str, zusatz_text=None,
+                       groesster=None):
         """Waagerechte Balken, der größte ganz ausgefahren.
 
         eintraege:   ((Name, Betrag, "#RRGGBB"), ...)
@@ -424,13 +476,15 @@ class PdfBericht:
         if not eintraege:
             return
 
-        groesster = max((e[1] for e in eintraege), default=0) or 1
+        # groesster: gemeinsamer Maßstab, wenn mehrere Diagramme
+        # untereinander vergleichbar sein sollen
+        groesster = groesster or max((e[1] for e in eintraege), default=0) or 1
 
         name_breite = 330
         wert_breite = 150
         zeilen_hoehe = 46 if zusatz_text is None else 58
         balken_x = RAND + name_breite + 16
-        balken_max = BREITE - RAND - wert_breite - 16 - balken_x
+        balken_max = self.breite - RAND - wert_breite - 16 - balken_x
 
         f = schrift(21)
         f_klein = schrift(16)
@@ -462,7 +516,7 @@ class PdfBericht:
             wert = betrag_text(betrag)
 
             self.malen.text(
-                (BREITE - RAND - self.malen.textlength(wert, font=f_fett), self.y + 4),
+                (self.breite - RAND - self.malen.textlength(wert, font=f_fett), self.y + 4),
                 wert, font=f_fett, fill=ROT if (betrag or 0) < 0 else TEXT,
             )
 
@@ -487,7 +541,7 @@ class PdfBericht:
 
         ausrichtung = ausrichtung or ("left",) * len(kopf)
 
-        gesamt = BREITE - 2 * RAND
+        gesamt = self.breite - 2 * RAND
         breiten = [gesamt * anteil for anteil in anteile]
 
         kopf_hoehe = 46
@@ -500,7 +554,7 @@ class PdfBericht:
         def kopfzeile():
 
             self.malen.rectangle(
-                (RAND, self.y, BREITE - RAND, self.y + kopf_hoehe), fill=ORANGE
+                (RAND, self.y, self.breite - RAND, self.y + kopf_hoehe), fill=ORANGE
             )
 
             x = RAND
@@ -521,7 +575,7 @@ class PdfBericht:
 
             if position % 2 == 1:
                 self.malen.rectangle(
-                    (RAND, self.y, BREITE - RAND, self.y + zeilen_hoehe), fill=ZEBRA
+                    (RAND, self.y, self.breite - RAND, self.y + zeilen_hoehe), fill=ZEBRA
                 )
 
             farbe = farben(werte) if callable(farben) else None
@@ -533,7 +587,7 @@ class PdfBericht:
                 x += breite
 
             self.malen.line(
-                (RAND, self.y + zeilen_hoehe, BREITE - RAND, self.y + zeilen_hoehe),
+                (RAND, self.y + zeilen_hoehe, self.breite - RAND, self.y + zeilen_hoehe),
                 fill=LINIE, width=1,
             )
 
@@ -544,10 +598,10 @@ class PdfBericht:
             self._platz(zeilen_hoehe)
 
             self.malen.rectangle(
-                (RAND, self.y, BREITE - RAND, self.y + zeilen_hoehe), fill=ORANGE_HELL
+                (RAND, self.y, self.breite - RAND, self.y + zeilen_hoehe), fill=ORANGE_HELL
             )
             self.malen.rectangle(
-                (RAND, self.y, BREITE - RAND, self.y + 3), fill=ORANGE
+                (RAND, self.y, self.breite - RAND, self.y + 3), fill=ORANGE
             )
 
             x = RAND
@@ -590,9 +644,9 @@ class PdfBericht:
 
             malen = ImageDraw.Draw(seite)
 
-            y = HOEHE - 70
+            y = self.hoehe - 70
 
-            malen.line((RAND, y - 14, BREITE - RAND, y - 14), fill=LINIE, width=1)
+            malen.line((RAND, y - 14, self.breite - RAND, y - 14), fill=LINIE, width=1)
 
             links = f"KiG POS · {self.titel}"
             rechts = f"Seite {nummer} von {anzahl}"
@@ -600,11 +654,11 @@ class PdfBericht:
 
             malen.text((RAND, y), links, font=f, fill=GRAU)
             malen.text(
-                ((BREITE - malen.textlength(mitte, font=f)) / 2, y),
+                ((self.breite - malen.textlength(mitte, font=f)) / 2, y),
                 mitte, font=f, fill=GRAU,
             )
             malen.text(
-                (BREITE - RAND - malen.textlength(rechts, font=f), y),
+                (self.breite - RAND - malen.textlength(rechts, font=f), y),
                 rechts, font=f, fill=GRAU,
             )
 

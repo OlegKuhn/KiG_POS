@@ -138,6 +138,11 @@ class ShiftRow(BoxLayout):
         )
 
         self.shift = shift
+
+        # Namen (siehe schichtzeiten.name_schluessel), die zur selben
+        # Zeit noch in einer anderen Schicht stehen
+        self.konflikte = set()
+
         self.on_change = on_change
         self.on_needed = on_needed
         self.on_helpers = on_helpers
@@ -223,9 +228,30 @@ class ShiftRow(BoxLayout):
         namen = self.shift.get("helfer_namen") or ""
 
         if namen:
+            # Wer zur selben Zeit woanders steht, bekommt ein "!" davor
+            # - die Zeile wird rot, aber welcher Name gemeint ist, soll
+            # man nicht raten müssen.
+            if self.konflikte:
+                from schichtzeiten import name_schluessel
+
+                return ", ".join(
+                    f"! {name}" if name_schluessel(name) in self.konflikte else name
+                    for name in self.shift.get("helfer") or namen.split(", ")
+                )
+
             return namen
 
         return "niemand" if self.shift["needed"] else "-"
+
+    def set_konflikte(self, konflikte):
+        """Markiert Helfer, die sich mit einer anderen Schicht
+        überschneiden."""
+
+        self.konflikte = set(konflikte or ())
+
+        self.helper_button.text = self._helper_text()
+
+        self._faerben()
 
     def _faerben(self):
 
@@ -235,7 +261,8 @@ class ShiftRow(BoxLayout):
 
         self.helper_button.color = (
             theme.ERROR
-            if self.shift["besetzt"] == 0 and self.shift["needed"] > 0
+            if self.konflikte
+            or (self.shift["besetzt"] == 0 and self.shift["needed"] > 0)
             else theme.INPUT_TEXT
         )
 

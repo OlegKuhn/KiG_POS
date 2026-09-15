@@ -287,6 +287,43 @@ def excel(daten, pfad):
     blatt.drucken(titel_wiederholen=False)
 
     # -----------------------------------------------------
+    # Nach Kategorie
+    # -----------------------------------------------------
+
+    kategorie_blatt = Exportblatt(
+        mappe.create_sheet("Nach Kategorie"),
+        "Verkäufe nach Kategorie", daten["beschreibung"],
+        breiten=(34, 11, 15, 15, 11),
+        quer=False,
+    )
+
+    for name, _farbe, eintraege, summen in nach_kategorie(daten):
+
+        anteil = f"{100 * summen['anteil']:.1f}".replace(".", ",")
+
+        kategorie_blatt.ueberschrift(f"{name}  ·  {anteil} % des Umsatzes")
+
+        kategorie_blatt.tabelle(
+            ("Artikel", "Menge", "Umsatz", "Gewinn", "Anteil"),
+            [
+                (
+                    e["name"], e["menge"], round(e["umsatz"], 2),
+                    round(e["gewinn"], 2),
+                    e["umsatz"] / summen["umsatz"] if summen["umsatz"] else 0,
+                )
+                for e in eintraege
+            ],
+            formate=("text", "zahl", "geld", "geld", "prozent"),
+            summe=(
+                f"Summe {name}", summen["menge"], round(summen["umsatz"], 2),
+                # "Anteil" ist der Anteil in der Kategorie - zusammen 100 %
+                round(summen["gewinn"], 2), 1 if eintraege else 0,
+            ),
+        )
+
+    kategorie_blatt.drucken(titel_wiederholen=False)
+
+    # -----------------------------------------------------
     # Einzelverkäufe
     # -----------------------------------------------------
 
@@ -333,8 +370,47 @@ def excel(daten, pfad):
 # PDF
 # =========================================================
 
+def nach_kategorie(daten):
+    """Die Artikel je Kategorie, in der Reihenfolge der Kategorien
+    (größter Umsatz zuerst), innerhalb ebenso.
+
+    Liefert [(name, farbe, artikel, summen), ...]; summen mit menge,
+    umsatz, gewinn und anteil am Gesamtumsatz.
+    """
+
+    gesamt = sum(betrag for _n, betrag, _f in daten["kategorien"]) or 1
+
+    gruppen = []
+
+    for name, betrag, farbe in daten["kategorien"]:
+
+        artikel = [e for e in daten["artikel"] if e["kategorie"] == name]
+
+        gruppen.append((name, farbe, artikel, {
+            "menge": sum(e["menge"] for e in artikel),
+            "umsatz": betrag,
+            "gewinn": sum(e["gewinn"] for e in artikel),
+            "anteil": betrag / gesamt,
+        }))
+
+    return gruppen
+
+
+def _zahl(wert):
+
+    return f"{wert:g}".replace(".", ",")
+
+
 def pdf(daten, pfad):
-    """Schreibt den Bericht als PDF nach `pfad` und liefert den Pfad."""
+    """Schreibt den Bericht als PDF nach `pfad` und liefert den Pfad.
+
+    Seite 1   das Dashboard: Kennzahlen, Kreis je Kategorie und die
+              stärksten Artikel als Balken - so viele, wie auf die
+              Seite passen
+    Seite 2   die Verkäufe nach Kategorie: je Kategorie Summe und
+              ihre Artikel als Balken (gleicher Maßstab für alle)
+    danach    die Tabellen, jede auf eigenen Seiten
+    """
 
     geld = geldformat.geld
 
@@ -342,13 +418,18 @@ def pdf(daten, pfad):
 
     kennzahlen = daten["kennzahlen"]
 
+    # -----------------------------------------------------
+    # Seite 1: Dashboard
+    # -----------------------------------------------------
+
     bericht.ueberschrift("Kennzahlen")
 
     bericht.kennzahlen(
         [
-            (bezeichnung, geld(wert) if format_ == "geld" else f"{wert:g}".replace(".", ","))
+            (bezeichnung, geld(wert) if format_ == "geld" else _zahl(wert))
             for bezeichnung, wert, format_ in _kennzahlen_paare(kennzahlen)
         ],
+        spalten=4,
         hervorheben=("Gewinn",),
     )
 
@@ -357,31 +438,106 @@ def pdf(daten, pfad):
         bericht.speichern(pfad)
         return pfad
 
-    bericht.ueberschrift("Umsatz nach Kategorie", platz_danach=440)
-    bericht.kreisdiagramm(daten["kategorien"], betrag_text=geld)
-
     artikel = daten["artikel"]
 
-    bericht.ueberschrift("Umsatz je Artikel")
+    bericht.ueberschrift("Umsatz nach Kategorie", platz_danach=360)
+    bericht.kreisdiagramm(daten["kategorien"], betrag_text=geld, durchmesser=340)
+
+    # So viele Balken, wie noch auf die Seite passen - mindestens drei.
+    zeilen_hoehe = 58
+    passen = int((bericht.platz_uebrig() - 80 - 16) // zeilen_hoehe)
+    anzahl = max(3, min(len(artikel), passen))
+
+    bericht.ueberschrift(
+        "Umsatz je Artikel" if anzahl >= len(artikel)
+        else f"Die {anzahl} umsatzstärksten Artikel",
+        platz_danach=zeilen_hoehe * 3,
+    )
     bericht.balkendiagramm(
-        [(e["name"], e["umsatz"], e["farbe_hex"]) for e in artikel],
+        [(e["name"], e["umsatz"], e["farbe_hex"]) for e in artikel[:anzahl]],
         betrag_text=geld,
-        zusatz_text=lambda i: f"{artikel[i]['kategorie']} · {artikel[i]['menge']:g} Stück",
+        zusatz_text=lambda i: f"{artikel[i]['kategorie']} · {_zahl(artikel[i]['menge'])} Stück",
     )
 
-    bericht.ueberschrift("Verkäufe je Artikel")
+    # -----------------------------------------------------
+    # Seite 2: Verkäufe nach Kategorie
+    # -----------------------------------------------------
+
+    bericht.seitenumbruch()
+
+    bericht.ueberschrift("Verkäufe nach Kategorie")
+
+    groesster = max((e["umsatz"] for e in artikel), default=0)
+
+    for name, farbe, eintraege, summen in nach_kategorie(daten):
+
+        anteil = f"{100 * summen['anteil']:.1f} %".replace(".", ",")
+
+        bericht.gruppenkopf(
+            name,
+            f"{_zahl(summen['menge'])} Stück  ·  {geld(summen['umsatz'])}  ·  {anteil}",
+            farbe,
+        )
+
+        bericht.balkendiagramm(
+            [(e["name"], e["umsatz"], farbe) for e in eintraege],
+            betrag_text=geld,
+            zusatz_text=lambda i, liste=eintraege: (
+                f"{_zahl(liste[i]['menge'])} Stück · Gewinn {geld(liste[i]['gewinn'])}"
+            ),
+            groesster=groesster,
+        )
+
+    # -----------------------------------------------------
+    # Ab Seite 3: Tabellen
+    # -----------------------------------------------------
+
+    bericht.seitenumbruch()
+
+    bericht.ueberschrift("Umsatz nach Kategorie")
+
+    gruppen = nach_kategorie(daten)
+
     bericht.tabelle(
-        ("Artikel", "Kategorie", "Menge", "Umsatz", "Gewinn"),
+        ("Kategorie", "Menge", "Umsatz", "Anteil", "Gewinn"),
         [
-            (e["name"], e["kategorie"], f"{e['menge']:g}", geld(e["umsatz"]),
-             geld(e["gewinn"]))
-            for e in artikel
+            (
+                name, _zahl(summen["menge"]), geld(summen["umsatz"]),
+                f"{100 * summen['anteil']:.1f} %".replace(".", ","),
+                geld(summen["gewinn"]),
+            )
+            for name, _farbe, _eintraege, summen in gruppen
         ],
-        anteile=(0.34, 0.22, 0.12, 0.16, 0.16),
+        anteile=(0.32, 0.14, 0.2, 0.14, 0.2),
+        ausrichtung=("left", "right", "right", "right", "right"),
+        summe=(
+            "Summe",
+            _zahl(sum(g[3]["menge"] for g in gruppen)),
+            geld(sum(g[3]["umsatz"] for g in gruppen)),
+            "100,0 %",
+            geld(sum(g[3]["gewinn"] for g in gruppen)),
+        ),
+    )
+
+    bericht.seitenumbruch()
+
+    bericht.ueberschrift("Verkäufe je Artikel")
+
+    # Nach Kategorie gegliedert wie Seite 2, innerhalb nach Umsatz
+    sortiert = [e for _n, _f, eintraege, _s in gruppen for e in eintraege]
+
+    bericht.tabelle(
+        ("Kategorie", "Artikel", "Menge", "Umsatz", "Gewinn"),
+        [
+            (e["kategorie"], e["name"], _zahl(e["menge"]), geld(e["umsatz"]),
+             geld(e["gewinn"]))
+            for e in sortiert
+        ],
+        anteile=(0.22, 0.34, 0.12, 0.16, 0.16),
         ausrichtung=("left", "left", "right", "right", "right"),
         summe=(
             "Summe", "",
-            f"{sum(e['menge'] for e in artikel):g}",
+            _zahl(sum(e["menge"] for e in artikel)),
             geld(sum(e["umsatz"] for e in artikel)),
             geld(sum(e["gewinn"] for e in artikel)),
         ),

@@ -3456,6 +3456,30 @@ class DatabaseManager:
 
         self.commit()
 
+    def reactivate_article(self, article_id):
+        """Holt einen gelöschten (= deaktivierten) Artikel zurück.
+
+        Gelöscht wird in KiG POS nie wirklich - sonst verlören die
+        Verkäufe der Vergangenheit ihren Artikel (siehe
+        delete_article). Deshalb lässt sich auch alles zurückholen.
+        """
+
+        self.cursor.execute(
+            "UPDATE articles SET active = 1, updated_at = ? WHERE id = ?",
+            (self.timestamp(), article_id)
+        )
+
+        self.commit()
+
+        return self.cursor.rowcount == 1
+
+    def count_inactive_articles(self):
+        """Wie viele Artikel stehen im Reiter "Inaktiv"?"""
+
+        self.cursor.execute("SELECT COUNT(*) FROM articles WHERE active = 0")
+
+        return self.cursor.fetchone()[0]
+
     #################################################################
     # Pfand einem Artikel zuweisen
     #################################################################
@@ -5037,7 +5061,7 @@ class DatabaseManager:
         )
 
     def get_article_sales(self, date_from=None, date_to=None, event_id=None,
-            category_id=None):
+            category_id=None, zeilen=None):
         """Die summierten Verkäufe je Artikel, absteigend nach Umsatz.
 
         Je Artikel ein Wörterbuch:
@@ -5053,15 +5077,20 @@ class DatabaseManager:
         Kategorie samt Farbe mit: Im Balkendiagramm trägt jeder Artikel
         die Farbe seiner Kategorie, dieselbe wie im Kreisdiagramm
         daneben.
+
+        zeilen: das Ergebnis von get_statistic_sale_items, wenn es schon
+        geladen ist (siehe StatisticsScreen.refresh) - sonst wird es
+        hier geholt.
         """
 
         self.cursor.execute("SELECT name, color FROM categories")
 
         farben = {row["name"]: row["color"] for row in self.cursor.fetchall()}
 
-        zeilen = self.get_statistic_sale_items(
-            date_from, date_to, event_id, category_id
-        )
+        if zeilen is None:
+            zeilen = self.get_statistic_sale_items(
+                date_from, date_to, event_id, category_id
+            )
 
         summen = {}
 
@@ -5090,7 +5119,7 @@ class DatabaseManager:
         )
 
     def get_category_revenues(self, date_from=None, date_to=None, event_id=None,
-            category_id=None):
+            category_id=None, zeilen=None):
         """Liefert die Einnahmen pro Kategorie, absteigend nach Umsatz.
 
         Je Kategorie ein Tupel (Name, Einnahmen, Farbe). Die Farbe ist
@@ -5102,7 +5131,7 @@ class DatabaseManager:
         self.cursor.execute("SELECT name, color FROM categories")
         farben = {row["name"]: row["color"] for row in self.cursor.fetchall()}
 
-        rows = self.get_statistic_sale_items(
+        rows = zeilen if zeilen is not None else self.get_statistic_sale_items(
             date_from, date_to, event_id, category_id
         )
 
@@ -5218,7 +5247,7 @@ class DatabaseManager:
         ]
 
     def get_period_totals(self, date_from=None, date_to=None, event_id=None,
-            category_id=None):
+            category_id=None, zeilen=None):
         """Kennzahlen des gewählten Zeitraums.
 
             revenue    Einnahmen (verkaufte Menge x Verkaufspreis)
@@ -5231,7 +5260,7 @@ class DatabaseManager:
         ziehen die Beträge damit von selbst wieder ab.
         """
 
-        rows = self.get_statistic_sale_items(
+        rows = zeilen if zeilen is not None else self.get_statistic_sale_items(
             date_from, date_to, event_id, category_id
         )
 

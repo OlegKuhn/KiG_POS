@@ -7,8 +7,12 @@ from kivy.metrics import dp
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
+from kivy.uix.recycleboxlayout import RecycleBoxLayout
+from kivy.uix.recycleview import RecycleView
+from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.screenmanager import Screen
 from kivy.uix.spinner import Spinner
@@ -35,21 +39,65 @@ from widgets.kig_label import KiGLabel
 from widgets.statistics.verkaufsauswertung import Verkaufsauswertung
 
 
-class SaleRow(ButtonBehavior, BoxLayout):
-    """Eine auswählbare Zeile der Verkaufstabelle."""
+class SaleRow(RecycleDataViewBehavior, ButtonBehavior, BoxLayout):
+    """Eine auswählbare Zeile der Verkaufstabelle.
 
-    def __init__(self, sale, selected_callback, **kwargs):
+    Die Zeilen stehen in einer RecycleView: Gebaut werden nur so viele,
+    wie auf den Bildschirm passen, und beim Rollen bekommen dieselben
+    Zeilen neue Werte (refresh_view_attrs). Vorher entstand je
+    verkaufter Einheit ein eigenes Widget mit acht Beschriftungen - bei
+    18.000 Einheiten dauerte der Wechsel in die Statistik am Rechner
+    fast vier Minuten, obwohl die Datenbank in 0,4 Sekunden fertig war.
+
+    Ob eine Zeile ausgewählt ist, steht deshalb nicht in der Zeile,
+    sondern in ihren Daten (data["selected"]) - die Zeile selbst zeigt
+    gleich eine andere Einheit.
+    """
+
+    def __init__(self, **kwargs):
         # Flacher als frueher: Die Tabelle steht jetzt in der schmalen
         # rechten Spalte, dort zaehlt jede Zeile.
-        self.zeilenhoehe = 34 if StatisticsScreen.kompakt() else 46
+        self.zeilenhoehe = StatisticsScreen.zeilenhoehe()
 
         super().__init__(
             orientation="horizontal", size_hint_y=None,
             height=dp(self.zeilenhoehe), **kwargs
         )
-        self.sale = sale
-        self.selected_callback = selected_callback
+
+        self.sale = None
+        self.index = None
         self.selected = False
+        self.ist_storno = False
+        self.grundfarbe = theme.CARD
+
+        with self.canvas.before:
+            self._color = Color(*self.grundfarbe)
+            self._background = RoundedRectangle(pos=self.pos, size=self.size, radius=[dp(6)])
+        self.bind(pos=self._refresh_canvas, size=self._refresh_canvas)
+
+        # Dieselbe Aufteilung wie die Kopfzeile - beide kommen aus
+        # StatisticsScreen.spalten().
+        self.labels = []
+
+        for width in StatisticsScreen.spalten()[1]:
+            label = Label(
+                text="", color=theme.TEXT_PRIMARY, font_size="12sp",
+                halign="left", valign="middle",
+                text_size=(None, dp(self.zeilenhoehe)),
+                size_hint_x=width,
+                shorten=True, shorten_from="right",
+            )
+            self.labels.append(label)
+            self.add_widget(label)
+
+    def refresh_view_attrs(self, rv, index, data):
+        """Übernimmt die Werte einer anderen Einheit."""
+
+        self.rv = rv
+        self.index = index
+
+        sale = self.sale = data["sale"]
+        self.selected = data.get("selected", False)
 
         # Stornos stehen mit negativer Menge in denselben Tabellen. Die
         # Menge selbst wird in dieser Tabelle nicht angezeigt - ohne
@@ -57,14 +105,9 @@ class SaleRow(ButtonBehavior, BoxLayout):
         # einem Verkauf zu unterscheiden.
         self.ist_storno = (sale["quantity"] or 0) < 0
 
-        # Grundfarbe der Zeile merken: Beim Abwählen muss die
-        # Storno-Einfärbung zurückkommen und nicht das normale Weiß.
+        # Grundfarbe merken: Beim Abwählen muss die Storno-Einfärbung
+        # zurückkommen und nicht das normale Weiß.
         self.grundfarbe = theme.STORNO_ROW if self.ist_storno else theme.CARD
-
-        with self.canvas.before:
-            self._color = Color(*self.grundfarbe)
-            self._background = RoundedRectangle(pos=self.pos, size=self.size, radius=[dp(6)])
-        self.bind(pos=self._refresh_canvas, size=self._refresh_canvas)
 
         artikel = sale["article_name"]
         if self.ist_storno:
@@ -91,37 +134,47 @@ class SaleRow(ButtonBehavior, BoxLayout):
                 StatisticsScreen.money(sale["profit"]),
             )
 
-        # Dieselbe Aufteilung wie die Kopfzeile - beide kommen aus
-        # StatisticsScreen.spalten().
-        widths = StatisticsScreen.spalten()[1]
-
-        for spalte, (value, width) in enumerate(zip(values, widths)):
+        for spalte, (label, value) in enumerate(zip(self.labels, values)):
+            label.text = str(value)
             # Nur der Gewinn wird rot - der Betrag selbst bleibt lesbar,
             # das Vorzeichen macht die Richtung deutlich.
-            farbe = (
+            label.color = (
                 theme.ERROR
                 if self.ist_storno and spalte == len(values) - 1
                 else theme.TEXT_PRIMARY
             )
-            label = Label(
-                text=str(value), color=farbe, font_size="12sp",
-                halign="left", valign="middle",
-                text_size=(None, dp(self.zeilenhoehe)),
-                size_hint_x=width,
-                shorten=True, shorten_from="right",
-            )
-            self.add_widget(label)
+
+        self._faerben()
+
+        return super().refresh_view_attrs(rv, index, data)
+
+    def _faerben(self):
+
+        self._color.rgba = (
+            theme.PRIMARY_ORANGE_LIGHT if self.selected else self.grundfarbe
+        )
 
     def _refresh_canvas(self, *_args):
         self._background.pos = self.pos
         self._background.size = self.size
 
     def on_release(self):
+
+        if self.sale is None:
+            return
+
         self.selected = not self.selected
-        self._color.rgba = (
-            theme.PRIMARY_ORANGE_LIGHT if self.selected else self.grundfarbe
-        )
-        self.selected_callback(self, self.selected)
+        self._faerben()
+
+        # In die Daten schreiben - sonst stünde die Auswahl nach dem
+        # Rollen an einer anderen Einheit.
+        if getattr(self, "rv", None) is not None and self.index is not None:
+            self.rv.data[self.index]["selected"] = self.selected
+
+        bildschirm = getattr(self.rv, "bildschirm", None)
+
+        if bildschirm is not None:
+            bildschirm._row_selected(self, self.selected)
 
 
 class StatisticsScreen(Screen):
@@ -331,11 +384,39 @@ class StatisticsScreen(Screen):
             header.add_widget(label)
         panel.add_widget(header)
 
-        self.sales_rows = BoxLayout(orientation="vertical", spacing=dp(theme.SPACE_XS), size_hint_y=None)
+        # RecycleView statt einer Zeile je Einheit - siehe SaleRow.
+        self.sales_view = RecycleView(do_scroll_x=False, bar_width=dp(8))
+        self.sales_view.bildschirm = self
+
+        self.sales_rows = RecycleBoxLayout(
+            orientation="vertical",
+            spacing=dp(theme.SPACE_XS),
+            default_size=(None, dp(self.zeilenhoehe())),
+            default_size_hint=(1, None),
+            size_hint_y=None,
+        )
         self.sales_rows.bind(minimum_height=self.sales_rows.setter("height"))
-        scroll = ScrollView(do_scroll_x=False)
-        scroll.add_widget(self.sales_rows)
-        panel.add_widget(scroll)
+
+        self.sales_view.add_widget(self.sales_rows)
+
+        # Erst NACH add_widget: Die RecycleView reicht die Zeilenart an
+        # ihr Layout weiter - vorher hat sie keins, und die Tabelle
+        # blieb ohne jede Zeile.
+        self.sales_view.viewclass = SaleRow
+
+        # Hinweis bei leerer Auswahl - eine RecycleView kann nur Zeilen
+        # ihrer eigenen Art zeigen, der Hinweis liegt deshalb darüber.
+        self.leer_label = self._empty_label("Keine Verkäufe im gewählten Zeitraum.")
+
+        tabelle = FloatLayout()
+        self.sales_view.pos_hint = {"x": 0, "y": 0}
+        self.sales_view.size_hint = (1, 1)
+        self.leer_label.pos_hint = {"x": 0, "top": 1}
+        self.leer_label.size_hint = (1, None)
+        tabelle.add_widget(self.sales_view)
+        tabelle.add_widget(self.leer_label)
+
+        panel.add_widget(tabelle)
 
         actions = BoxLayout(size_hint_y=None, height=dp(48), spacing=dp(theme.ROW_SPACING))
         actions.add_widget(loeschknopf(
@@ -370,6 +451,12 @@ class StatisticsScreen(Screen):
              "Verkauf", "Einkauf", "Gewinn"),
             (0.20, 0.12, 0.15, 0.20, 0.11, 0.11, 0.11),
         )
+
+    @staticmethod
+    def zeilenhoehe():
+        """Höhe einer Verkaufszeile in dp."""
+
+        return 34 if StatisticsScreen.kompakt() else 46
 
     @staticmethod
     def kompakt():
@@ -618,8 +705,15 @@ class StatisticsScreen(Screen):
             return str(iso_date or "-")
 
     def on_pre_enter(self, *_args):
-        self._populate_event_filter()
-        self._populate_category_filter()
+
+        self._filter_wird_gefuellt = True
+
+        try:
+            self._populate_event_filter()
+            self._populate_category_filter()
+        finally:
+            self._filter_wird_gefuellt = False
+
         self.refresh()
 
     def _populate_category_filter(self):
@@ -775,19 +869,27 @@ class StatisticsScreen(Screen):
         self.filterleiste.aktualisieren()
 
     def refresh(self):
+
+        # Während die Auswahlfelder beim Öffnen gefüllt werden, meldet
+        # jedes seine Änderung - die Statistik lud dabei dreimal
+        # hintereinander (siehe on_pre_enter).
+        if getattr(self, "_filter_wird_gefuellt", False):
+            return
+
         auswahl = self._auswahl()
         self.selected_rows.clear()
-        self.sales_rows.clear_widgets()
 
+        # Einmal laden - Tabelle, Kennzahlen, Balken und Kreis rechnen
+        # alle aus denselben Zeilen. Früher holte jede ihre eigenen.
         rows = self.db.get_statistic_sale_items(*auswahl)
-        if not rows:
-            self.sales_rows.add_widget(self._empty_label("Keine Verkäufe im gewählten Zeitraum."))
-        else:
-            for row in rows:
-                self.sales_rows.add_widget(SaleRow(row, self._row_selected))
 
-        self._refresh_totals(*auswahl)
-        self._refresh_auswertung(*auswahl)
+        self.sales_view.data = [{"sale": row, "selected": False} for row in rows]
+        self.sales_view.scroll_y = 1
+
+        self.leer_label.opacity = 0 if rows else 1
+
+        self._refresh_totals(*auswahl, zeilen=rows)
+        self._refresh_auswertung(*auswahl, zeilen=rows)
         self._refresh_repair_hint(*auswahl)
 
     def _row_selected(self, row, selected):
@@ -797,12 +899,13 @@ class StatisticsScreen(Screen):
         else:
             self.selected_rows.pop(row_key, None)
 
-    def _refresh_totals(self, date_from, date_to, event_id, category_id=None):
+    def _refresh_totals(self, date_from, date_to, event_id, category_id=None,
+                        zeilen=None):
         """Kennzahlen und Kreisdiagramm - beide für denselben Zeitraum
         wie die Tabelle links."""
 
         kennzahlen = self.db.get_period_totals(
-            date_from, date_to, event_id, category_id
+            date_from, date_to, event_id, category_id, zeilen=zeilen
         )
 
         for schluessel, label in self.total_labels.items():
@@ -863,12 +966,17 @@ class StatisticsScreen(Screen):
             f"{bons} {'Bon' if bons == 1 else 'Bons'}"
         )
 
-    def _refresh_auswertung(self, date_from, date_to, event_id, category_id=None):
+    def _refresh_auswertung(self, date_from, date_to, event_id, category_id=None,
+                            zeilen=None):
         """Fuellt Balken und Kreis - beide aus demselben Zeitraum."""
 
         self.auswertung.set_data(
-            self.db.get_article_sales(date_from, date_to, event_id, category_id),
-            self.db.get_category_revenues(date_from, date_to, event_id, category_id),
+            self.db.get_article_sales(
+                date_from, date_to, event_id, category_id, zeilen=zeilen
+            ),
+            self.db.get_category_revenues(
+                date_from, date_to, event_id, category_id, zeilen=zeilen
+            ),
         )
 
     @staticmethod

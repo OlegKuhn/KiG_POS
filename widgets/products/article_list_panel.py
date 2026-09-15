@@ -9,14 +9,14 @@ from kivy.uix.scrollview import ScrollView
 import theme
 
 from widgets.common.kig_bildknopf import neuknopf
-from widgets.products.article_list_row import SPALTEN_QUER
+from widgets.products.article_list_row import SPALTEN_INAKTIV, SPALTEN_QUER
 
 from widgets.common.exporthinweis import hinweisfeld_vorbereiten
 from widgets.common import schreibschutz
 
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.kig_label import KiGLabel
-from widgets.products.article_list_row import ArticleListRow
+from widgets.products.article_list_row import ArticleListRow, InaktiveArtikelZeile
 
 
 class ArticleListPanel(RoundedPanel):
@@ -68,6 +68,8 @@ class ArticleListPanel(RoundedPanel):
             sort_callback,
             export_callback,
             teilen_callback,
+            ansicht_callback=None,
+            aktivieren_callback=None,
             **kwargs
     ):
         super().__init__(
@@ -85,6 +87,11 @@ class ArticleListPanel(RoundedPanel):
         self.sort_callback = sort_callback
         self.export_callback = export_callback
         self.teilen_callback = teilen_callback
+        self.ansicht_callback = ansicht_callback
+        self.aktivieren_callback = aktivieren_callback
+
+        # "aktiv" oder "inaktiv" - welcher Reiter gerade vorn liegt
+        self.ansicht = "aktiv"
 
         self.rows = {}
         self.title_label = None
@@ -173,6 +180,28 @@ class ArticleListPanel(RoundedPanel):
         self.bind(width=self._update_header)
         self._update_header()
 
+        # -------------------------------------------------
+        # Reiter: aktive und inaktive Artikel
+        # -------------------------------------------------
+        #
+        # Gelöscht wird ein Artikel nie, nur abgeschaltet - vorher aber
+        # verschwand er damit spurlos aus der Liste, und zurückholen
+        # ließ er sich nur, wenn man seinen Namen noch wusste. Im
+        # zweiten Reiter stehen sie alle.
+
+        self.reiter = BoxLayout(
+            size_hint_y=None, height=dp(44),
+            spacing=dp(theme.ROW_SPACING),
+        )
+
+        self.reiter_aktiv = self._reiterknopf("Aktive Artikel", "aktiv")
+        self.reiter_inaktiv = self._reiterknopf("Inaktiv", "inaktiv")
+
+        self.reiter.add_widget(self.reiter_aktiv)
+        self.reiter.add_widget(self.reiter_inaktiv)
+
+        self.add_widget(self.reiter)
+
         self.export_status = Label(
             text="", color=theme.TEXT_SECONDARY, font_size="12sp",
             halign="right", valign="middle",
@@ -191,39 +220,18 @@ class ArticleListPanel(RoundedPanel):
         # zweizeilig und trägt ihre Beschriftungen selbst, es gibt also
         # keine durchgehenden Spalten mehr, über die er passen könnte
         # (siehe article_list_row.ArticleListRow._build_portrait).
+        self.columns = None
+
         if not theme.is_portrait():
 
-            columns = BoxLayout(
+            self.columns = BoxLayout(
                 size_hint_y=None, height=dp(24),
                 spacing=dp(theme.ROW_SPACING), padding=(dp(theme.CARD_SPACING), 0),
             )
-            # Dieselben Spalten wie die Zeilen darunter (siehe
-            # SPALTEN_QUER) - und mit text_size: Ohne sie setzt Kivy den
-            # Text mittig in seine Spalte, gleich welche Ausrichtung
-            # eingestellt ist, und "Verkauf" stand neben statt ueber
-            # "2,50 €".
-            for text, breite, ausrichtung in SPALTEN_QUER:
 
-                kopf = Label(
-                    text=text, color=theme.TEXT_SECONDARY, font_size="11sp",
-                    bold=True, halign=ausrichtung, valign="middle",
-                    size_hint_x=None if breite else 1,
-                    width=dp(breite) if breite else 0,
-                )
+            self._spaltenkopf(SPALTEN_QUER)
 
-                # "Menge" steht ueber einem Feld, dessen Wert 12 dp vom
-                # Rand beginnt - die Ueberschrift ruckt mit.
-                if text == "Menge":
-                    kopf.padding = [dp(12), 0, 0, 0]
-
-                kopf.bind(
-                    size=lambda instanz, groesse: setattr(
-                        instanz, "text_size", groesse
-                    )
-                )
-
-                columns.add_widget(kopf)
-            self.add_widget(columns)
+            self.add_widget(self.columns)
 
         # -------------------------------------------------
         # Liste
@@ -239,6 +247,89 @@ class ArticleListPanel(RoundedPanel):
         )
         self.scroll.add_widget(self.list_layout)
         self.add_widget(self.scroll)
+
+        self._reiter_faerben()
+
+    # =====================================================
+    # Reiter
+    # =====================================================
+
+    def _reiterknopf(self, text, ansicht):
+
+        knopf = Button(
+            text=text,
+            background_normal="", background_down="",
+            font_size="15sp", bold=True,
+        )
+        knopf.bind(on_release=lambda *_args: self._reiter_gewaehlt(ansicht))
+
+        return knopf
+
+    def _reiter_gewaehlt(self, ansicht):
+
+        if ansicht == self.ansicht:
+            return
+
+        if callable(self.ansicht_callback):
+            self.ansicht_callback(ansicht)
+
+    def set_ansicht(self, ansicht, anzahl_inaktiv=None):
+        """Zeigt den gewählten Reiter vorn; die Zahl hinter "Inaktiv"
+        sagt, ob sich ein Blick lohnt."""
+
+        self.ansicht = ansicht
+
+        if anzahl_inaktiv is not None:
+            self.reiter_inaktiv.text = f"Inaktiv ({anzahl_inaktiv})"
+
+        self._reiter_faerben()
+
+        if self.columns is not None:
+            self._spaltenkopf(
+                SPALTEN_INAKTIV if ansicht == "inaktiv" else SPALTEN_QUER
+            )
+
+    def _reiter_faerben(self):
+
+        for knopf, ansicht in (
+                (self.reiter_aktiv, "aktiv"),
+                (self.reiter_inaktiv, "inaktiv"),
+        ):
+            vorn = ansicht == self.ansicht
+            knopf.background_color = theme.PRIMARY_ORANGE if vorn else theme.SURFACE
+            knopf.color = theme.TEXT_WHITE if vorn else theme.TEXT_PRIMARY
+
+    def _spaltenkopf(self, spalten):
+
+        columns = self.columns
+        columns.clear_widgets()
+
+        # Dieselben Spalten wie die Zeilen darunter (siehe
+        # SPALTEN_QUER) - und mit text_size: Ohne sie setzt Kivy den
+        # Text mittig in seine Spalte, gleich welche Ausrichtung
+        # eingestellt ist, und "Verkauf" stand neben statt ueber
+        # "2,50 €".
+        for text, breite, ausrichtung in spalten:
+
+            kopf = Label(
+                text=text, color=theme.TEXT_SECONDARY, font_size="11sp",
+                bold=True, halign=ausrichtung, valign="middle",
+                size_hint_x=None if breite else 1,
+                width=dp(breite) if breite else 0,
+            )
+
+            # "Menge" steht ueber einem Feld, dessen Wert 12 dp vom
+            # Rand beginnt - die Ueberschrift ruckt mit.
+            if text == "Menge":
+                kopf.padding = [dp(12), 0, 0, 0]
+
+            kopf.bind(
+                size=lambda instanz, groesse: setattr(
+                    instanz, "text_size", groesse
+                )
+            )
+
+            columns.add_widget(kopf)
 
     def set_title(self, text):
         self.title_label.text = text
@@ -308,7 +399,24 @@ class ArticleListPanel(RoundedPanel):
         self.rows.clear()
 
         if not articles:
-            self.list_layout.add_widget(self._empty_label())
+            self.list_layout.add_widget(self._empty_label(
+                "Keine inaktiven Artikel."
+                if self.ansicht == "inaktiv"
+                else "Keine Artikel in dieser Kategorie."
+            ))
+            return
+
+        if self.ansicht == "inaktiv":
+
+            for article in articles:
+                row = InaktiveArtikelZeile(
+                    article=article,
+                    aktivieren_callback=self.aktivieren_callback,
+                    edit_callback=self.edit_callback,
+                )
+                self.rows[article["id"]] = row
+                self.list_layout.add_widget(row)
+
             return
 
         for article in articles:
@@ -329,8 +437,8 @@ class ArticleListPanel(RoundedPanel):
             row.set_order_amount(amount)
 
     @staticmethod
-    def _empty_label():
-        label = KiGLabel(text="Keine Artikel in dieser Kategorie.")
+    def _empty_label(text="Keine Artikel in dieser Kategorie."):
+        label = KiGLabel(text=text)
         label.set_font_size(15)
         label.set_alignment("left")
         label.set_color(theme.TEXT_SECONDARY)

@@ -35,10 +35,22 @@ SPALTEN_QUER = (
 )
 
 
-def spaltenbreite(position):
+# Die Spalten im Reiter "Inaktiv": Bestellmenge und Buchen entfallen -
+# einen Artikel, der nicht mehr gefuehrt wird, kauft man nicht ein.
+SPALTEN_INAKTIV = (
+    ("Artikel", None, "left"),
+    ("Verkauf", 78, "right"),
+    ("Einkauf", 78, "right"),
+    ("Bestand", 78, "right"),
+    ("", 180, "center"),
+    ("", 58, "center"),
+)
+
+
+def spaltenbreite(position, spalten=SPALTEN_QUER):
     """Breite der Spalte an dieser Stelle, in Bildpunkten."""
 
-    return dp(SPALTEN_QUER[position][1])
+    return dp(spalten[position][1])
 
 
 class ArticleListRow(BoxLayout):
@@ -474,3 +486,126 @@ class ArticleListRow(BoxLayout):
     def _format_stock(value):
         value = float(value or 0)
         return str(int(value)) if value.is_integer() else f"{value:.2f}".replace(".", ",")
+
+
+class InaktiveArtikelZeile(BoxLayout):
+    """Ein gelöschter Artikel im Reiter "Inaktiv".
+
+        Artikel        Verkauf  Einkauf  Bestand  [Wieder aktivieren] [Stift]
+
+    "Wieder aktivieren" holt ihn in die Liste und an die Kasse
+    zurück, der Stift öffnet ihn wie jeden anderen Artikel - etwa, um
+    vorher den Preis zu ändern.
+    """
+
+    HOEHE = 68
+    SCHMAL_HOEHE = 64
+
+    def __init__(self, article, aktivieren_callback, edit_callback, **kwargs):
+
+        super().__init__(
+            orientation="horizontal",
+            spacing=dp(theme.ROW_SPACING),
+            padding=(dp(theme.CARD_SPACING), dp(theme.SPACE_XS)),
+            size_hint_y=None,
+            height=dp(self.HOEHE),
+            **kwargs
+        )
+
+        self.article = article
+        self.aktivieren_callback = aktivieren_callback
+        self.edit_callback = edit_callback
+
+        is_mix = article["article_type"] == "MIX"
+
+        with self.canvas.before:
+            Color(*theme.CARD)
+            self._background = RoundedRectangle(
+                pos=self.pos, size=self.size, radius=[dp(10)]
+            )
+        self.bind(pos=self._update_canvas, size=self._update_canvas)
+
+        # ---- Name, Kategorie ----
+        name_column = BoxLayout(orientation="vertical", spacing=dp(theme.LABEL_SPACING))
+
+        name_label = Label(
+            text=article["name"], color=theme.TEXT_SECONDARY, bold=True,
+            font_size="16sp", halign="left", valign="middle",
+            shorten=True, shorten_from="right",
+        )
+        name_label.bind(
+            size=lambda instance, value: setattr(instance, "text_size", value)
+        )
+        name_column.add_widget(name_label)
+
+        unterzeile = article["category_name"] or "-"
+
+        if is_mix:
+            unterzeile += "  ·  Mix / Rezept"
+
+        schmal = theme.is_portrait()
+
+        # Hochkant fehlen die Preisspalten - der Preis steht dann
+        # unter dem Namen.
+        if schmal:
+            unterzeile += f"  ·  VK {ArticleListRow._format_price(article['price'])}"
+            self.height = dp(self.SCHMAL_HOEHE)
+
+        category_label = Label(
+            text=unterzeile, color=theme.TEXT_SECONDARY, font_size="12sp",
+            halign="left", valign="middle", shorten=True, shorten_from="right",
+        )
+        category_label.bind(
+            size=lambda instance, value: setattr(instance, "text_size", value)
+        )
+        name_column.add_widget(category_label)
+
+        self.add_widget(name_column)
+
+        if not schmal:
+
+            self.add_widget(ArticleListRow._value_label(
+                ArticleListRow._format_price(article["price"]),
+                spaltenbreite(1, SPALTEN_INAKTIV),
+            ))
+            self.add_widget(ArticleListRow._value_label(
+                ArticleListRow._format_price(article["purchase_price"]),
+                spaltenbreite(2, SPALTEN_INAKTIV),
+            ))
+
+            if is_mix:
+                bestand = "–"
+            elif article["stock_unit"] == config.BOTTLE_UNIT:
+                bestand = f"{ArticleListRow._format_stock(article.get('stock', 0))} ml"
+            else:
+                bestand = ArticleListRow._format_stock(article.get("stock", 0))
+
+            self.add_widget(ArticleListRow._value_label(
+                bestand, spaltenbreite(3, SPALTEN_INAKTIV)
+            ))
+
+        self.aktivieren_button = Button(
+            text="Aktivieren" if theme.is_narrow() else "Wieder aktivieren",
+            size_hint_x=None,
+            width=dp(120) if theme.is_narrow() else spaltenbreite(4, SPALTEN_INAKTIV),
+            background_normal="", background_down="",
+            background_color=theme.SUCCESS, color=theme.TEXT_WHITE,
+            font_size="14sp", bold=True,
+        )
+        self.aktivieren_button.bind(
+            on_release=lambda *_args: self.aktivieren_callback(self.article)
+        )
+        self.add_widget(self.aktivieren_button)
+
+        self.edit_button = bearbeitenknopf(
+            lambda: self.edit_callback(self.article),
+            size_hint_x=None, width=spaltenbreite(5, SPALTEN_INAKTIV),
+        )
+        self.add_widget(self.edit_button)
+
+        if schreibschutz.nur_ansicht():
+            schreibschutz.sperren(self.aktivieren_button, self.edit_button)
+
+    def _update_canvas(self, *_args):
+        self._background.pos = self.pos
+        self._background.size = self.size

@@ -76,6 +76,9 @@ class ProductsScreen(Screen):
 
         self.selected_article = None
 
+        # Welcher Reiter der Liste vorn liegt: "aktiv" oder "inaktiv"
+        self.ansicht = "aktiv"
+
         # Zuletzt ausgegebene Datei - sie haengt am Teilen-Knopf.
         self.letzte_ausgabe = None
         self.order_amounts = {}
@@ -131,6 +134,8 @@ class ProductsScreen(Screen):
             sort_callback=self.open_sort_dialog,
             export_callback=self.export_order_list,
             teilen_callback=self.teilen_clicked,
+            ansicht_callback=self.ansicht_wechseln,
+            aktivieren_callback=self.reactivate_article,
         )
 
         # Die Liste bekommt, was die Kategorienkarte hergegeben hat.
@@ -193,6 +198,7 @@ class ProductsScreen(Screen):
     def on_pre_enter(self, *args):
 
         self.mode = "list"
+        self.ansicht = "aktiv"
         self.current_price_input = None
         self.numpad_panel.close()
         self.refresh()
@@ -226,12 +232,23 @@ class ProductsScreen(Screen):
         # eine spürbar aufgeräumtere Übersicht sorgt. Historische
         # Verkäufe bleiben trotzdem unangetastet (delete_article()
         # deaktiviert nur, statt zu löschen).
+        inaktiv = self.ansicht == "inaktiv"
+
         if self.selected_category is None:
-            rows = self.db.get_articles(active_only=True)
+            rows = self.db.get_articles(active_only=not inaktiv)
         else:
             rows = self.db.get_articles_by_category(
-                self.selected_category["id"], active_only=True,
+                self.selected_category["id"], active_only=not inaktiv,
             )
+
+        # Im Reiter "Inaktiv" nur die abgeschalteten - die Abfragen
+        # kennen nur "nur aktive" oder "alle".
+        if inaktiv:
+            rows = [row for row in rows if not row["active"]]
+
+        self.article_list_panel.set_ansicht(
+            self.ansicht, self.db.count_inactive_articles()
+        )
 
         articles = []
         for row in rows:
@@ -242,10 +259,34 @@ class ProductsScreen(Screen):
 
         self.article_list_panel.set_articles(articles, self.order_amounts)
 
+        titel = "Inaktive Artikel" if inaktiv else "Artikel"
+
         if self.selected_category is None:
-            self.article_list_panel.set_title("Artikel")
+            self.article_list_panel.set_title(titel)
         else:
-            self.article_list_panel.set_title(f"Artikel · {self.selected_category['name']}")
+            self.article_list_panel.set_title(f"{titel} · {self.selected_category['name']}")
+
+    def ansicht_wechseln(self, ansicht):
+        """Reiter "Aktive Artikel" / "Inaktiv"."""
+
+        self.ansicht = ansicht
+
+        self.refresh_articles()
+
+    def reactivate_article(self, article):
+        """Holt einen gelöschten Artikel in die Liste und an die Kasse
+        zurück."""
+
+        if self._nur_ansicht():
+            return
+
+        self.db.reactivate_article(article["id"])
+
+        self.refresh_articles()
+
+        self.article_list_panel.set_export_status(
+            f"\"{article['name']}\" ist wieder aktiv."
+        )
 
     # =====================================================
     # Kategorien

@@ -28,6 +28,14 @@ Beschreibung:
     die Anzahl der Helfer in der Schicht (siehe
     database.py:_create_shift_tables).
 
+    Über den Schichten sucht ein Feld nach Helfern: Wer "Anna"
+    eintippt, sieht nur noch Annas Schichten - und die Ausgabe
+    wird zu Annas Schichtplan.
+
+    Steht jemand zur selben Zeit in zwei Schichten, wird die
+    Zeile rot, der Name bekommt ein "!" und darüber steht, wo
+    es sich überschneidet (siehe schichtzeiten.py).
+
 Version:
     1.0.0
 =========================================================
@@ -43,6 +51,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.screenmanager import Screen
 
 import config
+import schichtzeiten
 import storage
 import teilen
 import theme
@@ -50,6 +59,7 @@ import theme
 from widgets.common.kig_bildknopf import (
     loeschknopf, neuknopf,
 )
+from widgets.common.kig_symbol import KREUZ, KiGSymbolButton
 
 from database import DatabaseManager
 from widgets.common.confirm_popup import ConfirmPopup
@@ -78,6 +88,10 @@ class ShiftPlanScreen(Screen):
         self.selected_plan_id = None
         self.plan_buttons = {}
         self.shift_rows = {}
+
+        # Die Schichten des Plans samt Helfernamen - für Suche,
+        # Überschneidungen und Ausgabe (siehe _schichten_laden)
+        self.schichten = []
 
         # Zuletzt ausgegebene Datei - sie haengt am Teilen-Knopf.
         self.letzte_ausgabe = None
@@ -252,8 +266,9 @@ class ShiftPlanScreen(Screen):
             self.copy_shifts,
         )
         export_knopf = self._button(
-            "Export" if schmal else "Excel exportieren", self.export_excel
+            "Excel", self.export_excel
         )
+        pdf_knopf = self._button("PDF", self.export_pdf)
         teilen_knopf = self._button("Teilen", self.teilen_clicked)
 
         if self.hochformat:
@@ -275,6 +290,7 @@ class ShiftPlanScreen(Screen):
             )
             knopfreihe.add_widget(uebernehmen)
             knopfreihe.add_widget(export_knopf)
+            knopfreihe.add_widget(pdf_knopf)
             knopfreihe.add_widget(teilen_knopf)
 
             kopf.add_widget(knopfreihe)
@@ -292,8 +308,12 @@ class ShiftPlanScreen(Screen):
             kopf.add_widget(uebernehmen)
 
             export_knopf.size_hint_x = None
-            export_knopf.width = dp(190)
+            export_knopf.width = dp(100)
             kopf.add_widget(export_knopf)
+
+            pdf_knopf.size_hint_x = None
+            pdf_knopf.width = dp(90)
+            kopf.add_widget(pdf_knopf)
 
             teilen_knopf.size_hint_x = None
             teilen_knopf.width = dp(110)
@@ -308,6 +328,41 @@ class ShiftPlanScreen(Screen):
 
         hinweisfeld_vorbereiten(self.status_label, dp(26))
         panel.add_widget(self.status_label)
+
+        # ---- Überschneidungen ----
+        self.konflikt_label = Label(
+            text="", color=theme.ERROR, font_size="14sp",
+            halign="left", valign="top", bold=True,
+        )
+
+        hinweisfeld_vorbereiten(self.konflikt_label, 0)
+        panel.add_widget(self.konflikt_label)
+
+        # ---- Suche nach Helfern ----
+        suche = BoxLayout(
+            size_hint_y=None, height=dp(theme.FELD_HOEHE),
+            spacing=dp(theme.ROW_SPACING),
+        )
+
+        self.suche_input = RoundedInput(
+            hint_text="Helfer suchen - zeigt nur dessen Schichten",
+            multiline=False,
+        )
+        self.suche_input.foreground_color = theme.INPUT_TEXT
+        self.suche_input.hint_text_color = theme.INPUT_HINT
+        self.suche_input.bind(text=lambda *_a: self._suche_geaendert())
+
+        suche.add_widget(self.suche_input)
+
+        suche_leeren = KiGSymbolButton(
+            symbol=KREUZ, symbol_color=theme.TEXT_SECONDARY,
+            size_hint_x=None, width=dp(theme.FELD_HOEHE),
+            background_color=theme.SURFACE,
+        )
+        suche_leeren.bind(on_release=lambda *_a: setattr(self.suche_input, "text", ""))
+        suche.add_widget(suche_leeren)
+
+        panel.add_widget(suche)
 
         # Kopfzeile über den Spalten - dieselbe Aufteilung wie in
         # ShiftRow, nur gemeinsam ändern.
@@ -404,12 +459,22 @@ class ShiftPlanScreen(Screen):
             if plan else "Schichtplan"
         )
 
-        schichten = self.db.get_shifts(self.selected_plan_id)
+        self.schichten = self._schichten_laden()
 
-        if not schichten:
+        suchtext = self.suche_input.text.strip()
+
+        sichtbar = [
+            schicht for schicht in self.schichten
+            if schichtzeiten.passt_zu(schicht, suchtext)
+        ]
+
+        if not self.schichten or not sichtbar:
 
             self.shifts_box.add_widget(Label(
-                text="Noch keine Schicht eingetragen.",
+                text=(
+                    f"Keine Schicht mit \"{suchtext}\"."
+                    if self.schichten else "Noch keine Schicht eingetragen."
+                ),
                 color=theme.TEXT_SECONDARY, font_size="14sp",
                 size_hint_y=None, height=dp(46),
                 halign="left", valign="middle", text_size=(None, dp(46)),
@@ -417,10 +482,10 @@ class ShiftPlanScreen(Screen):
 
         else:
 
-            for schicht in schichten:
+            for schicht in sichtbar:
 
                 zeile = ShiftRow(
-                    shift=self._mit_helfern(schicht),
+                    shift=schicht,
                     on_change=self.shift_changed,
                     on_needed=self.open_needed_numpad,
                     on_helpers=self.open_helpers,
@@ -431,6 +496,18 @@ class ShiftPlanScreen(Screen):
                 self.shifts_box.add_widget(zeile)
 
         self._refresh_status()
+        self._konflikte_pruefen()
+
+    def _schichten_laden(self):
+        """Alle Schichten des gewählten Plans, jede mit ihren Helfern."""
+
+        if self.selected_plan_id is None:
+            return []
+
+        return [
+            self._mit_helfern(schicht)
+            for schicht in self.db.get_shifts(self.selected_plan_id)
+        ]
 
     def _mit_helfern(self, schicht):
         """Ergänzt die Schicht um die Namen ihrer Helfer."""
@@ -442,13 +519,76 @@ class ShiftPlanScreen(Screen):
             for helfer in self.db.get_shift_helpers(schicht["id"])
         ]
 
+        daten["helfer"] = namen
         daten["helfer_namen"] = ", ".join(namen)
 
         return daten
 
+    # =====================================================
+    # Suche und Überschneidungen
+    # =====================================================
+
+    def _suche_geaendert(self):
+
+        self._refresh_shifts()
+
+    def _konflikte_pruefen(self):
+        """Wer steht zur selben Zeit in zwei Schichten?
+
+        Geprüft wird immer der ganze Plan, auch wenn die Suche nur
+        einen Teil zeigt - eine Überschneidung verschwindet nicht,
+        weil man gerade nach jemand anderem sucht.
+        """
+
+        treffer = schichtzeiten.ueberschneidungen(self.schichten)
+        je_schicht = schichtzeiten.konflikte_je_schicht(self.schichten)
+
+        for schicht_id, zeile in self.shift_rows.items():
+            zeile.set_konflikte(je_schicht.get(schicht_id))
+
+        if not treffer:
+            self.konflikt_label.text = ""
+            return
+
+        zeilen = [schichtzeiten.konflikt_text(t) for t in treffer[:4]]
+
+        if len(treffer) > 4:
+            zeilen.append(f"... und {len(treffer) - 4} weitere")
+
+        self.konflikt_label.text = (
+            f"{'Überschneidung' if len(treffer) == 1 else 'Überschneidungen'}"
+            f" - gleichzeitig eingetragen:\n" + "\n".join(zeilen)
+        )
+
     def _refresh_status(self):
 
         if self.selected_plan_id is None:
+            return
+
+        suchtext = self.suche_input.text.strip()
+
+        if suchtext:
+
+            eigene = [
+                s for s in self.schichten if schichtzeiten.passt_zu(s, suchtext)
+            ]
+
+            if not eigene:
+                self.status_label.text = f"\"{suchtext}\" ist in keiner Schicht eingetragen."
+                self.status_label.color = theme.TEXT_SECONDARY
+                return
+
+            teile = [
+                f"{s['task'] or 'Schicht'} {schichtzeiten.spanne_text(s['start_time'], s['end_time'])}"
+                for s in eigene
+            ]
+
+            self.status_label.text = (
+                f"\"{suchtext}\": {len(eigene)} "
+                f"{'Schicht' if len(eigene) == 1 else 'Schichten'} - "
+                + ", ".join(teile)
+            )
+            self.status_label.color = theme.PRIMARY_ORANGE
             return
 
         besetzt, plaetze, offen = self.db.get_shift_plan_summary(
@@ -503,6 +643,10 @@ class ShiftPlanScreen(Screen):
 
         row.shift = dict(row.shift)
         row.shift[feld] = wert
+
+        # Eine andere Zeit kann eine Überschneidung schaffen oder lösen.
+        self.schichten = self._schichten_laden()
+        self._konflikte_pruefen()
 
     def open_needed_numpad(self, row):
         """Wie viele Helfer braucht diese Schicht?"""
@@ -560,13 +704,16 @@ class ShiftPlanScreen(Screen):
     def _aktualisiere_zeile(self, row):
         """Holt eine einzelne Zeile frisch aus der Datenbank."""
 
-        for schicht in self.db.get_shifts(self.selected_plan_id):
+        self.schichten = self._schichten_laden()
+
+        for schicht in self.schichten:
 
             if schicht["id"] == row.shift["id"]:
-                row.aktualisieren(self._mit_helfern(schicht))
+                row.aktualisieren(schicht)
                 break
 
         self._refresh_status()
+        self._konflikte_pruefen()
         self._refresh_plan_labels()
 
     # =====================================================
@@ -592,6 +739,18 @@ class ShiftPlanScreen(Screen):
         scroll = ScrollView(do_scroll_x=False, bar_width=dp(8))
         scroll.add_widget(liste)
         inhalt.add_widget(scroll)
+
+        # Steht jemand zur selben Zeit schon woanders, sagt es diese
+        # Zeile gleich beim Eintragen - nicht erst in der Liste.
+        warnung = Label(
+            text="", color=theme.ERROR, font_size="14sp", bold=True,
+            size_hint_y=None, height=0,
+            halign="left", valign="middle",
+        )
+        warnung.bind(
+            size=lambda instanz, groesse: setattr(instanz, "text_size", groesse)
+        )
+        inhalt.add_widget(warnung)
 
         feld = RoundedInput(
             hint_text="Name eintragen", multiline=False,
@@ -663,12 +822,39 @@ class ShiftPlanScreen(Screen):
             if not feld.text.strip():
                 return
 
-            self.db.add_shift_helper(row.shift["id"], feld.text)
+            name = feld.text.strip()
+
+            self.db.add_shift_helper(row.shift["id"], name)
 
             feld.text = ""
 
             neu_zeichnen()
             self._aktualisiere_zeile(row)
+
+            eigene = [
+                t for t in schichtzeiten.ueberschneidungen(self.schichten)
+                if schichtzeiten.name_schluessel(t["name"]) == schichtzeiten.name_schluessel(name)
+                and row.shift["id"] in (t["schichten"][0]["id"], t["schichten"][1]["id"])
+            ]
+
+            if eigene:
+                andere = [
+                    s for t in eigene for s in t["schichten"]
+                    if s["id"] != row.shift["id"]
+                ]
+                warnung.text = (
+                    f"Achtung: {name} ist zur selben Zeit schon eingetragen bei "
+                    + ", ".join(
+                        f"{s['task'] or 'Schicht'} "
+                        f"{schichtzeiten.spanne_text(s['start_time'], s['end_time'])}"
+                        for s in andere
+                    )
+                    + "."
+                )
+                warnung.height = dp(48)
+            else:
+                warnung.text = ""
+                warnung.height = 0
 
         feld.bind(on_text_validate=lambda *_a: eintragen())
 
@@ -913,94 +1099,77 @@ class ShiftPlanScreen(Screen):
     # =====================================================
 
     def export_excel(self):
-        """Schreibt den Schichtplan als Excel-Datei.
+        """Schreibt den Schichtplan als Excel-Mappe: die Matrix zum
+        Aushängen und die Liste (siehe berichte/schichtplan_bericht.py).
 
-        Zum Aushängen: Am Stand hat selten jemand das Tablet in der
-        Hand.
+        Ist eine Suche aktiv, wird es der Schichtplan dieses Helfers.
         """
+
+        self._ausgeben("excel")
+
+    def export_pdf(self):
+        """Dieselbe Matrix als PDF im Querformat - zum Drucken auch
+        vom Tablet aus."""
+
+        self._ausgeben("pdf")
+
+    def _ausgeben(self, art):
+
+        from berichte import schichtplan_bericht
+        from berichte.excel_layout import dateiname_sicher
 
         if self.selected_plan_id is None:
             self.status_label.text = "Kein Schichtplan gewählt."
             self.status_label.color = theme.TEXT_SECONDARY
             return
 
-        from openpyxl import Workbook
-
-        from berichte.excel_layout import ROT, Exportblatt, blattname
-
         plan = self.db.get_shift_plan(self.selected_plan_id)
-        schichten = self.db.get_shifts(self.selected_plan_id)
+        alle = self._schichten_laden()
 
-        if not schichten:
+        if not alle:
             self.status_label.text = "Dieser Plan ist noch leer."
             self.status_label.color = theme.TEXT_SECONDARY
             return
 
-        besetzt, plaetze, offen = self.db.get_shift_plan_summary(plan["id"])
+        suchtext = self.suche_input.text.strip()
 
-        workbook = Workbook()
+        schichten = [s for s in alle if schichtzeiten.passt_zu(s, suchtext)]
 
-        blatt = Exportblatt(
-            workbook.active,
-            f"Schichtplan {plan['event_name']}",
-            (
-                f"{self.format_date(plan['event_date'])} · "
-                f"{besetzt} von {plaetze} Plätzen besetzt"
-                + (f", {offen} Schichten brauchen noch Helfer" if offen else "")
-            ),
-            breiten=(28, 10, 10, 8, 8, 10, 50),
-        )
-        blatt.blatt.title = blattname(plan["event_name"], "Schichtplan")
+        if not schichten:
+            self.status_label.text = f"\"{suchtext}\" ist in keiner Schicht eingetragen."
+            self.status_label.color = theme.TEXT_SECONDARY
+            return
 
-        zeilen = []
+        titel = f"Schichtplan {plan['event_name']}"
 
-        for schicht in schichten:
+        if suchtext:
+            titel += f" - {suchtext}"
 
-            namen = ", ".join(
-                helfer["name"]
-                for helfer in self.db.get_shift_helpers(schicht["id"])
-            )
-
-            fehlen = max(0, schicht["needed"] - schicht["besetzt"])
-
-            zeilen.append((
-                schicht["task"],
-                schicht["start_time"] or "",
-                schicht["end_time"] or "",
-                schicht["needed"],
-                schicht["besetzt"],
-                fehlen if fehlen else "",
-                namen,
-            ))
-
-        blatt.tabelle(
-            ("Tätigkeit", "von", "bis", "Soll", "Ist", "fehlen", "Helfer"),
-            zeilen,
-            formate=("text", "text", "text", "zahl", "zahl", "zahl", "text"),
-            summe=(
-                "Summe", "", "", plaetze, besetzt,
-                (plaetze - besetzt) if plaetze > besetzt else "", "",
-            ),
-            umbrechen=(0, 6),
-            # Wo noch Helfer fehlen, steht die Zeile rot.
-            hervorheben=lambda werte: ROT if werte[5] else None,
+        untertitel = (
+            f"{self.format_date(plan['event_date'])} · "
+            f"{schichtplan_bericht.zusammenfassung(schichten)}"
         )
 
-        blatt.drucken()
+        name = dateiname_sicher(plan["event_name"], "plan")
 
-        sicherer_name = "".join(
-            zeichen if zeichen.isalnum() or zeichen in " -_" else "_"
-            for zeichen in plan["event_name"]
-        ).strip().replace(" ", "_")
+        if suchtext:
+            name += "_" + dateiname_sicher(suchtext, "helfer")
 
-        dateiname = (
-            f"schichtplan_{sicherer_name or 'plan'}_"
-            f"{datetime.now():%Y-%m-%d}.xlsx"
-        )
+        stempel = f"{datetime.now():%Y-%m-%d}"
 
-        ziel = storage.export_dir("excel") / dateiname
+        try:
+            if art == "pdf":
+                ziel = storage.export_dir("pdf") / f"schichtplan_{name}_{stempel}.pdf"
+                schichtplan_bericht.pdf(titel, untertitel, schichten, ziel, alle)
+            else:
+                ziel = storage.export_dir("excel") / f"schichtplan_{name}_{stempel}.xlsx"
+                schichtplan_bericht.excel(titel, untertitel, schichten, ziel, alle)
 
-        workbook.save(ziel)
+        except OSError as fehler:
+            # Meist ist die Datei gerade in Excel geöffnet.
+            self.status_label.text = f"Ausgabe fehlgeschlagen: {fehler}"
+            self.status_label.color = theme.ERROR
+            return
 
         self.letzte_ausgabe = ziel
 

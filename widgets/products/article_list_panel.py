@@ -408,18 +408,22 @@ class ArticleListPanel(RoundedPanel):
 
         if self.ansicht == "inaktiv":
 
-            for article in articles:
+            for position, article in enumerate(articles):
                 row = InaktiveArtikelZeile(
                     article=article,
                     aktivieren_callback=self.aktivieren_callback,
                     edit_callback=self.edit_callback,
+                    zebra=position % 2 == 1,
                 )
                 self.rows[article["id"]] = row
                 self.list_layout.add_widget(row)
 
             return
 
-        for article in articles:
+        # Abwechselnd weiß und leicht grau: Die Zeilen standen weiß auf
+        # weißer Karte, und bei zwanzig Artikeln verrutschte das Auge
+        # zwischen Name und Bestand in die Nachbarzeile.
+        for position, article in enumerate(articles):
             row = ArticleListRow(
                 article=article,
                 order_amount=order_amounts.get(article["id"], 0),
@@ -427,6 +431,7 @@ class ArticleListPanel(RoundedPanel):
                 confirm_callback=self.confirm_callback,
                 edit_callback=self.edit_callback,
                 delete_callback=self.delete_callback,
+                zebra=position % 2 == 1,
             )
             self.rows[article["id"]] = row
             self.list_layout.add_widget(row)

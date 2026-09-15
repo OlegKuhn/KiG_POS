@@ -268,6 +268,12 @@ KATALOG = [
          "Position erscheint im Warenkorb, Summe stimmt.",
          "RTH"),
 
+        ("Lange Namen auf der Kachel",
+         "Kasse, Artikel mit langem Namen (z. B. \"Apfelschorle naturtrüb\")",
+         "Name in zwei Zeilen, nicht abgeschnitten; Bestand darunter "
+         "vollständig lesbar, Preis unten.",
+         "RTH"),
+
         ("Menge direkt ändern",
          "Warenkorb, Plus/Minus an der Position",
          "Menge und Summe ändern sich sofort.",
@@ -398,7 +404,8 @@ KATALOG = [
         ("Übersicht",
          "Artikel",
          "Die Artikelliste hat den ganzen Bildschirm; die Kategorien "
-         "stehen unten in der Leiste.",
+         "stehen unten in der Leiste. Zeilen abwechselnd weiß und "
+         "leicht grau.",
          "RTH"),
 
         ("Kategorien in der Leiste",
@@ -796,9 +803,10 @@ KATALOG = [
 
         ("PDF ausgeben",
          "Statistik, \"PDF\"",
-         "Seite 1 Dashboard (Kennzahlen, Kreis, stärkste Artikel), "
-         "Seite 2 Verkäufe nach Kategorie, danach die Tabellen auf "
-         "eigenen Seiten; auch auf dem Tablet; folgt der Auswahl.",
+         "Seite 1 Dashboard (Kennzahlen, Kreis, Topseller je Kategorie), "
+         "Seite 2 Verkäufe nach Kategorie, danach die Artikel als "
+         "Tabelle nach Kategorien, Zeilen weiß/grau; auch auf dem "
+         "Tablet; folgt der Auswahl.",
          "RTH"),
 
     ]),

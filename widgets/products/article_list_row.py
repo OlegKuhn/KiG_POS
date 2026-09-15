@@ -85,6 +85,7 @@ class ArticleListRow(BoxLayout):
             confirm_callback,
             edit_callback,
             delete_callback,
+            zebra=False,
             **kwargs
     ):
         super().__init__(
@@ -109,8 +110,9 @@ class ArticleListRow(BoxLayout):
         # Bestellmenge nicht: die steht woanders und darf mit.
         self.nur_ansicht = schreibschutz.nur_ansicht()
 
+        # Jede zweite Zeile leicht grau (siehe ArticleListPanel.set_articles)
         with self.canvas.before:
-            Color(*theme.CARD)
+            Color(*(theme.ZEILE_ALT if zebra else theme.CARD))
             self._background = RoundedRectangle(
                 pos=self.pos, size=self.size, radius=[dp(10)]
             )
@@ -501,7 +503,8 @@ class InaktiveArtikelZeile(BoxLayout):
     HOEHE = 68
     SCHMAL_HOEHE = 64
 
-    def __init__(self, article, aktivieren_callback, edit_callback, **kwargs):
+    def __init__(self, article, aktivieren_callback, edit_callback, zebra=False,
+                 **kwargs):
 
         super().__init__(
             orientation="horizontal",
@@ -518,8 +521,9 @@ class InaktiveArtikelZeile(BoxLayout):
 
         is_mix = article["article_type"] == "MIX"
 
+        # Jede zweite Zeile leicht grau (siehe ArticleListPanel.set_articles)
         with self.canvas.before:
-            Color(*theme.CARD)
+            Color(*(theme.ZEILE_ALT if zebra else theme.CARD))
             self._background = RoundedRectangle(
                 pos=self.pos, size=self.size, radius=[dp(10)]
             )

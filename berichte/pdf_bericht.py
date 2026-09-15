@@ -63,6 +63,10 @@ TEXT = (34, 34, 34)
 GRAU = (107, 107, 107)
 LINIE = (217, 217, 217)
 ZEBRA = (247, 247, 247)
+
+# Jede zweite Tabellenzeile - dunkler als ZEBRA, damit die Abgrenzung
+# auch ausgedruckt noch zu sehen ist.
+ZEILE_ALT = (236, 236, 236)
 WEISS = (255, 255, 255)
 ROT = (198, 40, 40)
 GRUEN = (46, 125, 50)
@@ -537,6 +541,10 @@ class PdfBericht:
         ausrichtung: je Spalte "left" oder "right"
         summe:       optional eine fette Summenzeile
         farben:      optional f(zeile) -> Schriftfarbe (RGB) oder None
+
+        Eine Zeile kann auch eine Zwischenüberschrift sein - ein
+        Wörterbuch {"gruppe": "Bier", "rechts": "551,00 €",
+        "farbe": "#F57C00"}. Die Zeilen darunter beginnen wieder weiß.
         """
 
         ausrichtung = ausrichtung or ("left",) * len(kopf)
@@ -568,15 +576,55 @@ class PdfBericht:
         self._platz(kopf_hoehe + zeilen_hoehe * 2)
         kopfzeile()
 
-        for position, werte in enumerate(zeilen):
+        gruppen_hoehe = 44
+        f_gruppe = schrift(21, fett=True)
+        position = 0
+
+        for werte in zeilen:
+
+            if isinstance(werte, dict):
+
+                # Eine Zwischenüberschrift allein unten auf der Seite
+                # hilft niemandem - sie nimmt eine Zeile mit.
+                if self._platz(gruppen_hoehe + zeilen_hoehe):
+                    kopfzeile()
+
+                self.malen.rectangle(
+                    (RAND, self.y, self.breite - RAND, self.y + gruppen_hoehe),
+                    fill=ORANGE_HELL,
+                )
+                self.malen.rectangle(
+                    (RAND, self.y, RAND + 10, self.y + gruppen_hoehe),
+                    fill=farbe_aus_hex(werte.get("farbe")),
+                )
+                self.malen.text(
+                    (RAND + 24, self.y + 10), werte["gruppe"],
+                    font=f_gruppe, fill=TEXT,
+                )
+
+                rechts = werte.get("rechts") or ""
+
+                if rechts:
+                    self.malen.text(
+                        (self.breite - RAND - innen
+                         - self.malen.textlength(rechts, font=f_gruppe), self.y + 10),
+                        rechts, font=f_gruppe, fill=TEXT,
+                    )
+
+                self.y += gruppen_hoehe
+                position = 0
+                continue
 
             if self._platz(zeilen_hoehe):
                 kopfzeile()
 
+            # Abwechselnd weiß und grau
             if position % 2 == 1:
                 self.malen.rectangle(
-                    (RAND, self.y, self.breite - RAND, self.y + zeilen_hoehe), fill=ZEBRA
+                    (RAND, self.y, self.breite - RAND, self.y + zeilen_hoehe), fill=ZEILE_ALT
                 )
+
+            position += 1
 
             farbe = farben(werte) if callable(farben) else None
 

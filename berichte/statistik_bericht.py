@@ -401,15 +401,34 @@ def _zahl(wert):
     return f"{wert:g}".replace(".", ",")
 
 
+def topseller(daten):
+    """Je Kategorie der Artikel, der am häufigsten verkauft wurde (bei
+    gleicher Menge der mit mehr Umsatz) - in der Reihenfolge der
+    Kategorien. Liefert [(kategorie, farbe, artikel), ...]."""
+
+    ergebnis = []
+
+    for name, farbe, eintraege, _summen in nach_kategorie(daten):
+
+        if not eintraege:
+            continue
+
+        bester = max(eintraege, key=lambda e: (e["menge"], e["umsatz"]))
+
+        ergebnis.append((name, farbe, bester))
+
+    return ergebnis
+
+
 def pdf(daten, pfad):
     """Schreibt den Bericht als PDF nach `pfad` und liefert den Pfad.
 
-    Seite 1   das Dashboard: Kennzahlen, Kreis je Kategorie und die
-              stärksten Artikel als Balken - so viele, wie auf die
-              Seite passen
+    Seite 1   das Dashboard: Kennzahlen, Kreis je Kategorie und der
+              Topseller jeder Kategorie
     Seite 2   die Verkäufe nach Kategorie: je Kategorie Summe und
               ihre Artikel als Balken (gleicher Maßstab für alle)
-    danach    die Tabellen, jede auf eigenen Seiten
+    danach    die Artikel als Tabelle - in derselben Reihenfolge wie
+              auf Seite 2, auf die Kategorien verteilt
     """
 
     geld = geldformat.geld
@@ -443,20 +462,15 @@ def pdf(daten, pfad):
     bericht.ueberschrift("Umsatz nach Kategorie", platz_danach=360)
     bericht.kreisdiagramm(daten["kategorien"], betrag_text=geld, durchmesser=340)
 
-    # So viele Balken, wie noch auf die Seite passen - mindestens drei.
-    zeilen_hoehe = 58
-    passen = int((bericht.platz_uebrig() - 80 - 16) // zeilen_hoehe)
-    anzahl = max(3, min(len(artikel), passen))
+    # Der meistverkaufte Artikel jeder Kategorie - Balken nach Stückzahl,
+    # in der Farbe der Kategorie
+    beste = topseller(daten)
 
-    bericht.ueberschrift(
-        "Umsatz je Artikel" if anzahl >= len(artikel)
-        else f"Die {anzahl} umsatzstärksten Artikel",
-        platz_danach=zeilen_hoehe * 3,
-    )
+    bericht.ueberschrift("Topseller je Kategorie", platz_danach=58 * 2)
     bericht.balkendiagramm(
-        [(e["name"], e["umsatz"], e["farbe_hex"]) for e in artikel[:anzahl]],
-        betrag_text=geld,
-        zusatz_text=lambda i: f"{artikel[i]['kategorie']} · {_zahl(artikel[i]['menge'])} Stück",
+        [(e["name"], e["menge"], farbe) for _name, farbe, e in beste],
+        betrag_text=lambda menge: f"{_zahl(menge)} Stück",
+        zusatz_text=lambda i: f"{beste[i][0]} · {geld(beste[i][2]['umsatz'])}",
     )
 
     # -----------------------------------------------------
@@ -467,9 +481,11 @@ def pdf(daten, pfad):
 
     bericht.ueberschrift("Verkäufe nach Kategorie")
 
+    gruppen = nach_kategorie(daten)
+
     groesster = max((e["umsatz"] for e in artikel), default=0)
 
-    for name, farbe, eintraege, summen in nach_kategorie(daten):
+    for name, farbe, eintraege, summen in gruppen:
 
         anteil = f"{100 * summen['anteil']:.1f} %".replace(".", ",")
 
@@ -489,59 +505,40 @@ def pdf(daten, pfad):
         )
 
     # -----------------------------------------------------
-    # Ab Seite 3: Tabellen
+    # Ab Seite 3: die Artikel als Tabelle
     # -----------------------------------------------------
-
-    bericht.seitenumbruch()
-
-    bericht.ueberschrift("Umsatz nach Kategorie")
-
-    gruppen = nach_kategorie(daten)
-
-    bericht.tabelle(
-        ("Kategorie", "Menge", "Umsatz", "Anteil", "Gewinn"),
-        [
-            (
-                name, _zahl(summen["menge"]), geld(summen["umsatz"]),
-                f"{100 * summen['anteil']:.1f} %".replace(".", ","),
-                geld(summen["gewinn"]),
-            )
-            for name, _farbe, _eintraege, summen in gruppen
-        ],
-        anteile=(0.32, 0.14, 0.2, 0.14, 0.2),
-        ausrichtung=("left", "right", "right", "right", "right"),
-        summe=(
-            "Summe",
-            _zahl(sum(g[3]["menge"] for g in gruppen)),
-            geld(sum(g[3]["umsatz"] for g in gruppen)),
-            "100,0 %",
-            geld(sum(g[3]["gewinn"] for g in gruppen)),
-        ),
-    )
 
     bericht.seitenumbruch()
 
     bericht.ueberschrift("Verkäufe je Artikel")
 
-    # Nach Kategorie gegliedert wie Seite 2, innerhalb nach Umsatz
-    sortiert = [e for _n, _f, eintraege, _s in gruppen for e in eintraege]
+    zeilen = []
+
+    for name, farbe, eintraege, summen in gruppen:
+
+        zeilen.append({
+            "gruppe": name,
+            "rechts": f"{_zahl(summen['menge'])} Stück  ·  {geld(summen['umsatz'])}",
+            "farbe": farbe,
+        })
+
+        for e in eintraege:
+            zeilen.append((
+                e["name"], _zahl(e["menge"]), geld(e["umsatz"]), geld(e["gewinn"]),
+            ))
 
     bericht.tabelle(
-        ("Kategorie", "Artikel", "Menge", "Umsatz", "Gewinn"),
-        [
-            (e["kategorie"], e["name"], _zahl(e["menge"]), geld(e["umsatz"]),
-             geld(e["gewinn"]))
-            for e in sortiert
-        ],
-        anteile=(0.22, 0.34, 0.12, 0.16, 0.16),
-        ausrichtung=("left", "left", "right", "right", "right"),
+        ("Artikel", "Menge", "Umsatz", "Gewinn"),
+        zeilen,
+        anteile=(0.46, 0.14, 0.2, 0.2),
+        ausrichtung=("left", "right", "right", "right"),
         summe=(
-            "Summe", "",
+            "Summe",
             _zahl(sum(e["menge"] for e in artikel)),
             geld(sum(e["umsatz"] for e in artikel)),
             geld(sum(e["gewinn"] for e in artikel)),
         ),
-        farben=lambda werte: ROT if werte[4].startswith("-") else None,
+        farben=lambda werte: ROT if werte[3].startswith("-") else None,
     )
 
     bericht.speichern(pfad)

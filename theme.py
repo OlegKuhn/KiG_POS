@@ -53,6 +53,10 @@ _LIGHT_COLORS = {
     "BACKGROUND": (0.95, 0.95, 0.95, 1),
     "SURFACE": (0.97, 0.97, 0.97, 1.0),
     "CARD": (1.0, 1.0, 1.0, 1.0),
+
+    # Jede zweite Zeile einer langen Liste - leicht grau, damit das
+    # Auge beim Lesen nicht in die Nachbarzeile rutscht.
+    "ZEILE_ALT": (0.935, 0.935, 0.935, 1.0),
     "CONTENT_BACKGROUND": (0.985, 0.985, 0.985, 1),
     "CARD_BORDER": (0.84, 0.84, 0.84, 1),
 
@@ -119,6 +123,7 @@ _DARK_COLORS = {
     "BACKGROUND": (0.09, 0.09, 0.10, 1),
     "SURFACE": (0.15, 0.15, 0.16, 1.0),
     "CARD": (0.17, 0.17, 0.18, 1.0),
+    "ZEILE_ALT": (0.21, 0.21, 0.22, 1.0),
     "CONTENT_BACKGROUND": (0.10, 0.10, 0.11, 1),
     "CARD_BORDER": (0.28, 0.28, 0.30, 1),
 
@@ -648,7 +653,9 @@ NARROW_ARTICLE_TILE_HEIGHT = 88
 
 NARROW_ARTICLE_SPALTEN = 2
 NARROW_ARTICLE_MIN_WIDTH = 120
-NARROW_ARTICLE_VERHAELTNIS = 0.56
+# Etwas höher als früher (0,56): Ein Name darf zwei Zeilen belegen, und
+# darunter muss "Bestand: 48" noch ganz zu lesen sein.
+NARROW_ARTICLE_VERHAELTNIS = 0.64
 
 
 def narrow_article_tile():

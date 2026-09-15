@@ -261,7 +261,10 @@ TOPICS = [
                 "heading": "Artikel in den Warenkorb legen",
                 "text": (
                     "Ein Tipp auf eine Artikelkachel legt den Artikel in "
-                    "den Warenkorb. Tippst du denselben Artikel erneut "
+                    "den Warenkorb. Passt ein Name nicht in eine Zeile, "
+                    "steht er in zweien - wenn nötig etwas kleiner -, "
+                    "darunter der Bestand und unten der Preis. "
+                    "Tippst du denselben Artikel erneut "
                     "an, erhöht sich einfach dessen Menge. Rechts siehst "
                     "du jede Position mit Menge, Einzelpreis und "
                     "Zeilensumme sowie unten die Gesamtsumme.\n\n"
@@ -462,7 +465,9 @@ TOPICS = [
                     "an einem Ort zusammen: Stammdaten, Bestand, Einkauf "
                     "und Rezepte. Links stehen die Kategorien, rechts die "
                     "Artikelliste mit Verkaufs- und Einkaufspreis, "
-                    "Bestand und offener Bestellmenge."
+                    "Bestand und offener Bestellmenge. Die Zeilen sind "
+                    "abwechselnd weiß und leicht grau hinterlegt, damit "
+                    "man beim Lesen in der Zeile bleibt."
                 ),
                 "image": "artikel/01_liste.png",
             },
@@ -1428,14 +1433,15 @@ TOPICS = [
                     "Das PDF ist der Bericht zum Ausdrucken und "
                     "Weiterschicken, in fester Seitenfolge:\n"
                     "Seite 1 ist das Dashboard - Kennzahlen, Kreis je "
-                    "Kategorie und die umsatzstärksten Artikel als "
-                    "Balken, so viele wie auf die Seite passen.\n"
+                    "Kategorie und der Topseller jeder Kategorie, also "
+                    "ihr meistverkaufter Artikel mit Stückzahl.\n"
                     "Seite 2 zeigt die Verkäufe nach Kategorie: je "
                     "Kategorie Stückzahl, Umsatz und Anteil, darunter "
                     "ihre Artikel als Balken im selben Maßstab.\n"
-                    "Danach folgen die Tabellen auf eigenen Seiten: "
-                    "Umsatz nach Kategorie und Verkäufe je Artikel, nach "
-                    "Kategorie gegliedert.\n"
+                    "Danach folgen die Artikel als Tabelle - in derselben "
+                    "Reihenfolge wie auf Seite 2, unter der Überschrift "
+                    "ihrer Kategorie, die Zeilen abwechselnd weiß und "
+                    "grau.\n"
                     "Die Einzelverkäufe stehen nur in Excel. Das PDF "
                     "landet in exports/pdf und entsteht auch auf dem "
                     "Tablet.\n\n"

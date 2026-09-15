@@ -41,6 +41,10 @@ class CashArticleTile(KiGTile):
 
     STOCK_SIZE = 13
 
+    # Kleiner als das wird ein Name nicht - lieber bricht die zweite
+    # Zeile ab, als dass er unlesbar wird.
+    MIN_TITLE_SIZE = 11
+
     def __init__(
             self,
             article,
@@ -94,8 +98,15 @@ class CashArticleTile(KiGTile):
         # Artikelname
         # =====================================================
 
+        # Mehr Höhe als früher: Passt ein Name nicht in eine Zeile,
+        # steht er in zweien (siehe _titel_einpassen). Bestand und
+        # Preis rücken dafür nach unten.
+        # Auf dem Telefon ist die Kachel flach - dort braucht der
+        # Bestand einen größeren Anteil, sonst wird er angeschnitten.
+        schmal = theme.is_narrow()
+
         self.lbl_title = KiGLabel(
-            size_hint=(1, 0.52)
+            size_hint=(1, 0.52 if schmal else 0.58)
         )
 
         self.lbl_title.set_bold(True)
@@ -111,13 +122,12 @@ class CashArticleTile(KiGTile):
         self.lbl_title.horizontal_alignment = "left"
         self.lbl_title.vertical_alignment = "middle"
 
-        # Sehr lange Artikelnamen sollen die feste Kachelhöhe nicht
-        # sprengen (der Text würde sonst oben/unten über die Kachel
-        # hinausgezeichnet) - ab der dritten Zeile wird deshalb mit
-        # "…" abgeschnitten statt weiter zu umbrechen.
+        # Höchstens zwei Zeilen. "shorten" bleibt aus: Damit setzt Kivy
+        # jeden Text in eine einzige Zeile und kürzt ihn - aus
+        # "Apfelschorle naturtrüb" wurde "Apfelschorle na…", obwohl
+        # darunter Platz für eine zweite Zeile war.
         self.lbl_title.max_lines = 2
-        self.lbl_title.shorten = True
-        self.lbl_title.shorten_from = "right"
+        self.lbl_title.shorten = False
 
         self.lbl_title.bind(
             size=lambda instance, value:
@@ -128,11 +138,13 @@ class CashArticleTile(KiGTile):
             )
         )
 
+        self.lbl_title.bind(size=lambda *_a: self._titel_einpassen())
+
         self.layout.add_widget(
             self.lbl_title
         )
 
-        self.lbl_stock = KiGLabel(size_hint=(1, 0.18))
+        self.lbl_stock = KiGLabel(size_hint=(1, 0.2 if schmal else 0.14))
         self.lbl_stock.set_font_size(self.STOCK_SIZE)
         self.lbl_stock.set_color(theme.TEXT_SECONDARY)
         self.lbl_stock.horizontal_alignment = "left"
@@ -147,7 +159,7 @@ class CashArticleTile(KiGTile):
         # =====================================================
 
         self.lbl_price = KiGLabel(
-            size_hint=(1, 0.30)
+            size_hint=(1, 0.28)
         )
 
         self.lbl_price.set_bold(False)
@@ -242,9 +254,79 @@ class CashArticleTile(KiGTile):
     # Inhalt
     # =========================================================
 
+    def _titel_einpassen(self, *_args):
+        """Wählt die Schriftgröße des Namens.
+
+        Passt er in voller Größe in eine Zeile, bleibt es dabei. Sonst
+        wird er auf zwei Zeilen umbrochen - und so weit verkleinert,
+        dass beide Zeilen in die Kachel passen und kein einzelnes Wort
+        über den Rand ragt.
+        """
+
+        breite, hoehe = self.lbl_title.size
+        titel = self.title or ""
+
+        if breite <= 1 or hoehe <= 1 or not titel:
+            return
+
+        schluessel = (titel, round(breite), round(hoehe))
+
+        if getattr(self, "_titel_masse", None) == schluessel:
+            return
+
+        self._titel_masse = schluessel
+
+        from kivy.core.text import Label as CoreLabel
+        from kivy.metrics import sp
+
+        def ausmass(text, groesse):
+            return CoreLabel(font_size=sp(groesse), bold=True).get_extents(text)
+
+        def zeilen(groesse):
+            """Wie viele Zeilen braucht der Name - None, wenn ein Wort
+            allein breiter ist als die Kachel."""
+
+            anzahl = 1
+            zeile = ""
+
+            for wort in titel.split():
+
+                if ausmass(wort, groesse)[0] > breite:
+                    return None
+
+                probe = f"{zeile} {wort}".strip()
+
+                if ausmass(probe, groesse)[0] <= breite:
+                    zeile = probe
+                else:
+                    anzahl += 1
+                    zeile = wort
+
+            return anzahl
+
+        gewaehlt = self.MIN_TITLE_SIZE
+
+        for groesse in range(self.TITLE_SIZE, self.MIN_TITLE_SIZE - 1, -1):
+
+            benoetigt = zeilen(groesse)
+
+            if benoetigt is None or benoetigt > 2:
+                continue
+
+            zeilenhoehe = ausmass(titel, groesse)[1]
+
+            if benoetigt * zeilenhoehe <= hoehe:
+                gewaehlt = groesse
+                break
+
+        if self.lbl_title.text_size_sp != gewaehlt:
+            self.lbl_title.set_font_size(gewaehlt)
+
     def _update_content(self, *args):
 
         self.lbl_title.text = self.title
+
+        self._titel_einpassen()
 
         self.lbl_title.text_size = (
             self.lbl_title.size

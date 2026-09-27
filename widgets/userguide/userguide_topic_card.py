@@ -1,56 +1,71 @@
-"""Auswählbares Thema in der Userguide-Themenliste, im Stil von CategoryCard."""
+"""Ein Thema in der Themenliste des Handbuchs - als Register.
+
+Bis hierher war es eine flache Schaltflaeche in Kartenfarbe: ohne
+Rand, ohne Rundung, gewaehlt einfach ganz orange. Neben den Reitern
+der Ertraege ("Kassenbuch" / "Statistik") sah dieselbe Auswahl damit
+aus wie zwei verschiedene Programme.
+
+Jetzt dasselbe Register wie dort (widgets/cash/design.SectionButton):
+abgerundet, mit leicht getoenter Flaeche und Rand, gewaehlt in der
+Bereichsfarbe. Das Handbuch traegt Blau - dieselbe Farbe, die auch
+seine Kachel in der Kopfzeile unterstreicht (siehe
+widgets/common/design_navigation.py).
+"""
 
 from kivy.metrics import dp
-from kivy.uix.button import Button
 
 import theme
 
+from widgets.cash.design import SectionButton
 
-class UserguideTopicCard(Button):
+
+class UserguideTopicCard(SectionButton):
+
+    # Bereichsfarbe des Handbuchs
+    TONE = "blue"
+
+    HOEHE = 56
 
     def __init__(self, topic, callback=None, **kwargs):
-        super().__init__(**kwargs)
 
         self.topic = topic
         self.callback = callback
 
+        super().__init__(
+            tone=self.TONE,
+            text=topic["title"],
+            font_size="18sp",
+            bold=True,
+            **kwargs
+        )
+
         self.size_hint = (1, None)
-        self.height = dp(50) if theme.is_narrow() else dp(56)
+        self.height = dp(self.HOEHE)
 
-        self.text = topic["title"]
-        # Telefon: zwei Karten nebeneinander statt drei, und mit
-        # 18 sp brach schon "Kasse" mittendrin um.
-        self.font_size = "13sp" if theme.is_narrow() else "18sp"
-        self.bold = True
-
+        # Linksbuendig wie eine Zeile in einer Liste - die Reiter der
+        # Ertraege stehen mittig, weil dort nur zwei nebeneinander
+        # liegen; hier sind es zehn untereinander.
         self.halign = "left"
         self.valign = "middle"
         self.padding = (dp(theme.CARD_PADDING), 0)
 
-        self.background_normal = ""
-        self.background_down = ""
-
-        self.background_color = theme.CARD
-        self.color = theme.TEXT_PRIMARY
-
         self.bind(size=self._update_text_size)
+        self._update_text_size()
 
     def _update_text_size(self, *_args):
 
         self.text_size = (
-            self.width - dp(32),
+            self.width - 2 * dp(theme.CARD_PADDING),
             self.height
         )
 
-    def select(self):
-
-        self.background_color = theme.PRIMARY_ORANGE
-        self.color = theme.TEXT_WHITE
+    # Die Themenliste schaltet mit select()/unselect() um; das
+    # Register selbst kennt nur select(aktiv).
+    def select(self, active=True):
+        super().select(active)
 
     def unselect(self):
-
-        self.background_color = theme.CARD
-        self.color = theme.TEXT_PRIMARY
+        super().select(False)
 
     def on_release(self):
 

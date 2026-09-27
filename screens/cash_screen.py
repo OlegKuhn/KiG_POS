@@ -38,6 +38,8 @@ from models.article import Article
 from database import DatabaseManager
 
 from widgets.cash.left_panel import CashLeftPanel
+from widgets.cash.design import CashButton
+from widgets.kig_label import KiGLabel
 from widgets.cash.cart.cart_panel import CartPanel
 from widgets.cash.edit.edit_panel import EditPanel
 from widgets.common.kig_popup import KiGPopup
@@ -56,6 +58,11 @@ class CashScreen(Screen):
 
         super().__init__(**kwargs)
 
+        with self.canvas.before:
+            Color(*theme.BACKGROUND)
+            self._screen_background = Rectangle(pos=self.pos, size=self.size)
+        self.bind(pos=self._update_screen_background, size=self._update_screen_background)
+
         self.cart = Cart()
 
         self.database = DatabaseManager()
@@ -64,16 +71,6 @@ class CashScreen(Screen):
 
         # Aktuell bearbeitete Position
         self.current_cart_item = None
-
-        # Läuft gerade ein Tipp aus der Schnellwahl? Siehe
-        # payment_shortcut - der Nummernblock meldet die Änderung
-        # zurück, und die Rückmeldung muss unterscheiden können,
-        # woher der Betrag kam.
-        self._schnellwahl_laeuft = False
-
-        # Wird gerade der Betrag für KiG Karte oder Gutschein
-        # eingetippt? Dann der Schlüssel ("kig_karte"/"gutschein").
-        self._entwertung_art = None
 
         # Im Storno-Modus sammelt derselbe Warenkorb die Artikel, die
         # zurückgenommen werden sollen. Gebucht wird daraus dann eine
@@ -125,11 +122,12 @@ class CashScreen(Screen):
         # Payment Panel
         # =====================================================
 
+        # Ein Dialog, kein Panel: Aufstellung und Nummernblock stehen
+        # darin nebeneinander (siehe payment_panel.py). Schnellwahl,
+        # KiG Karte und Gutschein regelt er selbst.
         self.payment_panel = PaymentPanel(
             cancel_callback=self.payment_cancelled,
             ok_callback=self.payment_confirmed,
-            shortcut_callback=self.payment_shortcut,
-            entwertung_callback=self.payment_entwertung,
         )
 
         # =====================================================
@@ -154,8 +152,8 @@ class CashScreen(Screen):
             storno_cancel_callback=lambda *_args: self.cancel_storno()
         )
 
-        # Klappt der Warenkorb auf dem Telefon auf oder zu, ändert sich
-        # seine Höhe - und damit der Platz für die Artikel.
+        # Klappt der Warenkorb im Hochformat auf oder zu, ändert
+        # sich seine Höhe - und damit der Platz für die Artikel.
         if getattr(self.right_panel, "klappbar", False):
             self.right_panel.on_klapp = self._korb_umgeklappt
 
@@ -170,7 +168,36 @@ class CashScreen(Screen):
         self.root_layout = FloatLayout()
 
         self.layout.size_hint = (1, 1)
-        self.root_layout.add_widget(self.layout)
+        if self.hochformat:
+            self.root_layout.add_widget(self.layout)
+        else:
+            self.page = BoxLayout(orientation='vertical', padding=dp(30), spacing=dp(18))
+            self.layout.padding = 0
+            self.layout.spacing = dp(24)
+            # Keine Überschrift: Welcher Bildschirm offen ist, zeigt die
+            # Kachel in der Kopfzeile. Die Zeile darüber gehört damit
+            # ganz der Suche und den Kategorien - "Storno" steht wieder
+            # neben "Leeren" im Warenkorb.
+            article_panel = self.left_panel.article_panel_widget
+            article_panel.remove_widget(article_panel.search_row)
+            article_panel.search_row.size_hint = (None, 1)
+            article_panel.search_row.width = dp(320)
+
+            article_panel.remove_widget(self.left_panel.category_row)
+
+            # index=len(children): ganz nach links, vor "Alle Kategorien"
+            self.left_panel.category_row.add_widget(
+                article_panel.search_row,
+                index=len(self.left_panel.category_row.children),
+            )
+
+            self.page.add_widget(self.left_panel.category_row)
+            self.page.add_widget(self.layout)
+            self.root_layout.add_widget(self.page)
+            self.right_panel.size_hint_y = None
+            self.right_panel.pos_hint = {'top': 1}
+            self.layout.bind(height=self._update_cart_width)
+            self.right_panel.items_container.bind(height=self._update_cart_width)
 
         for panel in self.overlay_panels:
 
@@ -195,6 +222,9 @@ class CashScreen(Screen):
             self.layout.bind(height=lambda *_args: self._update_cart_height())
             self._update_cart_height()
 
+        if not self.hochformat:
+            self.layout.bind(width=self._update_cart_width)
+            self._update_cart_width()
         self._render_layout()
 
         self.add_widget(self.root_layout)
@@ -209,7 +239,7 @@ class CashScreen(Screen):
         mehrere offen sind (der Nummernblock liegt über dem
         Bearbeiten-Panel: Er ist das, worauf gerade getippt wird)."""
 
-        return (self.numpad_panel, self.payment_panel, self.edit_panel)
+        return (self.numpad_panel, self.edit_panel)
 
     def _render_overlays(self, *_args):
         """Hängt die offenen Panels über die Oberfläche - und nimmt die
@@ -250,8 +280,12 @@ class CashScreen(Screen):
         Warenkorb darunter bleibt sichtbar und bedienbar.
         """
 
-        rand = dp(theme.SCREEN_PADDING)
-        abstand = dp(theme.SCREEN_SPACING)
+        # Rand und Abstand stehen im Layout selbst (siehe __init__).
+        # Eine eigene Zahl hier ginge daneben, sobald sich die Seite
+        # ändert: Das Panel saß zuletzt 10 px weiter rechts als die
+        # Artikelkarte, über die es sich legen soll.
+        links, oben, rechts, unten = self.layout.padding
+        abstand = self.layout.spacing
 
         # Geschlossene Panels hängen nicht in der Oberfläche und haben
         # dort auch keinen Platz zu beanspruchen.
@@ -264,9 +298,9 @@ class CashScreen(Screen):
             # Bearbeiten-Panels (Menge, Preis, vier Schaltflächen)
             # braucht mehr Höhe, als dort zur Verfügung steht.
             for panel in offene:
-                panel.width = self.layout.width - 2 * rand
-                panel.height = self.layout.height - 2 * rand
-                panel.pos = (self.layout.x + rand, self.layout.y + rand)
+                panel.width = self.layout.width - links - rechts
+                panel.height = self.layout.height - oben - unten
+                panel.pos = (self.layout.x + links, self.layout.y + unten)
 
             return
 
@@ -278,8 +312,8 @@ class CashScreen(Screen):
 
         for panel in offene:
 
-            panel.height = self.layout.height - 2 * rand
-            panel.y = self.layout.y + rand
+            panel.height = self.layout.height - oben - unten
+            panel.y = self.layout.y + unten
 
             panel.right = rechter_rand
 
@@ -288,8 +322,18 @@ class CashScreen(Screen):
             if panel.width > 0:
                 rechter_rand -= panel.width + abstand
 
+    def _update_screen_background(self, *_):
+        self._screen_background.pos = self.pos
+        self._screen_background.size = self.size
+
+    def _update_cart_width(self, *_):
+        # Breiter Warenkorb wie im Entwurf, mit Platz für Artikel am Tablet.
+        self.right_panel.width = max(dp(330), min(dp(540), self.layout.width * 0.37))
+        self.right_panel.height = min(self.layout.height, max(dp(378),
+            self.right_panel.items_container.height + dp(240)))
+
     def _korb_umgeklappt(self, offen):
-        """Telefon: Der aufgeklappte Warenkorb bekommt den ganzen
+        """Hochformat: Der aufgeklappte Warenkorb bekommt den ganzen
         Bildschirm.
 
         Ihn nur höher zu machen, genügte nicht - über ihm blieb der
@@ -328,7 +372,7 @@ class CashScreen(Screen):
             - dp(theme.SCREEN_SPACING)
         )
 
-        # Auf dem Telefon ist der Warenkorb zugeklappt nur eine Zeile -
+        # Zugeklappt ist der Warenkorb nur eine Zeile -
         # den ganzen Rest bekommen die Artikel. Aufgeklappt gehört ihm
         # der Bildschirm: Der Artikelbereich ist dann nicht im Layout
         # (siehe _korb_umgeklappt), es gibt also auch keinen Abstand
@@ -688,17 +732,7 @@ class CashScreen(Screen):
         if len(self.cart.items) == 0:
             return
 
-        total = self.cart.total()
-
-        self.payment_panel.open(total)
-
-        self.open_numpad(
-            value=0,
-            mode="price",
-            confirm_callback=None,
-            cancel_callback=self.payment_cancelled,
-            change_callback=self.payment_amount_changed
-        )
+        self.payment_panel.open(self.cart.total())
 
     # =====================================================
     # Edit Panel
@@ -826,119 +860,9 @@ class CashScreen(Screen):
 
         self.current_cart_item = None
 
-    def payment_amount_changed(self, value):
-
-        amount = value / 100
-
-        self.payment_panel.set_paid_amount(amount)
-
-        # Kommt der Betrag NICHT aus der Schnellwahl, sondern vom
-        # Nummernblock, stimmt die Aufstellung der gelegten Scheine
-        # nicht mehr - dann lieber keine als eine falsche.
-        if not self._schnellwahl_laeuft:
-            self.payment_panel.scheine_zuruecksetzen()
-
-    def payment_shortcut(self, betrag):
-        """Ein Tipp auf einen Schein in der Schnellwahl.
-
-        Der Schein wird DAZUGELEGT, nicht ersetzt: Wer 40 Euro
-        bekommt, tippt zweimal auf 20 - so, wie das Geld auch auf den
-        Tresen wandert.
-
-        Gesetzt wird die Summe im Nummernblock, nicht direkt in der
-        Anzeige: Von dort kommt sie auf demselben Weg zurück wie ein
-        getippter Betrag (change_callback). So gibt es nur einen Weg,
-        auf dem sich der gegebene Betrag ändert - und der
-        Nummernblock zeigt danach dieselbe Zahl, statt weiter auf
-        seinem alten Stand zu stehen.
-        """
-
-        # Solange ein Betrag für KiG Karte oder Gutschein eingetippt
-        # wird, gehört der Nummernblock nicht dem Bargeld.
-        if self._entwertung_art is not None:
-            return
-
-        neuer_wert = (
-            self.numpad_panel.get_value() + int(round(betrag * 100))
-        )
-
-        # Der Nummernblock meldet die Änderung sofort zurück; ohne
-        # diese Klammer hielte payment_amount_changed sie für eine
-        # Eingabe von Hand und würfe die Aufstellung weg.
-        self._schnellwahl_laeuft = True
-
-        try:
-            self.numpad_panel.set_value(neuer_wert)
-        finally:
-            self._schnellwahl_laeuft = False
-
-        self.payment_panel.schein_gelegt(betrag)
-
-    def payment_entwertung(self, art):
-        """Ein Tipp auf "KiG Karte" oder "Gutschein".
-
-        Der Nummernblock nimmt jetzt diesen Betrag auf. Mit OK geht
-        er vom zu zahlenden Betrag ab, mit Abbrechen bleibt es beim
-        alten - in beiden Fällen gehört der Nummernblock danach
-        wieder dem Bargeld.
-        """
-
-        self._entwertung_art = art
-
-        self.payment_panel.entwertung_markieren(art)
-
-        self.open_numpad(
-            value=int(round(self.payment_panel.entwertet(art) * 100)),
-            mode="price",
-            confirm_callback=self.payment_entwertung_confirmed,
-            cancel_callback=self.payment_entwertung_cancelled,
-            change_callback=None
-        )
-
-    def payment_entwertung_confirmed(self, value):
-
-        art = self._entwertung_art
-
-        if art is not None:
-            self.payment_panel.set_entwertet(art, value / 100)
-
-        self._bargeld_eingeben()
-
-    def payment_entwertung_cancelled(self):
-
-        self._bargeld_eingeben()
-
-    def _bargeld_eingeben(self):
-        """Nummernblock zurück auf "Gegeben"."""
-
-        self._entwertung_art = None
-
-        self.payment_panel.entwertung_markieren(None)
-
-        # Der Zahlvorgang kann inzwischen abgebrochen sein.
-        if self.payment_panel.disabled:
-            return
-
-        self._schnellwahl_laeuft = True
-
-        try:
-            self.open_numpad(
-                value=int(round(self.payment_panel.paid * 100)),
-                mode="price",
-                confirm_callback=None,
-                cancel_callback=self.payment_cancelled,
-                change_callback=self.payment_amount_changed
-            )
-        finally:
-            self._schnellwahl_laeuft = False
-
     def payment_cancelled(self):
 
-        self._entwertung_art = None
-
         self.payment_panel.close()
-
-        self.numpad_panel.close()
 
     def payment_confirmed(self):
 
@@ -946,8 +870,6 @@ class CashScreen(Screen):
         # nicht ganz 0,30 - und dann fehlte fürs OK ein Hauch.
         if round(self.payment_panel.paid, 2) < round(self.payment_panel.zu_zahlen, 2):
             return
-
-        self._entwertung_art = None
 
         # Der Bestand wird ausschließlich nach erfolgreicher Zahlung
         # angepasst. Das bloße Leeren des Warenkorbs bleibt folgenlos.
@@ -959,8 +881,6 @@ class CashScreen(Screen):
         self.right_panel.refresh(self.cart)
 
         self.payment_panel.close()
-
-        self.numpad_panel.close()
 
         self.current_cart_item = None
 

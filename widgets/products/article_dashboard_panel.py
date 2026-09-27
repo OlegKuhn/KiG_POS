@@ -19,11 +19,9 @@ Mix-Artikel haben keinen eigenen Bestand; neben ihren Stammdaten steht
 die Zusammensetzung.
 """
 
-from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
-from kivy.uix.scrollview import ScrollView
 
 import theme
 
@@ -85,37 +83,14 @@ class ArticleDashboardPanel(BoxLayout):
         # Karten
         # -------------------------------------------------
         #
-        # Am Rechner und auf dem Tablet nebeneinander, jede fuellt die
-        # volle Hoehe.
-        #
-        # Auf dem Telefon untereinander in einem Rollbereich: Drei
-        # Karten nebeneinander liessen der Stammdatenkarte dort 103
-        # von 384 Punkten - die Eingabefelder waren 32 Punkte breit
-        # und damit unbenutzbar. Untereinander bekommt jede die ganze
-        # Breite.
-        self.schmal = theme.is_narrow()
-
+        # Die Karten stehen nebeneinander, jede fuellt die volle
+        # Hoehe.
         self.cards_layout = BoxLayout(
-            orientation="vertical" if self.schmal else "horizontal",
+            orientation="horizontal",
             spacing=dp(theme.SCREEN_SPACING),
         )
 
-        if self.schmal:
-
-            self.cards_layout.size_hint_y = None
-            self.cards_layout.bind(
-                minimum_height=self.cards_layout.setter("height")
-            )
-
-            self.karten_rollbereich = ScrollView(
-                do_scroll_x=False, bar_width=dp(8)
-            )
-            self.karten_rollbereich.add_widget(self.cards_layout)
-
-            self.add_widget(self.karten_rollbereich)
-
-        else:
-            self.add_widget(self.cards_layout)
+        self.add_widget(self.cards_layout)
 
         self.stammdaten_card = StammdatenCard(
             on_save=on_save, on_numpad=on_numpad,         )
@@ -163,11 +138,6 @@ class ArticleDashboardPanel(BoxLayout):
 
         self._leeren()
 
-        if self.schmal:
-            self.stammdaten_card.set_zweispaltig(False)
-            self._untereinander([(self.stammdaten_card, 430)])
-            return
-
         self.cards_layout.orientation = "horizontal"
 
         self.stammdaten_card.set_zweispaltig(True)
@@ -184,25 +154,6 @@ class ArticleDashboardPanel(BoxLayout):
         self._leeren()
 
         ist_mix = article["article_type"] == "MIX"
-
-        if self.schmal:
-
-            self.stammdaten_card.set_zweispaltig(False)
-
-            if ist_mix:
-                self._untereinander([
-                    (self.stammdaten_card, 430),
-                    (self.rezept_card, 380),
-                ])
-
-            else:
-                self._untereinander([
-                    (self.stammdaten_card, 430),
-                    (self.bestand_card, 90),
-                    (self.verlauf_card, 300),
-                ])
-
-            return
 
         if ist_mix:
 
@@ -241,44 +192,3 @@ class ArticleDashboardPanel(BoxLayout):
 
         self.cards_layout.add_widget(self.links)
         self.cards_layout.add_widget(self.verlauf_card)
-
-    def _untereinander(self, karten):
-        """Stellt die Karten auf dem Telefon untereinander.
-
-        Jede bekommt die ganze Breite und eine eigene Hoehe - sonst
-        teilten sie sich die Hoehe des Rollbereichs und waeren alle
-        drei zu flach.
-        """
-
-        self._karten_hoehen = karten
-
-        for karte, hoehe in karten:
-
-            karte.size_hint_x = 1
-            karte.size_hint_y = None
-            karte.height = dp(hoehe)
-
-            self.cards_layout.add_widget(karte)
-
-        # Nach oben rollen - sonst steht der Bereich dort, wo er beim
-        # letzten Mal stand, und beim ersten Oeffnen ganz unten: Die
-        # erste Karte lag dann oberhalb des Sichtfensters, der
-        # Bildschirm wirkte leer.
-        Clock.schedule_once(self._nach_oben, 0)
-
-    def _nach_oben(self, *_args):
-
-        # Erst die Hoehen: Eine Karte, die ihre Zeilen selbst zaehlen
-        # kann, bekommt so viel, wie sie braucht - der feste Wert ist
-        # nur die Untergrenze. (Die Zeilen stehen erst im naechsten
-        # Bild, deshalb geschieht das hier und nicht in
-        # _untereinander.)
-        for karte, hoehe in getattr(self, "_karten_hoehen", ()):
-
-            gebraucht = getattr(karte, "inhaltshoehe", None)
-
-            if callable(gebraucht):
-                karte.height = max(dp(hoehe), gebraucht())
-
-        if getattr(self, "karten_rollbereich", None) is not None:
-            self.karten_rollbereich.scroll_y = 1

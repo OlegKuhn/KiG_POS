@@ -187,7 +187,6 @@ def _ausrichtung_bestimmen(db):
     und wird festgehalten:
 
         Windows      1500 x 875   -> Querformat
-        Telefon      1080 x 2400  -> Hochformat
         E-Ink-Tablet 1860 x 2480  -> Hochformat, in der Hand gedreht
                                      dann Querformat
 
@@ -197,17 +196,6 @@ def _ausrichtung_bestimmen(db):
     """
 
     gespeichert = db.get_setting("screen_orientation")
-
-    # Auf einem Telefon gibt es nichts zu wählen: Quer ist dort keine
-    # Ausrichtung, sondern ein Ärgernis. Von 412 dp Breite bleiben
-    # gedreht 190 dp Höhe für Kategorien, Artikel und Warenkorb
-    # zusammen - da passt keine einzige Zeile mehr hin.
-    if theme.is_narrow():
-
-        if gespeichert != theme.ORIENTATION_PORTRAIT:
-            db.set_setting("screen_orientation", theme.ORIENTATION_PORTRAIT)
-
-        return theme.ORIENTATION_PORTRAIT
 
     if gespeichert in (theme.ORIENTATION_LANDSCAPE, theme.ORIENTATION_PORTRAIT):
         return gespeichert
@@ -221,37 +209,6 @@ def _ausrichtung_bestimmen(db):
     db.set_setting("screen_orientation", abgeleitet)
 
     return abgeleitet
-
-
-def _drehung_festhalten():
-    """Hält ein Telefon im Hochformat fest.
-
-    Die Oberfläche wird beim Start einmal aufgebaut und ändert sich
-    nicht mehr, wenn das Gerät gedreht wird. Auf einem Tablet ist das
-    egal - dort ist beides brauchbar, und wer umschalten will, tut es
-    in den Einstellungen. Auf einem Telefon dagegen stünde nach dem
-    Drehen ein hochkant gebauter Bildschirm quer im Bild.
-
-    Auf dem Rechner gibt es nichts zu tun.
-    """
-
-    if not IS_ANDROID or not theme.is_narrow():
-        return
-
-    try:
-        from jnius import autoclass
-
-        PythonActivity = autoclass("org.kivy.android.PythonActivity")
-        ActivityInfo = autoclass("android.content.pm.ActivityInfo")
-
-        PythonActivity.mActivity.setRequestedOrientation(
-            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-        )
-
-    except Exception:
-        # Klappt es nicht, bleibt es beim Drehen - unschön, aber kein
-        # Grund, den Start abzubrechen.
-        traceback.print_exc()
 
 
 def apply_window_orientation(orientation):
@@ -446,32 +403,10 @@ class KiGPOS(App):
 
             theme.set_mode(db.get_setting("theme_mode") or "light")
 
-            # Zuerst die Größe: Von ihr hängt alles Weitere ab - auch,
-            # ob die Ausrichtung überhaupt zur Wahl steht.
-            #
-            # Gemessen wird die KÜRZERE Seite, nicht die aktuelle
-            # Breite. Sonst hinge die Anordnung daran, wie das Gerät
-            # beim Start gerade in der Hand lag: Ein Telefon, quer
-            # gestartet, bekäme die Tabletanordnung auf einem
-            # handtellergroßen Schirm. Die kürzere Seite ändert sich
-            # beim Drehen nicht - ein Telefon bleibt ein Telefon.
-            #
-            # Über dp(1) statt über Metrics.density - dieser Weg ist
-            # auf allen Geräten schon geradegerückt (siehe
-            # _umrechnung_sicherstellen).
-            theme.set_breite(
-                min(Window.width, Window.height) / dp(1)
-            )
-
-            # Ausrichtung ebenfalls VOR dem Aufbau setzen - die Screens
-            # fragen sie beim Bauen ab (siehe theme.is_portrait).
+            # Ausrichtung VOR dem Aufbau setzen - die Screens fragen
+            # sie beim Bauen ab (siehe theme.is_portrait).
             theme.set_orientation(_ausrichtung_bestimmen(db))
             apply_window_orientation(theme.get_orientation())
-
-            # Auf dem Telefon soll auch das Gerät selbst nicht mehr
-            # drehen - sonst stünde die Anwendung quer im Bild, während
-            # sie hochkant aufgebaut ist.
-            _drehung_festhalten()
 
         except Exception as error:
             traceback.print_exc()
@@ -491,7 +426,7 @@ class KiGPOS(App):
 
         self.splash.run_startup()
 
-        # Zurück-Taste bzw. Zurück-Wischgeste des Telefons abfangen.
+        # Zurück-Taste bzw. Zurück-Wischgeste des Geräts abfangen.
         # Ohne diese Zeile beendet Android die Anwendung sofort - mitten
         # im Verkauf wäre das ärgerlich.
         if IS_ANDROID:

@@ -13,7 +13,7 @@ Beschreibung:
     Drei Handgriffe wiederholen sich durch das ganze
     Programm - löschen, bearbeiten, neu. Ausgeschrieben
     belegten sie in jeder Zeile Platz ("Bearbeiten" braucht
-    100 dp) und mussten auf dem Telefon irgendwann
+    100 dp) und mussten in engen Zeilen irgendwann
     weichen. Als Bild sind sie überall gleich groß und
     sofort zu erkennen:
 
@@ -101,7 +101,6 @@ class KiGBildButton(Button):
     """
 
     BILD_GROESSE = 26
-    BILD_GROESSE_SCHMAL = 22
 
     def __init__(
             self,
@@ -124,10 +123,7 @@ class KiGBildButton(Button):
 
         self.bild = bild or loeschbild()
 
-        self.bild_groesse = groesse or (
-            self.BILD_GROESSE_SCHMAL if theme.is_narrow()
-            else self.BILD_GROESSE
-        )
+        self.bild_groesse = groesse or self.BILD_GROESSE
 
         # Erst im naechsten Bild zeichnen, nicht bei jedem Zwischenschritt
         # des Layouts - dieselbe Lehre wie bei den gezeichneten Symbolen
@@ -230,7 +226,7 @@ def speicherknopf(callback=None, text="", **kwargs):
     """Eine Diskette auf Orange - die Hauptaktion eines Formulars."""
 
     kwargs.setdefault("background_color", theme.PRIMARY_ORANGE)
-    kwargs.setdefault("color", theme.TEXT_WHITE)
+    kwargs.setdefault("color", theme.TEXT_ON_ACCENT)
 
     knopf = KiGBildButton(bild=speicherbild(), text=text, **kwargs)
 

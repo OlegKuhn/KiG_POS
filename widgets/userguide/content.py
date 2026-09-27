@@ -55,11 +55,7 @@ TOPICS = [
                     "Support - Userguide und Einstellungen.\n\n"
                     "Ein Tipp auf eine Kachel öffnet den jeweiligen "
                     "Bereich. Wie viele Kacheln nebeneinander stehen, "
-                    "richtet sich nach dem Bildschirm - am Rechner vier, "
-                    "auf dem Telefon zwei.\n\n"
-                    "Auf einem Telefon sind die drei Gruppen außerdem "
-                    "klappbar: Ein Tipp auf die Überschrift macht eine "
-                    "Gruppe zu und schafft Platz für die anderen."
+                    "richtet sich nach dem Bildschirm."
                 ),
                 "image": "start/01_startseite.png",
             },
@@ -75,10 +71,9 @@ TOPICS = [
                     "abgeschlossen oder in der Statistik gelöscht "
                     "wird.\n\n"
                     "Am Rechner stehen dort außerdem Datum und Uhrzeit. "
-                    "Auf Telefon und Tablet nicht: Beides zeigt das "
-                    "Gerät ohnehin an, und der Platz gehört dort "
-                    "besser dem Inhalt. Auf dem Telefon bleibt aus "
-                    "demselben Grund auch der Eventname weg."
+                    "Auf dem Tablet nicht: Beides zeigt das Gerät "
+                    "ohnehin an, und der Platz gehört dort besser dem "
+                    "Inhalt."
                 ),
             },
             {
@@ -173,7 +168,7 @@ TOPICS = [
                     "auf dem Tablet über die gewohnte Teilen-Auswahl, "
                     "auf dem Rechner über den geöffneten Ordner.\n\n"
                     "Den PDF-Export gibt es nur in der Windows-Fassung; "
-                    "auf dem Telefon ist der Knopf gesperrt. Das "
+                    "auf dem Tablet ist der Knopf gesperrt. Das "
                     "Handbuch selbst kannst du dort natürlich trotzdem "
                     "lesen."
                 ),
@@ -214,16 +209,7 @@ TOPICS = [
                     "Kategorie hebt den Filter wieder auf und zeigt alle "
                     "Artikel. Kategorien, in denen kein einziger an der "
                     "Kasse verkäuflicher Artikel liegt (z. B. reine "
-                    "Zutaten), tauchen hier gar nicht erst auf.\n\n"
-                    "Auf einem Telefon sieht das anders aus: Dort ist für "
-                    "eine Liste neben den Artikeln kein Platz. Die "
-                    "Kategorien stehen deshalb als klappbare Überschriften "
-                    "übereinander, mit der Anzahl ihrer Artikel rechts. "
-                    "Ein Tipp klappt eine auf und die anderen zu - die "
-                    "Artikel erscheinen darunter als kleinere Kacheln, "
-                    "zwei nebeneinander. Wer sucht, tippt oben ins "
-                    "Suchfeld; dann treten die Kategorien zurück und die "
-                    "Treffer stehen quer durch alle."
+                    "Zutaten), tauchen hier gar nicht erst auf."
                 ),
                 "image": "kasse/02_kategorie_filter.png",
             },
@@ -387,9 +373,11 @@ TOPICS = [
             {
                 "heading": "Bezahlen",
                 "text": (
-                    "\"Bezahlen\" öffnet den Zahlungsbereich: links die "
-                    "Schnellwahl mit den gängigen Scheinen, rechts das "
-                    "Zahlenfeld.\n\n"
+                    "\"Bezahlen\" öffnet den Bezahldialog: links die "
+                    "Schnellwahl mit den gängigen Scheinen und die "
+                    "Beträge, rechts das Zahlenfeld. Alles steht in "
+                    "einem Fenster über der Kasse - oben \"Bezahlen\", "
+                    "unten \"Abbrechen\" und \"Zahlung abschließen\".\n\n"
                     "Ein Tipp auf 5, 10, 20, 50 oder 100 € legt einen "
                     "Schein dazu. Zahlt jemand 30 € mit zwei "
                     "Zwanzigern, tippst du zweimal auf 20 - genau so, "
@@ -401,14 +389,15 @@ TOPICS = [
                     "die Aufstellung - sie würde sonst etwas anderes "
                     "behaupten als der Betrag darüber. Mit \"C\" fängst "
                     "du wieder bei null an.\n\n"
-                    "Darunter stehen die beiden Zahlen, auf die es "
-                    "ankommt: Gegeben und Rückgeld. Die Summe selbst "
-                    "steht groß im Warenkorb daneben und wird hier "
-                    "nicht wiederholt.\n\n"
-                    "Erst wenn der gegebene Betrag mindestens der Summe "
-                    "entspricht, lässt sich der Verkauf mit \"OK\" "
-                    "abschließen. \"Abbrechen\" bricht den Zahlvorgang "
-                    "ab, der Warenkorb bleibt erhalten."
+                    "Darunter stehen die drei Zahlen, auf die es "
+                    "ankommt: hervorgehoben \"Zu zahlen\", darunter "
+                    "Gegeben und Rückgeld. Der Warenkorb liegt hinter "
+                    "dem Fenster - deshalb steht der Betrag jetzt hier.\n\n"
+                    "Erst wenn der gegebene Betrag mindestens dem zu "
+                    "zahlenden entspricht, bucht \"Zahlung abschließen\" "
+                    "den Verkauf. \"Abbrechen\" oder \"Schließen\" oben "
+                    "rechts brechen den Zahlvorgang ab, der Warenkorb "
+                    "bleibt erhalten."
                 ),
                 "image": "kasse/06_bezahlen.png",
             },
@@ -416,15 +405,17 @@ TOPICS = [
                 "heading": "KiG Karte und Gutschein",
                 "text": (
                     "Unter der Schnellwahl sitzen \"KiG Karte\" und "
-                    "\"Gutschein\". Ein Tipp öffnet den Nummernblock für "
-                    "den Betrag, der damit beglichen wird; \"OK\" am "
-                    "Nummernblock zieht ihn ab. Danach stehen über "
-                    "Gegeben und Rückgeld der abgezogene Betrag und was "
-                    "noch bar \"Zu zahlen\" ist, und der Nummernblock "
-                    "nimmt wieder das Bargeld auf. Mehr als der Bon lässt "
-                    "sich nicht entwerten - Rückgeld auf Karte oder "
-                    "Gutschein gibt es nicht. Ist alles entwertet, geht "
-                    "\"OK\" auch ohne Bargeld.\n\n"
+                    "\"Gutschein\". Ein Tipp darauf richtet das "
+                    "Zahlenfeld auf diesen Betrag - die Überschrift "
+                    "sagt es: \"Bezahlen · KiG Karte\". Was du tippst, "
+                    "geht sofort von \"Zu zahlen\" ab; der Betrag steht "
+                    "im Knopf (\"KiG Karte · -5,00 €\"). "
+                    "\"Bestätigen\" unter dem Zahlenfeld führt zurück "
+                    "zum Bargeld, ein Tipp auf einen Schein ebenso. "
+                    "Mehr als der Bon lässt sich nicht entwerten - "
+                    "Rückgeld auf Karte oder Gutschein gibt es nicht. "
+                    "Ist alles entwertet, bucht \"Zahlung abschließen\" "
+                    "auch ohne Bargeld.\n\n"
                     "Der Verkauf selbst bleibt so hoch, wie er ist: In "
                     "der Statistik zählen die Artikel mit vollem Preis, "
                     "und unter den Kennzahlen steht, was davon als "
@@ -701,15 +692,15 @@ TOPICS = [
             {
                 "heading": "Inaktive Artikel zurückholen",
                 "text": (
-                    "Über der Liste stehen zwei Reiter: \"Aktive Artikel\" "
-                    "und \"Inaktiv\". Die Zahl hinter \"Inaktiv\" sagt, "
-                    "wie viele Artikel gerade abgeschaltet sind.\n\n"
-                    "Im Reiter \"Inaktiv\" steht jeder gelöschte Artikel "
+                    "Über der Liste, links neben den Exportknöpfen, "
+                    "steht der Regler \"Inaktive\". Die Zahl dahinter "
+                    "sagt, wie viele Artikel gerade abgeschaltet "
+                    "sind.\n\n"
+                    "Umgelegt zeigt die Liste jeden gelöschten Artikel "
                     "mit Preis und Bestand. \"Wieder aktivieren\" holt "
                     "ihn in die Liste und an die Kasse zurück; der Stift "
                     "daneben öffnet ihn vorher, etwa um den Preis "
-                    "anzupassen. Auch der Kategorienfilter gilt in "
-                    "diesem Reiter."
+                    "anzupassen. Auch der Kategorienfilter gilt dort."
                 ),
             },
         ],
@@ -1548,7 +1539,7 @@ TOPICS = [
                     "und Tablets gedacht.\n\n"
                     "Beim allerersten Start wählt das Programm selbst, was "
                     "zum Bildschirm passt - am Rechner Querformat, auf "
-                    "einem hochkanten Telefon Hochformat. Danach gilt, "
+                    "einem hochkanten Bildschirm Hochformat. Danach gilt, "
                     "was hier eingestellt ist."
                 ),
             },

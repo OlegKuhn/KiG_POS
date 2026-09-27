@@ -43,7 +43,7 @@ class KiGTile(ButtonBehavior, KiGWidget):
     WIDTH = 260
     HEIGHT = 180
 
-    RADIUS = 15
+    RADIUS = theme.CARD_RADIUS
     BORDER_WIDTH = 1
 
     def __init__(self, **kwargs):
@@ -91,7 +91,7 @@ class KiGTile(ButtonBehavior, KiGWidget):
                 radius=[self.RADIUS]
             )
 
-            Color(
+            self.border_color = Color(
                 *theme.HEADER_SEPARATOR
             )
 
@@ -108,6 +108,13 @@ class KiGTile(ButtonBehavior, KiGWidget):
             background_color=
             self._update_background_color
         )
+        self.bind(selected=self._update_selection_border)
+
+    def _update_selection_border(self, *_args):
+        self.border_color.rgba = (
+            theme.PRIMARY_ORANGE if self.selected else theme.HEADER_SEPARATOR
+        )
+        self.border.width = 2 if self.selected else self.BORDER_WIDTH
 
     # =====================================================
     # Animation
@@ -121,7 +128,7 @@ class KiGTile(ButtonBehavior, KiGWidget):
         )
 
         normal_color = (
-            theme.PRIMARY_ORANGE
+            theme.SELECTION_BACKGROUND
             if self.selected
             else self.normal_color
         )
@@ -202,7 +209,7 @@ class KiGTile(ButtonBehavior, KiGWidget):
         self.selected = True
 
         self.background_color = (
-            theme.PRIMARY_ORANGE
+            theme.SELECTION_BACKGROUND
         )
 
     def unselect(self):

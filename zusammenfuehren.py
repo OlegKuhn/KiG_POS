@@ -57,6 +57,7 @@ ENDUNG = ".kigdb"
 # hiesige umgeschrieben - sonst zeigte ein eingesammelter Bon auf
 # irgendein Event dieses Geräts.
 VERWEISE = {
+    "manual_entries": {"event_id": "events"},
     "sales": {"event_id": "events"},
     "sale_items": {"sale_id": "sales"},
     "checklist_items": {"checklist_id": "checklists"},
@@ -68,6 +69,7 @@ VERWEISE = {
 
 # Sprechende Namen für die Rückmeldung.
 BEZEICHNUNGEN = {
+    "manual_entries": "Manuelle Statistikbuchungen",
     "events": "Kalendereinträge",
     "sales": "Verkäufe",
     "sale_items": "Verkaufspositionen",
@@ -298,6 +300,21 @@ def einsammeln(db, pfad):
 
                 if uid in bekannt:
                     zuordnung[zeile["id"]] = bekannt[uid]
+                    if tabelle == 'manual_entries':
+                        # Nachträgliche Korrekturen und Entfernungen mitnehmen.
+                        # Andere Tabellen behalten die bestehende Importlogik.
+                        db.cursor.execute('SELECT updated_at FROM manual_entries WHERE id=?',
+                                          (bekannt[uid],))
+                        local_stamp = db.cursor.fetchone()['updated_at'] or ''
+                        if (zeile['updated_at'] or '') > local_stamp:
+                            columns = [n for n in zu_uebernehmen if n != 'uid']
+                            values = [zuordnungen.get('events', {}).get(zeile[n])
+                                      if n == 'event_id' and zeile[n] is not None else zeile[n]
+                                      for n in columns]
+                            db.cursor.execute('UPDATE manual_entries SET ' +
+                                              ','.join(n + '=?' for n in columns) + ' WHERE id=?',
+                                              (*values, bekannt[uid]))
+                            neu += 1
                     continue
 
                 werte = []

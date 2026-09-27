@@ -37,12 +37,14 @@ class NumpadButton(KiGActionTile):
             dp(self.HEIGHT)
         )
 
-        self.background_color = theme.PRIMARY_ORANGE
+        self.background_color = theme.SURFACE
+        self.normal_color = theme.SURFACE
+        self.lbl_title.set_color(theme.TEXT_PRIMARY)
 
         if symbol:
             self.layout.remove_widget(self.lbl_title)
             self.layout.add_widget(KiGSymbol(
-                symbol=symbol, color=theme.TEXT_WHITE, line_width=3.0,
+                symbol=symbol, color=theme.TEXT_PRIMARY, line_width=3.0,
             ))
 
     # =====================================================
@@ -60,7 +62,7 @@ class NumpadButton(KiGActionTile):
             )
             +
             Animation(
-                background_color=theme.PRIMARY_ORANGE,
+                background_color=theme.SURFACE,
                 duration=0.08
             )
         ).start(self)

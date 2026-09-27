@@ -83,22 +83,11 @@ class Verkaufsauswertung(BoxLayout):
     NAME_BREITE = 150
     WERT_BREITE = 96
 
-    # Auf dem Telefon schmaler: Bei 339 dp Breite blieben dem Balken
-    # zwischen Name (150) und Wert (96) sonst keine 50 Bildpunkte.
-    NARROW_NAME_BREITE = 92
-    NARROW_WERT_BREITE = 84
-
     def __init__(self, **kwargs):
 
         super().__init__(**kwargs)
 
-        self.schmal = theme.is_narrow()
-
-        if self.schmal:
-            self.NAME_BREITE = self.NARROW_NAME_BREITE
-            self.WERT_BREITE = self.NARROW_WERT_BREITE
-
-        self.orientation = "vertical" if self.schmal else "horizontal"
+        self.orientation = "horizontal"
         self.spacing = dp(theme.CARD_SPACING)
 
         # --------------------------------------------------
@@ -116,34 +105,7 @@ class Verkaufsauswertung(BoxLayout):
 
         self.kreis = CategoryPiePanel()
 
-        if self.schmal:
-
-            # Auf dem Telefon ist fuer zwei nebeneinander kein Platz -
-            # und auch untereinander reicht die Hoehe nicht fuer beide
-            # zugleich: Balken UND Kreis in einer 400 Bildpunkte hohen
-            # Karte liessen von den Balken eine einzige Zeile uebrig.
-            # Deshalb rollt hier das ganze Bild, statt nur die Liste.
-            self.kreis.size_hint_y = None
-            self.kreis.height = dp(190)
-
-            inhalt = BoxLayout(
-                orientation="vertical",
-                spacing=dp(theme.CARD_SPACING),
-                size_hint_y=None,
-            )
-            inhalt.bind(minimum_height=inhalt.setter("height"))
-
-            inhalt.add_widget(self.balkenliste)
-            inhalt.add_widget(self.kreis)
-
-            rollbereich = ScrollView(do_scroll_x=False, bar_width=dp(8))
-            rollbereich.add_widget(inhalt)
-
-            self.add_widget(rollbereich)
-
-            return
-
-        # Breit: links rollt die Liste, rechts steht der Kreis.
+        # Links rollt die Liste, rechts steht der Kreis.
         rollbereich = ScrollView(do_scroll_x=False, bar_width=dp(8))
         rollbereich.add_widget(self.balkenliste)
 
@@ -231,11 +193,7 @@ class Verkaufsauswertung(BoxLayout):
         menge = eintrag["menge"]
 
         wert = Label(
-            text=(
-                f"{menge:g} x  {geldformat.geld(eintrag['umsatz'])}"
-                if not self.schmal
-                else f"{menge:g}x {geldformat.geld(eintrag['umsatz'])}"
-            ),
+            text=f"{menge:g} x  {geldformat.geld(eintrag['umsatz'])}",
             color=theme.TEXT_PRIMARY, font_size="14sp", bold=True,
             halign="right", valign="middle",
             size_hint_x=None, width=dp(self.WERT_BREITE),

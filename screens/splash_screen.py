@@ -53,8 +53,7 @@ class SplashScreen(FloatLayout):
 
         self.on_finished = None
 
-        # Wo die Elemente senkrecht stehen - auf dem Telefon enger
-        # (siehe theme.splash_positionen).
+        # Wo die Elemente senkrecht stehen (siehe theme.splash_positionen).
         self.positionen = theme.splash_positionen()
 
         # ==================================================
@@ -311,9 +310,9 @@ class SplashScreen(FloatLayout):
         # Logo
         # -------------------------------------------------
 
-        # 600 Punkte feste Breite standen auf einem 424 Punkte breiten
-        # Telefon links und rechts ueber dem Rand - das Logo war an
-        # beiden Seiten abgeschnitten. Es passt sich jetzt an.
+        # 600 Punkte feste Breite standen in einem schmalen Fenster
+        # links und rechts ueber dem Rand - das Logo war an beiden
+        # Seiten abgeschnitten. Es passt sich jetzt an.
         self.logo.width = min(
             theme.SPLASH_LOGO_WIDTH,
             self.width * theme.SPLASH_LOGO_BREITENANTEIL,

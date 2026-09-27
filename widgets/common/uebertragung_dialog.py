@@ -160,7 +160,7 @@ class AblaufPopup(KiGPopup):
                 background_color=(
                     theme.PRIMARY_ORANGE if hervor else theme.SURFACE
                 ),
-                color=theme.TEXT_WHITE if hervor else theme.TEXT_PRIMARY,
+                color=theme.TEXT_ON_ACCENT if hervor else theme.TEXT_PRIMARY,
                 font_size="15sp", bold=True,
                 halign="center", valign="middle",
             )

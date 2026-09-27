@@ -32,3 +32,8 @@ class MainScreen(Screen):
         self.add_widget(
             self.main_layout
         )
+
+    def on_parent(self, instance, parent):
+        if parent is None and hasattr(self, 'main_layout'):
+            self.main_layout.home_screen.stop()
+            self.main_layout.header.stop()

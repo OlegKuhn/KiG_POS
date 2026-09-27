@@ -1,194 +1,89 @@
+"""Kassenauswahl mit Suchfeld und horizontalen Kategorie-Tasten."""
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
-
-import theme
-
+from kivy.uix.scrollview import ScrollView
+from kivy.graphics import Color, RoundedRectangle
 from widgets.cash.article_panel import CashArticlePanel
-from widgets.cash.schmales_artikelpanel import SchmalesArtikelpanel
-from widgets.products.category_panel import CategoryPanel
+from widgets.cash.design import CashButton, category_color
+
+
+class CategoryButton(CashButton):
+    def __init__(self, category, **kwargs):
+        self.category = category
+        super().__init__(text=category['name'], soft=True, size_hint_x=None, width=dp(154),
+                         font_size='15sp', **kwargs)
+        self.text_size = (dp(140), None)
+        self.halign = 'center'
+        with self.canvas.after:
+            Color(*category_color(category['id']))
+            self.marker = RoundedRectangle(radius=[dp(2)])
+        self.bind(pos=self._marker, size=self._marker)
+        self._marker()
+
+    def _marker(self, *_):
+        self.marker.pos = (self.x + dp(10), self.y + dp(5))
+        self.marker.size = (max(0, self.width - dp(20)), dp(3))
+
+    def unselect(self):
+        self.select(False)
+
+    def select(self, active=True):
+        super().select(active)
 
 
 class CashLeftPanel(BoxLayout):
-    """Kategorien und Artikel der Kasse.
-
-    Aufgebaut wie die Artikelübersicht: links die Kategorien als
-    Liste, rechts daneben die Artikel - und zwar in beiden
-    Ausrichtungen. Eine Liste zeigt bei vielen Kategorien mehr auf
-    einen Blick als eine Kachelreihe, und nebeneinander nimmt sie den
-    Artikeln keine Höhe weg. Gerade im Hochformat zählt das: Dort
-    teilt sich der Artikelbereich die Höhe ohnehin schon mit dem
-    Warenkorb.
-
-    Die Kategorienliste ist dieselbe wie in der Artikelverwaltung
-    (widgets/products/category_panel.py), nur ohne deren
-    Schaltflächen "Neu" und "Bearbeiten": An der Kasse wird
-    ausgewählt, nicht verwaltet.
-    """
-
-    # Anteil der Kategorienliste an der Breite ...
-    CATEGORY_WIDTH_SHARE = 0.24
-
-    # ... aber nie schmaler als das: Auf einem Telefon wären 24 % rund
-    # 90 dp, und darin ist "Alkoholfrei" nicht mehr zu lesen.
-    CATEGORY_MIN_WIDTH = 150
-
-    def __init__(
-            self,
-            categories=None,
-            article_callback=None,
-            category_articles_callback=None,
-            **kwargs
-    ):
-
-        super().__init__(**kwargs)
-
+    def __init__(self, categories=None, article_callback=None,
+                 category_articles_callback=None, **kwargs):
+        super().__init__(orientation='vertical', **kwargs)
         self.article_callback = article_callback
         self.category_articles_callback = category_articles_callback
-
         self._selected_card = None
-
-        self.orientation = "horizontal"
-        self.spacing = dp(theme.SCREEN_SPACING)
-
-        # Auf dem Telefon ist für zwei Spalten kein Platz - dort stehen
-        # die Kategorien als Klappköpfe über ihren Artikeln (siehe
-        # widgets/cash/schmales_artikelpanel.py). Nach außen sieht
-        # dieses Panel gleich aus, deshalb merkt der Kassenbildschirm
-        # nichts davon.
-        self.schmal = theme.is_narrow()
-
-        if self.schmal:
-
-            self.category_panel_widget = None
-
-            self.article_panel_widget = SchmalesArtikelpanel(
-                article_callback=self.article_callback,
-                category_callback=self.category_articles_callback,
-            )
-
-            self.add_widget(self.article_panel_widget)
-
-            self.set_categories(categories or [])
-
-            return
-
-        # =====================================================
-        # Kategorien
-        # =====================================================
-
-        self.category_panel_widget = CategoryPanel(
-            on_new=None,
-            on_edit=None,
-            show_actions=False,
-
-            # Auch im Hochformat eine Liste: Die Karte steht hier in
-            # beiden Ausrichtungen als schmale Spalte neben den
-            # Artikeln, nicht als flaches Band darüber.
-            als_liste=True,
-        )
-
-        # Feste Breite statt Anteil, damit die Untergrenze greifen
-        # kann (siehe _update_category_width).
-        self.category_panel_widget.size_hint_x = None
-
-        # =====================================================
-        # Artikel
-        # =====================================================
-
+        self.category_panel_widget = None
         self.article_panel_widget = CashArticlePanel(
-            article_callback=self.article_callback,
-            category_callback=self.category_articles_callback,
-        )
-
-        # Nimmt, was die Kategorienliste übrig lässt.
-        self.article_panel_widget.size_hint_x = 1
-
-        self.add_widget(self.category_panel_widget)
+            article_callback=article_callback, category_callback=category_articles_callback)
+        self.category_row = BoxLayout(size_hint_y=None, height=dp(54), spacing=dp(8))
+        self.all_button = CashButton(text='Alle Kategorien', active=True, soft=True, size_hint_x=None,
+                                     width=dp(150), font_size='16sp', bold=True)
+        self.all_button.bind(on_release=lambda *_: self.show_all())
+        self.category_row.add_widget(self.all_button)
+        scroll = ScrollView(do_scroll_y=False, bar_width=dp(3))
+        self.category_grid = BoxLayout(size_hint_x=None, spacing=dp(8))
+        self.category_grid.bind(minimum_width=self.category_grid.setter('width'))
+        scroll.add_widget(self.category_grid)
+        self.category_row.add_widget(scroll)
+        self.article_panel_widget.add_widget(self.category_row, index=1)
         self.add_widget(self.article_panel_widget)
-
-        self.bind(width=self._update_category_width)
-        self._update_category_width()
-
         self.set_categories(categories or [])
 
-    # =====================================================
-    # Breite der Kategorienliste
-    # =====================================================
-
-    def _update_category_width(self, *_args):
-
-        if self.category_panel_widget is None:
-            return
-
-        self.category_panel_widget.width = max(
-            dp(self.CATEGORY_MIN_WIDTH),
-            self.width * self.CATEGORY_WIDTH_SHARE,
-        )
-
-    # =====================================================
-    # Kategorie gewählt
-    # =====================================================
+    def show_all(self):
+        self.clear_selection()
+        self.article_panel_widget.show_category(None)
 
     def category_selected(self, card, category):
-        """Ein zweiter Tipp auf dieselbe Kategorie hebt den Filter
-        wieder auf und zeigt alle Artikel."""
-
         if self._selected_card is card:
-            card.unselect()
-            self._selected_card = None
-            self.article_panel_widget.show_category(None)
+            self.show_all()
             return
-
-        if self._selected_card is not None:
-            self._selected_card.unselect()
-
+        self.clear_selection()
         self._selected_card = card
         card.select()
-
+        self.all_button.select(False)
         self.article_panel_widget.show_category(category)
-
-    # =====================================================
-    # Auswahl
-    # =====================================================
 
     @property
     def selected_category(self):
-        """Die gewählte Kategorie - oder None für "alle"."""
-
-        if self.schmal:
-            return self.article_panel_widget.selected_category
-
-        if self._selected_card is None:
-            return None
-
-        return self._selected_card.category
+        return self._selected_card.category if self._selected_card else None
 
     def clear_selection(self):
-
-        if self.schmal:
-            # Zugeklappt zeigte die Kasse gar keine Artikel mehr -
-            # deshalb rueckt hier die erste Kategorie nach.
-            self.article_panel_widget.erste_oeffnen()
-            return
-
-        if self._selected_card is not None:
+        if self._selected_card:
             self._selected_card.unselect()
-
         self._selected_card = None
-
-    # =====================================================
-    # Kategorien aktualisieren
-    # =====================================================
+        self.all_button.select(True)
 
     def set_categories(self, categories):
-
-        if self.schmal:
-            self.article_panel_widget.set_categories(categories)
-            return
-
+        self.article_panel_widget.category_names = {c['id']: c['name'] for c in categories}
         self.clear_selection()
-
-        self.category_panel_widget.set_categories(
-            categories,
-            self.category_selected
-        )
+        self.category_grid.clear_widgets()
+        for category in categories:
+            button = CategoryButton(category)
+            button.bind(on_release=lambda card, value=category: self.category_selected(card, value))
+            self.category_grid.add_widget(button)

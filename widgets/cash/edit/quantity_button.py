@@ -41,7 +41,7 @@ class QuantityButton(ButtonBehavior, BoxLayout):
         self.label.text = text
         self.label.set_bold(True)
         self.label.set_font_size(28)
-        self.label.set_color(theme.TEXT_WHITE)
+        self.label.set_color(theme.TEXT_ON_ACCENT)
 
         self.label.horizontal_alignment = "center"
         self.label.vertical_alignment = "middle"

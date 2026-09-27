@@ -31,6 +31,7 @@ from datetime import datetime
 from kivy.graphics import Color, Rectangle
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 
@@ -48,6 +49,7 @@ from widgets.common.hinweis_popup import HinweisPopup
 from database import DatabaseManager
 
 from widgets.common.filterleiste import Filterleiste
+from widgets.common.rounded_spinner import RoundedSpinner
 from widgets.products.category_panel import CategoryPanel
 from widgets.products.category_dialog import CategoryDialog
 from widgets.products.article_list_panel import ArticleListPanel
@@ -122,8 +124,21 @@ class ProductsScreen(Screen):
             inhalt=self.category_panel,
             titel="Kategorie",
             zusammenfassung=self._kategorie_text,
-            inhalt_hoehe=280 if theme.is_narrow() else 320,
+            inhalt_hoehe=320,
         )
+        self.eigene_filter = True
+        self.category_selector = RoundedSpinner(text='Alle Kategorien', values=('Alle Kategorien',))
+        self.category_selector.bind(text=self._design_category_changed)
+        self.category_options = {}
+        self.category_toolbar = BoxLayout(size_hint_y=None, height=dp(58), spacing=dp(8))
+        self.category_toolbar.add_widget(self.category_selector)
+        for caption, action in (('Neue Kategorie', self.new_category), ('Bearbeiten', self.edit_category)):
+            button = Button(text=caption, background_normal='', background_down='',
+                            background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
+                            size_hint_x=None, width=dp(155))
+            button.bind(on_release=lambda _, callback=action: callback())
+            self.category_toolbar.add_widget(button)
+        self.list_container = BoxLayout(orientation='vertical', spacing=dp(12))
 
         self.article_list_panel = ArticleListPanel(
             new_callback=self.new_article,
@@ -182,8 +197,10 @@ class ProductsScreen(Screen):
         nummernblock_offen = not self.numpad_panel.disabled
 
         if self.mode == "list":
-
-            self.root.add_widget(self.article_list_panel)
+            self.list_container.clear_widgets()
+            self.list_container.add_widget(self.category_toolbar)
+            self.list_container.add_widget(self.article_list_panel)
+            self.root.add_widget(self.list_container)
 
         else:
             self.root.add_widget(self.dashboard_panel)
@@ -214,6 +231,11 @@ class ProductsScreen(Screen):
 
         self.categories = self.db.get_categories()
         self.category_panel.set_categories(self.categories, self.select_category)
+        self.category_options = {f"{c['name']} (#{c['id']})": c for c in self.categories}
+        self._category_refreshing = True
+        self.category_selector.values = ('Alle Kategorien', *self.category_options)
+        self.category_selector.text = 'Alle Kategorien'
+        self._category_refreshing = False
         self.dashboard_panel.stammdaten_card.set_categories(self.categories)
 
         self.selected_category = None
@@ -291,6 +313,14 @@ class ProductsScreen(Screen):
     # =====================================================
     # Kategorien
     # =====================================================
+
+    def _design_category_changed(self, _, text):
+        if getattr(self, '_category_refreshing', False):
+            return
+        category = self.category_options.get(text)
+        self.selected_category = category
+        self.selected_category_card = None
+        self.refresh_articles()
 
     def _kategorie_text(self):
         """Was in der zugeklappten Filterleiste steht."""

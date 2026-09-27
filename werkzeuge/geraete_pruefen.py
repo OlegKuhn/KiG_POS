@@ -94,16 +94,6 @@ GERAETE = [
         "breite": 2480, "hoehe": 1860, "dichte": 1.875,
         "ausrichtung": theme.ORIENTATION_LANDSCAPE,
     },
-    {
-        "name": "Galaxy S24 Ultra, hochkant",
-        "breite": 1440, "hoehe": 3120, "dichte": 3.5,
-        "ausrichtung": theme.ORIENTATION_PORTRAIT,
-    },
-    {
-        "name": "Kleines Telefon (HD+), hochkant",
-        "breite": 720, "hoehe": 1600, "dichte": 2.0,
-        "ausrichtung": theme.ORIENTATION_PORTRAIT,
-    },
 ]
 
 SCREENS = (
@@ -303,10 +293,20 @@ class GeraetePruefungApp(App):
 
         for screen_name in SCREENS:
 
-            layout.screen_manager.current = screen_name
+            # ueber show_screen: Kalender, Schichtplan, Checkliste,
+            # Kassenbuch und Statistik sind Reiter im Planner und in
+            # den Ertraegen (siehe layouts/main_layout.py).
+            layout.show_screen(screen_name)
+
+            # Zweimal rechnen lassen: Beim ersten Durchgang steht die
+            # Seite, erst danach richten sich die Zeilen darin ein.
+            # Mit nur einem Durchgang meldete das Handbuch eine
+            # Kopfzeile von 20 Punkten Breite, die es nie gab.
+            self.rechnen(0.25)
+            layout.do_layout()
             self.rechnen(0.25)
 
-            screen = layout.screen_manager.get_screen(screen_name)
+            screen = layout.get_screen(screen_name)
             treffer = self.ueberlauf(screen, screen_name)
 
             if treffer:
@@ -318,21 +318,19 @@ class GeraetePruefungApp(App):
         if not fehler:
             print(f"    alle {len(SCREENS)} Screens ohne Ueberlauf -- OK")
 
-        # Zusätzlich: Wie viele Kacheln passen je Gruppe nebeneinander
-        # und passt die Startseite ohne Rollen? Kein Fehler, aber die
-        # Zahlen, die man sehen will.
+        # Zusätzlich: Wie viele Karten passen nebeneinander und passt
+        # die Startseite ohne Rollen? Kein Fehler, aber die Zahlen,
+        # die man sehen will.
         home = layout.home_screen
-
-        spalten = [raster.cols for _titel, raster, _kacheln in home.groups]
 
         passt = (
             "ohne Rollen"
-            if home.groups_layout.height <= home.scroll.height + 1
-            else f"rollt ({home.groups_layout.height - home.scroll.height:.0f} px)"
+            if home.body.height <= home.scroll.height + 1
+            else f"rollt ({home.body.height - home.scroll.height:.0f} px)"
         )
 
-        print(f"    Startseite: Gruppen mit {spalten} Kacheln je Reihe, "
-              f"{passt}")
+        print(f"    Startseite: {home.grid.cols} Karten je Reihe, "
+              f"{home.metrics.cols} Kennzahlen nebeneinander, {passt}")
 
         return fehler
 

@@ -43,14 +43,15 @@ Build:
 =========================================================
 """
 
+from kivy.graphics import Color, RoundedRectangle
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
 
 import geldformat
 import theme
 
+from widgets.cash.design import CashButton
 from widgets.kig_label import KiGLabel
 
 
@@ -65,13 +66,14 @@ class PaymentSummary(BoxLayout):
     # lohnt die Abkürzung nicht - da ist der Nummernblock schneller.
     SCHNELLWAHL = (5, 10, 20, 50, 100)
 
-    # Drei nebeneinander statt fünf: Bei 350 dp Panelbreite blieben
-    # sonst 57 dp je Knopf - zu wenig für einen Daumen.
-    SPALTEN = 3
+    # Alle fünf in einer Reihe: Im Bezahldialog ist die Spalte breit
+    # genug dafür (früher waren es drei in einem 350 dp schmalen
+    # Panel).
+    SPALTEN = 5
 
     # Knapp bemessen: Mit KiG Karte und Gutschein muss eine Reihe
     # mehr in die Höhe des Tablets passen.
-    BUTTON_HEIGHT = 54
+    BUTTON_HEIGHT = 48
     CAPTION_HEIGHT = 26
     ROW_HEIGHT = 40
 
@@ -109,32 +111,14 @@ class PaymentSummary(BoxLayout):
         # Oben: Schnellwahl
         # =====================================================
 
-        kopf = BoxLayout(
-            orientation="horizontal",
-            size_hint=(1, None),
-            height=dp(self.CAPTION_HEIGHT),
-        )
+        self.add_widget(self._caption("Schnellwahl"))
 
-        kopf.add_widget(
-            self._caption("Schnellwahl")
-        )
+        spalten = self.SPALTEN
 
-        # Daneben, was gelegt wurde ("2 × 20 €") - rechtsbündig, damit
-        # es nicht an der Überschrift klebt.
-        self.lbl_scheine = KiGLabel()
-        self.lbl_scheine.set_font_size(15)
-        self.lbl_scheine.set_bold(True)
-        self.lbl_scheine.set_alignment("right")
-        self.lbl_scheine.set_color(theme.PRIMARY_ORANGE)
-
-        kopf.add_widget(self.lbl_scheine)
-
-        self.add_widget(kopf)
-
-        zeilen = -(-len(self.SCHNELLWAHL) // self.SPALTEN)
+        zeilen = -(-len(self.SCHNELLWAHL) // spalten)
 
         self.shortcut_grid = GridLayout(
-            cols=self.SPALTEN,
+            cols=spalten,
             spacing=dp(theme.ROW_SPACING),
             size_hint=(1, None),
             height=(
@@ -147,12 +131,9 @@ class PaymentSummary(BoxLayout):
 
         for betrag in self.SCHNELLWAHL:
 
-            knopf = Button(
+            knopf = CashButton(
                 text=f"{betrag} €",
-                background_normal="", background_down="",
-                background_color=theme.SURFACE,
-                color=theme.TEXT_PRIMARY,
-                font_size="20sp", bold=True,
+                font_size="19sp", bold=True,
             )
 
             knopf.bind(
@@ -180,14 +161,10 @@ class PaymentSummary(BoxLayout):
 
         for art, text in self.ENTWERTUNGEN:
 
-            # Der entwertete Betrag steht im Knopf selbst, unter dem
-            # Namen - eine eigene Zeile je Art kostete die Höhe, die
-            # das Tablet nicht hat.
-            knopf = Button(
-                text=text,
-                background_normal="", background_down="",
-                background_color=theme.SURFACE,
-                color=theme.TEXT_PRIMARY,
+            # Der entwertete Betrag steht im Knopf selbst, hinter dem
+            # Namen: "KiG Karte · -5,00 €".
+            knopf = CashButton(
+                text=text, soft=True,
                 font_size="17sp", bold=True,
                 halign="center", valign="middle",
             )
@@ -203,6 +180,33 @@ class PaymentSummary(BoxLayout):
 
         self.add_widget(entwertung_reihe)
 
+        # Was gelegt wurde ("2 × 20 €") - in einem eigenen, ruhigen
+        # Feld unter den Tasten. Es bleibt leer, solange nichts über
+        # die Schnellwahl kam.
+        self.scheine_feld = BoxLayout(
+            size_hint=(1, None),
+            height=dp(34),
+            padding=(dp(theme.SPACE_M), 0),
+        )
+
+        with self.scheine_feld.canvas.before:
+            self._scheine_farbe = Color(*theme.SURFACE)
+            self._scheine_flaeche = RoundedRectangle(radius=[dp(7)])
+
+        self.scheine_feld.bind(
+            pos=self._scheine_feld_zeichnen,
+            size=self._scheine_feld_zeichnen,
+        )
+
+        self.lbl_scheine = KiGLabel()
+        self.lbl_scheine.set_font_size(15)
+        self.lbl_scheine.set_alignment("left")
+        self.lbl_scheine.set_color(theme.TEXT_SECONDARY)
+
+        self.scheine_feld.add_widget(self.lbl_scheine)
+
+        self.add_widget(self.scheine_feld)
+
         # =====================================================
         # Unten: gegeben und Rückgeld
         # =====================================================
@@ -211,25 +215,23 @@ class PaymentSummary(BoxLayout):
         # das Darunter ist Ergebnis. Die Trennung soll man sehen.
         self.add_widget(BoxLayout())
 
-        # Was nach KiG Karte und Gutschein noch zu zahlen ist - nur,
-        # wenn etwas entwertet ist. Sonst stünde der Betrag doppelt da:
-        # Er steht schon groß im Warenkorb.
-        #
-        # Die Zeilen stehen in einem eigenen Block ohne Abstand
-        # dazwischen; ausgeblendet wird "Zu zahlen", indem es aus dem
-        # Block genommen wird. Eine Zeile mit Höhe 0 behielte ihren
-        # Abstand und schöbe alles darüber aus dem Panel.
+        # Die drei Zeilen, um die es geht. "Zu zahlen" steht
+        # hervorgehoben: Seit der Bezahlvorgang ein Dialog ist, liegt
+        # er über dem Warenkorb - der Betrag ist sonst nirgends mehr
+        # zu sehen.
         self.ergebnis = BoxLayout(
             orientation="vertical",
+            spacing=dp(theme.SPACE_XS),
             size_hint=(1, None),
         )
         self.ergebnis.bind(minimum_height=self.ergebnis.setter("height"))
 
         self.lbl_due = self._value_label()
+        self.lbl_due.set_color(theme.PRIMARY_ORANGE)
 
-        self.due_row = self._row("Zu zahlen", self.lbl_due)
+        self.due_row = self._row("Zu zahlen", self.lbl_due, hervorgehoben=True)
 
-        self.lbl_paid = self._value_label()
+        self.lbl_paid = self._value_label(24)
 
         self.paid_row = self._row("Gegeben", self.lbl_paid)
 
@@ -237,6 +239,7 @@ class PaymentSummary(BoxLayout):
 
         self.change_row = self._row("Rückgeld", self.lbl_change)
 
+        self.ergebnis.add_widget(self.due_row)
         self.ergebnis.add_widget(self.paid_row)
         self.ergebnis.add_widget(self.change_row)
 
@@ -278,21 +281,49 @@ class PaymentSummary(BoxLayout):
 
         return label
 
-    def _row(self, text, wert_label):
+    def _scheine_feld_zeichnen(self, *_args):
+
+        self._scheine_flaeche.pos = self.scheine_feld.pos
+        self._scheine_flaeche.size = self.scheine_feld.size
+
+    def _row(self, text, wert_label, hervorgehoben=False):
         """Eine Zeile der Tabelle: links die Bezeichnung, rechts der
-        Betrag."""
+        Betrag. Hervorgehoben heißt: auf hellem Orange."""
 
         zeile = BoxLayout(
             orientation="horizontal",
             size_hint=(1, None),
             height=dp(self.ROW_HEIGHT),
             spacing=dp(theme.ROW_SPACING),
+            padding=(dp(theme.SPACE_M), 0) if hervorgehoben else (0, 0),
         )
+
+        if hervorgehoben:
+
+            # Dasselbe helle Orange wie ein gewählter Knopf - gemischt
+            # statt fest hinterlegt, damit es im dunklen Modus stimmt.
+            hell = tuple(
+                a * 0.12 + b * 0.88
+                for a, b in zip(theme.PRIMARY_ORANGE, theme.CARD)
+            )
+
+            with zeile.canvas.before:
+                Color(*hell)
+                flaeche = RoundedRectangle(radius=[dp(7)])
+
+            def zeichnen(*_args):
+                flaeche.pos = zeile.pos
+                flaeche.size = zeile.size
+
+            zeile.bind(pos=zeichnen, size=zeichnen)
 
         beschriftung = KiGLabel(text=text)
         beschriftung.set_font_size(17)
+        beschriftung.set_bold(hervorgehoben)
         beschriftung.set_alignment("left")
-        beschriftung.set_color(theme.TEXT_SECONDARY)
+        beschriftung.set_color(
+            theme.TEXT_PRIMARY if hervorgehoben else theme.TEXT_SECONDARY
+        )
 
         zeile.add_widget(beschriftung)
         zeile.add_widget(wert_label)
@@ -412,14 +443,7 @@ class PaymentSummary(BoxLayout):
 
         for knopf, betrag in zip(self.shortcut_buttons, self.SCHNELLWAHL):
 
-            anzahl = self._scheine.get(betrag, 0)
-
-            knopf.background_color = (
-                theme.PRIMARY_ORANGE if anzahl else theme.SURFACE
-            )
-            knopf.color = (
-                theme.TEXT_WHITE if anzahl else theme.TEXT_PRIMARY
-            )
+            knopf.select(bool(self._scheine.get(betrag, 0)))
 
     # =====================================================
     # Setter
@@ -500,36 +524,19 @@ class PaymentSummary(BoxLayout):
             else theme.TEXT_SECONDARY
         )
 
-        irgendwas_entwertet = False
-
         for art, text in self.ENTWERTUNGEN:
 
             betrag = self._entwertet[art]
 
-            if betrag:
-                irgendwas_entwertet = True
-
             knopf = self.entwertung_buttons[art]
 
             knopf.text = (
-                f"{text}\n- {self.geld(betrag)}" if betrag else text
+                f"{text} · -{self.geld(betrag)}" if betrag else text
             )
 
-            hervorheben = bool(betrag) or self._aktive_entwertung == art
-
-            knopf.background_color = (
-                theme.PRIMARY_ORANGE if hervorheben else theme.SURFACE
-            )
-            knopf.color = (
-                theme.TEXT_WHITE if hervorheben else theme.TEXT_PRIMARY
-            )
+            knopf.select(bool(betrag) or self._aktive_entwertung == art)
 
         self.lbl_due.text = self.geld(self.zu_zahlen)
-
-        if irgendwas_entwertet and self.due_row.parent is None:
-            self.ergebnis.add_widget(self.due_row, index=len(self.ergebnis.children))
-        elif not irgendwas_entwertet and self.due_row.parent is not None:
-            self.ergebnis.remove_widget(self.due_row)
 
         self._scheine_beschriften()
 

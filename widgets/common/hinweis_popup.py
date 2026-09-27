@@ -76,7 +76,7 @@ class HinweisPopup(KiGPopup):
         knopf = Button(
             text=button_text, size_hint_y=None, height=dp(52),
             background_normal="", background_down="",
-            background_color=theme.PRIMARY_ORANGE, color=theme.TEXT_WHITE,
+            background_color=theme.PRIMARY_ORANGE, color=theme.TEXT_ON_ACCENT,
             font_size="16sp", bold=True,
         )
         knopf.bind(on_release=lambda *_args: self.dismiss())

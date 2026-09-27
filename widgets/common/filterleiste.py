@@ -39,6 +39,8 @@ from kivy.metrics import dp
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.scrollview import ScrollView
+from kivy.core.window import Window
 
 import theme
 
@@ -62,13 +64,13 @@ class _Filterzeile(ButtonBehavior, BoxLayout):
 
         self.beschriftung = KiGLabel()
         self.beschriftung.set_text(titel)
-        self.beschriftung.set_font_size(15 if theme.is_narrow() else 17)
+        self.beschriftung.set_font_size(17)
         self.beschriftung.set_bold(True)
         self.beschriftung.set_alignment("left")
         self.beschriftung.set_color(theme.TEXT_SECONDARY)
         self.beschriftung.max_lines = 1
         self.beschriftung.size_hint_x = None
-        self.beschriftung.width = dp(78 if theme.is_narrow() else 100)
+        self.beschriftung.width = dp(100)
         self.beschriftung.bind(
             size=lambda instanz, groesse: setattr(
                 instanz, "text_size", groesse
@@ -79,7 +81,7 @@ class _Filterzeile(ButtonBehavior, BoxLayout):
         # Was gerade eingestellt ist - der eigentliche Grund, warum die
         # Leiste zugeklappt trotzdem etwas sagt.
         self.stand = KiGLabel()
-        self.stand.set_font_size(15 if theme.is_narrow() else 18)
+        self.stand.set_font_size(18)
         self.stand.set_bold(True)
         self.stand.set_alignment("right")
         self.stand.set_color(theme.PRIMARY_ORANGE)
@@ -138,11 +140,8 @@ class Filterleiste(FloatLayout):
 
         super().__init__(**kwargs)
 
-        # Die Leiste selbst ist immer nur die Zeile hoch. Die Karte
-        # mit den Bedienelementen LEGT sich beim Aufklappen darueber,
-        # statt den Bildschirm zusammenzuschieben: Sonst wurde die
-        # Tabelle darueber auf einen Streifen gequetscht, waehrend man
-        # den Filter einstellt.
+        # Nur die geschlossene Zeile reserviert Platz. Die offene Karte
+        # liegt darüber, ohne die Geometrie des Screens zu verändern.
         self.size_hint_y = None
 
         self.inhalt = inhalt
@@ -175,7 +174,10 @@ class Filterleiste(FloatLayout):
             padding=dp(theme.CARD_PADDING),
             spacing=dp(theme.CARD_SPACING),
             size_hint=(None, None),
+            pos_hint={"right": 1, "y": 1},
         )
+        self.inhalt_scroll = ScrollView(do_scroll_x=False, bar_width=dp(6))
+        self.inhalt_karte.add_widget(self.inhalt_scroll)
 
         self.bind(pos=self._karte_setzen, size=self._karte_setzen)
 
@@ -191,7 +193,7 @@ class Filterleiste(FloatLayout):
         return dp(self.ZEILE_HOEHE) + dp(theme.SPACE_S) * 2
 
     def _karte_setzen(self, *_args):
-        """Legt die Karte über die Leiste - rechtsbündig, von unten
+        """Legt die Karte über den Inhalt - rechtsbündig, von unten
         nach oben.
 
         Auf einem schmalen Gerät darf sie alles nehmen, was da ist;
@@ -205,11 +207,11 @@ class Filterleiste(FloatLayout):
             dp(self.INHALT_BREITE), max(dp(200), self.width)
         )
 
-        self.inhalt_karte.height = dp(self.inhalt_hoehe)
+        self.inhalt_karte.height = min(dp(self.inhalt_hoehe), Window.height * .45)
 
         self.inhalt_karte.right = self.right
 
-        self.inhalt_karte.y = self.top + dp(theme.SPACE_XS)
+        self.inhalt_karte.y = self.top
 
     def _nur_zeile(self):
 
@@ -230,14 +232,15 @@ class Filterleiste(FloatLayout):
         if self.offen:
             return
 
-        if self.inhalt.parent is not self.inhalt_karte:
+        if self.inhalt.parent is not self.inhalt_scroll:
 
             if self.inhalt.parent is not None:
                 self.inhalt.parent.remove_widget(self.inhalt)
 
-            self.inhalt_karte.add_widget(self.inhalt)
+            self.inhalt_scroll.add_widget(self.inhalt)
 
-        self.inhalt.size_hint_y = 1
+        self.inhalt.size_hint_y = None
+        self.inhalt.height = dp(self.inhalt_hoehe - 2 * theme.CARD_PADDING)
 
         self.add_widget(self.inhalt_karte)
 

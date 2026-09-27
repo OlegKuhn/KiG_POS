@@ -1,4 +1,4 @@
-from kivy.graphics import Color, Line, Rectangle
+from kivy.graphics import Color, Line, RoundedRectangle
 from kivy.uix.boxlayout import BoxLayout
 
 from kivy.metrics import dp
@@ -26,15 +26,15 @@ class CartFooter(BoxLayout):
         super().__init__(**kwargs)
 
         self.orientation = "vertical"
-        self.padding = (dp(theme.CARD_PADDING),) * 4
+        self.padding = 0
         self.spacing = dp(theme.CARD_SPACING)
         self.size_hint_y = None
-        self.height = dp(135)
+        self.height = dp(138)
 
         with self.canvas.before:
-            Color(*theme.CART_FOOTER_BACKGROUND)
-            self._background = Rectangle()
-            Color(*theme.CART_SEPARATOR)
+            Color(*theme.CARD)
+            self._background = RoundedRectangle(radius=[dp(8)])
+            Color(0, 0, 0, 0)
             self._separator = Line(width=1)
 
         self.bind(pos=self._update_canvas, size=self._update_canvas)
@@ -45,17 +45,19 @@ class CartFooter(BoxLayout):
             height=dp(46)
         )
 
-        caption = KiGLabel(text="Summe")
+        caption = KiGLabel(text="Gesamt")
+        caption.set_color(theme.TEXT_PRIMARY)
         caption.set_bold(True)
         caption.set_font_size(theme.FONT_SUBTITLE)
         caption.horizontal_alignment = "left"
 
         self.lbl_total = KiGLabel(text="0,00 €")
         self.lbl_total.set_bold(True)
-        self.lbl_total.set_font_size(32)
+        self.lbl_total.set_font_size(34)
+        self.lbl_total.set_color(theme.TEXT_PRIMARY)
         self.lbl_total.horizontal_alignment = "right"
         self.lbl_total.size_hint_x = None
-        self.lbl_total.width = dp(170)
+        self.lbl_total.width = dp(142)
 
         total_row.add_widget(caption)
         total_row.add_widget(self.lbl_total)
@@ -102,10 +104,17 @@ class CartFooter(BoxLayout):
             font_size="16sp", bold=True,
         )
         self.pay_button = tile("Bezahlen", pay_callback)
+        self.pay_button.background_color = theme.PRIMARY_ORANGE
+        self.pay_button.normal_color = theme.PRIMARY_ORANGE
+        self.pay_button.lbl_title.set_color(theme.TEXT_ON_ACCENT)
+        self.storno_color = theme.ERROR
 
         self.storno_cancel_button = tile("Abbrechen", storno_cancel_callback)
         self.storno_confirm_button = tile("Storno buchen", storno_confirm_callback)
 
+        self.storno_confirm_button.background_color = theme.ERROR
+        self.storno_confirm_button.normal_color = theme.ERROR
+        self.storno_confirm_button.lbl_title.set_color(theme.TEXT_ON_ACCENT)
         self.set_storno_mode(False)
 
     # =====================================================
@@ -114,13 +123,15 @@ class CartFooter(BoxLayout):
 
     def set_storno_mode(self, aktiv):
 
+        self.storno_active = aktiv
         self.buttons.clear_widgets()
 
         if aktiv:
             self.buttons.add_widget(self.storno_cancel_button)
             self.buttons.add_widget(self.storno_confirm_button)
         else:
-            self.buttons.add_widget(self.edit_button)
+            if getattr(self, "has_items", False):
+                self.buttons.add_widget(self.edit_button)
             self.buttons.add_widget(self.pay_button)
 
     def _update_canvas(self, *_args):
@@ -132,5 +143,12 @@ class CartFooter(BoxLayout):
     def set_total(self, value: float):
         self.lbl_total.text = geldformat.geld(value)
 
-    def update(self, total: float):
+    def update(self, total: float, has_items=True):
+        self.has_items = has_items
+        self.pay_button.disabled = not has_items
+        self.pay_button.opacity = 1
+        self.pay_button.lbl_title.disabled_color = theme.TEXT_ON_ACCENT
+        self.pay_button.background_color = (theme.PRIMARY_ORANGE if has_items else
+            tuple(a * .5 + b * .5 for a, b in zip(theme.PRIMARY_ORANGE, theme.CARD)))
+        self.set_storno_mode(self.storno_active)
         self.set_total(total)

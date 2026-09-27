@@ -12,6 +12,8 @@ class RoundedPanel(BoxLayout):
         super().__init__(**kwargs)
 
         with self.canvas.before:
+            Color(*theme.SHADOW_COLOR)
+            self.shadow = RoundedRectangle(radius=[theme.CARD_RADIUS])
             Color(*theme.CARD)
             self.background = RoundedRectangle(radius=[theme.CARD_RADIUS])
 
@@ -24,6 +26,8 @@ class RoundedPanel(BoxLayout):
         )
 
     def _update_canvas(self, *_args):
+        self.shadow.pos = (self.x, self.y - dp(2))
+        self.shadow.size = self.size
         self.background.pos = self.pos
         self.background.size = self.size
 

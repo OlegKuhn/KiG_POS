@@ -171,8 +171,8 @@ class ShiftPlanScreen(Screen):
             )
 
             # Umbruch an der Panelbreite statt an einer festen Zahl -
-            # auf einem Telefon lief der Text sonst links und rechts
-            # aus der Karte heraus.
+            # in einer schmalen Karte lief der Text sonst links und
+            # rechts heraus.
             hinweis.bind(
                 size=lambda instanz, groesse: setattr(
                     instanz, "text_size", groesse
@@ -233,7 +233,7 @@ class ShiftPlanScreen(Screen):
             button.background_color = (
                 theme.PRIMARY_ORANGE if gewaehlt else theme.SURFACE
             )
-            button.color = theme.TEXT_WHITE if gewaehlt else theme.TEXT_PRIMARY
+            button.color = theme.TEXT_ON_ACCENT if gewaehlt else theme.TEXT_PRIMARY
 
     def select_plan(self, plan_id):
 
@@ -257,12 +257,8 @@ class ShiftPlanScreen(Screen):
 
         self.shifts_title = self._title("Keine Veranstaltung gewählt")
 
-        # Drei Beschriftungen nebeneinander passen auf ein Telefon nur
-        # gekuerzt - ausgeschrieben ueberlappten sie sich.
-        schmal = theme.is_narrow()
-
         uebernehmen = self._button(
-            "Übernehmen" if schmal else "Schichten übernehmen",
+            "Schichten übernehmen",
             self.copy_shifts,
         )
         export_knopf = self._button(
@@ -273,7 +269,7 @@ class ShiftPlanScreen(Screen):
 
         if self.hochformat:
 
-            # Auf dem Telefon passen Überschrift und drei Knöpfe nicht
+            # Hochkant passen Überschrift und drei Knöpfe nicht
             # nebeneinander - dort stehen die Knöpfe darunter und
             # teilen sich die Breite.
             kopf = BoxLayout(
@@ -423,7 +419,7 @@ class ShiftPlanScreen(Screen):
 
         hinzufuegen = self._button(
             "Hinzufügen", self.add_shift,
-            background=theme.PRIMARY_ORANGE, color=theme.TEXT_WHITE,
+            background=theme.PRIMARY_ORANGE, color=theme.TEXT_ON_ACCENT,
         )
         hinzufuegen.size_hint_x = None
         hinzufuegen.width = dp(150)
@@ -865,7 +861,7 @@ class ShiftPlanScreen(Screen):
 
         hinzufuegen = self._button(
             "Eintragen", eintragen,
-            background=theme.PRIMARY_ORANGE, color=theme.TEXT_WHITE,
+            background=theme.PRIMARY_ORANGE, color=theme.TEXT_ON_ACCENT,
         )
         hinzufuegen.size_hint_x = None
         hinzufuegen.width = dp(150)
@@ -1228,7 +1224,7 @@ class ShiftPlanScreen(Screen):
         label.set_font_size(24)
         label.set_bold(True)
         label.set_alignment("left")
-        label.set_color(theme.PRIMARY_ORANGE)
+        label.set_color(theme.section_color('amber'))
         label.size_hint_y = None
         label.height = dp(36)
 

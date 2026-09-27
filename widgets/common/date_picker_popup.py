@@ -36,7 +36,7 @@ class _DayButton(Button):
         self.background_normal = ""
         self.background_down = ""
         self.background_color = (0, 0, 0, 0)
-        self.color = theme.TEXT_WHITE if selected else theme.TEXT_PRIMARY
+        self.color = theme.TEXT_ON_ACCENT if selected else theme.TEXT_PRIMARY
 
         with self.canvas.before:
             Color(*(theme.PRIMARY_ORANGE if selected else theme.SURFACE))

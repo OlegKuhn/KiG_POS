@@ -5,6 +5,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.widget import Widget
 
 import theme
 
@@ -14,6 +15,7 @@ from widgets.products.article_list_row import SPALTEN_INAKTIV, SPALTEN_QUER
 from widgets.common.exporthinweis import hinweisfeld_vorbereiten
 from widgets.common import schreibschutz
 
+from widgets.common.kig_schalter import KiGSchalter
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.kig_label import KiGLabel
 from widgets.products.article_list_row import ArticleListRow, InaktiveArtikelZeile
@@ -26,8 +28,9 @@ class ArticleListPanel(RoundedPanel):
 
     # Breite, die Überschrift und Schaltflächen nebeneinander
     # brauchen. Darunter wandern die Schaltflächen in eine eigene
-    # Zeile.
-    HEADER_MIN_WIDTH = 740
+    # Zeile. Seit der Regler "Inaktive" dazugehört, sind es 720 dp
+    # für die Zeile selbst - und daneben soll noch Platz bleiben.
+    HEADER_MIN_WIDTH = 900
 
     # Darunter reicht selbst die eigene Zeile nicht mehr für die
     # ausgeschriebenen Beschriftungen.
@@ -38,6 +41,7 @@ class ArticleListPanel(RoundedPanel):
     # der Überschrift - und der längste Text ("Einkaufsliste
     # exportieren") liefe über seinen Knopf hinaus.
     BUTTON_WIDTHS = {
+        "inaktiv_schalter": 170,
         "sort_button": 130,
         "export_button": 200,
         "teilen_button": 110,
@@ -101,9 +105,9 @@ class ArticleListPanel(RoundedPanel):
         # -------------------------------------------------
 
         # Die Kopfzeile passt sich der Breite an (siehe
-        # _update_header): Auf einem Telefon brauchen Überschrift und
-        # drei Schaltflächen nebeneinander mehr Platz, als überhaupt da
-        # ist - dort rücken die Schaltflächen unter die Überschrift und
+        # _update_header): In einem schmalen Fenster brauchen Überschrift
+        # und drei Schaltflächen nebeneinander mehr Platz, als da ist -
+        # dort rücken die Schaltflächen unter die Überschrift und
         # tragen kürzere Beschriftungen.
 
         self.header = BoxLayout(
@@ -111,14 +115,28 @@ class ArticleListPanel(RoundedPanel):
             spacing=dp(theme.ROW_SPACING),
         )
 
+        # Die Überschrift bleibt als Beschriftung bestehen (sie sagt,
+        # welche Kategorie gefiltert ist), steht aber nicht mehr in der
+        # Karte: Dass man in der Artikelverwaltung ist, zeigt die
+        # Kopfzeile.
         self.title_label = KiGLabel(text="Artikel")
-        self.title_label.set_font_size(26)
-        self.title_label.set_bold(True)
-        self.title_label.set_alignment("left")
-        self.title_label.set_color(theme.PRIMARY_ORANGE)
-        self.header.add_widget(self.title_label)
+
+        self.header.add_widget(Widget())
 
         self.header_buttons = BoxLayout(spacing=dp(theme.ROW_SPACING))
+
+        # Aktiv oder inaktiv: ein Regler statt zweier Reiter.
+        #
+        # Geloescht wird ein Artikel nie, nur abgeschaltet - vorher
+        # aber verschwand er damit spurlos aus der Liste. Die beiden
+        # Reiter, die ihn zurueckholten, belegten dafuer eine eigene
+        # Zeile ueber der Tabelle. Der Regler sagt dasselbe und passt
+        # neben die Exportknoepfe.
+        self.inaktiv_schalter = KiGSchalter(
+            text="Inaktive",
+            on_change=self._schalter_umgelegt,
+        )
+        self.header_buttons.add_widget(self.inaktiv_schalter)
 
         self.sort_button = Button(
             text="Sortierung",
@@ -180,28 +198,6 @@ class ArticleListPanel(RoundedPanel):
         self.bind(width=self._update_header)
         self._update_header()
 
-        # -------------------------------------------------
-        # Reiter: aktive und inaktive Artikel
-        # -------------------------------------------------
-        #
-        # Gelöscht wird ein Artikel nie, nur abgeschaltet - vorher aber
-        # verschwand er damit spurlos aus der Liste, und zurückholen
-        # ließ er sich nur, wenn man seinen Namen noch wusste. Im
-        # zweiten Reiter stehen sie alle.
-
-        self.reiter = BoxLayout(
-            size_hint_y=None, height=dp(44),
-            spacing=dp(theme.ROW_SPACING),
-        )
-
-        self.reiter_aktiv = self._reiterknopf("Aktive Artikel", "aktiv")
-        self.reiter_inaktiv = self._reiterknopf("Inaktiv", "inaktiv")
-
-        self.reiter.add_widget(self.reiter_aktiv)
-        self.reiter.add_widget(self.reiter_inaktiv)
-
-        self.add_widget(self.reiter)
-
         self.export_status = Label(
             text="", color=theme.TEXT_SECONDARY, font_size="12sp",
             halign="right", valign="middle",
@@ -248,56 +244,30 @@ class ArticleListPanel(RoundedPanel):
         self.scroll.add_widget(self.list_layout)
         self.add_widget(self.scroll)
 
-        self._reiter_faerben()
-
     # =====================================================
-    # Reiter
+    # Aktiv / inaktiv
     # =====================================================
 
-    def _reiterknopf(self, text, ansicht):
-
-        knopf = Button(
-            text=text,
-            background_normal="", background_down="",
-            font_size="15sp", bold=True,
-        )
-        knopf.bind(on_release=lambda *_args: self._reiter_gewaehlt(ansicht))
-
-        return knopf
-
-    def _reiter_gewaehlt(self, ansicht):
-
-        if ansicht == self.ansicht:
-            return
+    def _schalter_umgelegt(self, an):
 
         if callable(self.ansicht_callback):
-            self.ansicht_callback(ansicht)
+            self.ansicht_callback("inaktiv" if an else "aktiv")
 
     def set_ansicht(self, ansicht, anzahl_inaktiv=None):
-        """Zeigt den gewählten Reiter vorn; die Zahl hinter "Inaktiv"
-        sagt, ob sich ein Blick lohnt."""
+        """Zeigt die gewählte Liste; die Zahl am Regler sagt, ob sich
+        ein Blick auf die inaktiven Artikel lohnt."""
 
         self.ansicht = ansicht
 
         if anzahl_inaktiv is not None:
-            self.reiter_inaktiv.text = f"Inaktiv ({anzahl_inaktiv})"
+            self.inaktiv_schalter.text = f"Inaktive ({anzahl_inaktiv})"
 
-        self._reiter_faerben()
+        self.inaktiv_schalter.setzen(ansicht == "inaktiv")
 
         if self.columns is not None:
             self._spaltenkopf(
                 SPALTEN_INAKTIV if ansicht == "inaktiv" else SPALTEN_QUER
             )
-
-    def _reiter_faerben(self):
-
-        for knopf, ansicht in (
-                (self.reiter_aktiv, "aktiv"),
-                (self.reiter_inaktiv, "inaktiv"),
-        ):
-            vorn = ansicht == self.ansicht
-            knopf.background_color = theme.PRIMARY_ORANGE if vorn else theme.SURFACE
-            knopf.color = theme.TEXT_WHITE if vorn else theme.TEXT_PRIMARY
 
     def _spaltenkopf(self, spalten):
 
@@ -338,9 +308,8 @@ class ArticleListPanel(RoundedPanel):
         """Ordnet die Kopfzeile nach verfügbarer Breite.
 
         Vier Schaltflächen neben der Überschrift brauchen rund 740 dp.
-        Auf einem Telefon sind das mehr Bildpunkte, als der Bildschirm
-        breit ist - dort rücken sie in eine eigene Zeile, und wird es
-        noch enger, tragen sie kürzere Beschriftungen.
+        Gibt das Fenster die nicht her, rücken sie in eine eigene Zeile,
+        und wird es noch enger, tragen sie kürzere Beschriftungen.
         """
 
         innen = self.width - dp(theme.CARD_PADDING) * 2

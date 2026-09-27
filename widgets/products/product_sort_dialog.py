@@ -12,8 +12,9 @@ import theme
 
 from widgets.common.kig_bildknopf import speicherknopf
 
+import geldformat
+
 from database import DatabaseManager
-from widgets.cash.article_tile import CashArticleTile
 from widgets.cash.category_tile import CashCategoryTile
 from widgets.common.kig_action_tile import KiGActionTile
 from widgets.kig_label import KiGLabel
@@ -59,6 +60,84 @@ class ArrowButton(ButtonBehavior, Widget):
     def on_release(self):
         if callable(self.callback):
             self.callback()
+
+
+class ArtikelZeile(ButtonBehavior, BoxLayout):
+    """Ein Artikel in der Sortierliste: Name links, Preis rechts.
+
+    Hier stand die Verkaufskachel aus der Kasse. Die ist fuer eine
+    ganze Kachelreihe gebaut - Name, Bestand und Preis untereinander,
+    jedes mit fester Hoehe. In die 100 dp hohe Zeile dieses Dialogs
+    passten diese 142 dp nicht: Kivy schob die Beschriftungen nach
+    oben aus der Zeile heraus, und bei mehreren Artikeln lagen Name
+    und Preis der Nachbarzeilen uebereinander.
+
+    Zum Sortieren zaehlt ohnehin nur die Reihenfolge. Eine Zeile
+    reicht - und in dieselbe Hoehe passen dreimal so viele Artikel.
+    """
+
+    HOEHE = 56
+
+    def __init__(self, article, callback=None, **kwargs):
+
+        super().__init__(
+            orientation="horizontal",
+            size_hint=(1, None),
+            height=dp(self.HOEHE),
+            padding=(dp(theme.CARD_PADDING), 0),
+            spacing=dp(theme.ROW_SPACING),
+            **kwargs
+        )
+
+        self.article = article
+        self.callback = callback
+        self.selected = False
+
+        with self.canvas.before:
+            self._farbe = Color(*theme.SURFACE)
+            self._flaeche = RoundedRectangle(radius=[dp(8)])
+
+        self.bind(pos=self._zeichnen, size=self._zeichnen)
+
+        self.lbl_title = KiGLabel(text=article["name"])
+        self.lbl_title.set_font_size(18)
+        self.lbl_title.set_bold(True)
+        self.lbl_title.set_alignment("left")
+        self.lbl_title.set_color(theme.TEXT_PRIMARY)
+        self.add_widget(self.lbl_title)
+
+        self.lbl_price = KiGLabel(text=geldformat.geld(article["price"]))
+        self.lbl_price.set_font_size(18)
+        self.lbl_price.set_bold(True)
+        self.lbl_price.set_alignment("right")
+        self.lbl_price.set_color(theme.PRIMARY_ORANGE)
+        self.lbl_price.size_hint_x = None
+        self.lbl_price.width = dp(100)
+        self.add_widget(self.lbl_price)
+
+        self._zeichnen()
+
+    # Die Kasse fragt die Kachel nach ihrem Titel; hier tut es das
+    # Feld, damit Pruefskripte dieselbe Frage stellen koennen.
+    @property
+    def title(self):
+        return self.lbl_title.text
+
+    def _zeichnen(self, *_args):
+        self._flaeche.pos = self.pos
+        self._flaeche.size = self.size
+
+    def select(self):
+        self.selected = True
+        self._farbe.rgba = theme.SELECTION_BACKGROUND
+
+    def unselect(self):
+        self.selected = False
+        self._farbe.rgba = theme.SURFACE
+
+    def on_release(self):
+        if callable(self.callback):
+            self.callback(self, self.article)
 
 
 class ProductSortDialog(KiGPopup):
@@ -176,10 +255,7 @@ class ProductSortDialog(KiGPopup):
         return tile
 
     def _make_article_tile(self, article):
-        tile = CashArticleTile(article=article, callback=self.select_article)
-        tile.size_hint = (1, None)
-        tile.height = dp(100)
-        return tile
+        return ArtikelZeile(article=article, callback=self.select_article)
 
     def select_category(self, tile, category):
         if self.selected_category_tile is not None:

@@ -16,11 +16,10 @@ Die HeaderBar wird auf sämtlichen Screens
 der Anwendung verwendet und enthält:
 
     • Home-Button (KiG Logo)
-    • Veranstaltungsname
-    • Veranstaltungsinformation
-    • Datum
-    • Uhrzeit
-    • Tagesumsatz
+    • rechtsbündige Navigation
+    • Demo- und Gerätehinweise
+
+Titel, Datum, Uhrzeit und Umsatz werden im Dashboard angezeigt.
 
 Version:
     1.0 Final
@@ -56,11 +55,13 @@ from widgets.kig_divider import (
 from kivy.metrics import dp
 
 import demo
+import config
 import theme
+from widgets.common.wood_header import WoodHeader
 
 
-# Auf einem Telefon oder Tablet zeigt das Betriebssystem Datum und
-# Uhrzeit ohnehin dauerhaft an - die Kopfzeile spart sich beides und
+# Auf einem Tablet zeigt das Betriebssystem Datum und Uhrzeit
+# ohnehin dauerhaft an - die Kopfzeile spart sich beides und
 # gibt den Platz dem Inhalt. Am Rechner im Vollbild gibt es diese
 # Anzeige nicht, dort bleibt die Uhr.
 IS_ANDROID = platform == "android"
@@ -116,41 +117,10 @@ class KiGHeaderBar(KiGWidget):
 
     CONTENT_SPACING = 15
 
-    # ---------------------------------------------------
-    # Telefon
-    # ---------------------------------------------------
-    #
-    # Nachgemessen auf einem S24: 339 dp Breite. Logo (140) und
-    # Statusblock (160) allein sind 300, dazu Raender und Trenner -
-    # der Veranstaltungsname bekam null Breite und brach Buchstabe
-    # fuer Buchstabe um, der Umsatz stand halb ausserhalb des
-    # Bildschirms.
-    #
-    # Hier zaehlt jeder Punkt: kleineres Logo, schmalerer Status,
-    # kleinere Schrift, keine Trennstriche.
-
-    NARROW_LOGO_SIZE = 44
-    NARROW_LOGO_AREA_WIDTH = 52
-    NARROW_STATUS_AREA_WIDTH = 104
-    NARROW_PADDING = 8
-    NARROW_SPACING = 8
-
-    NARROW_EVENT_FONT_SIZE = 15
-    NARROW_EVENT_INFO_FONT_SIZE = 11
-    NARROW_DATE_FONT_SIZE = 11
-    NARROW_REVENUE_TITLE_SIZE = 9
-    NARROW_REVENUE_FONT_SIZE = 15
-    NARROW_BESITZ_AREA_WIDTH = 96
-    NARROW_BESITZ_FONT_SIZE = 11
-    NARROW_DEMO_AREA_WIDTH = 62
-    NARROW_DEMO_FONT_SIZE = 18
-
     # Hoehe des rechten Blocks: Uhr (22) + Trenner + "Tagesumsatz" +
     # Betrag. Ohne Uhr faellt die erste Zeile weg.
     STATUS_HOEHE = 70
     STATUS_HOEHE_OHNE_UHR = 46
-    NARROW_STATUS_HOEHE = 44
-    NARROW_STATUS_HOEHE_OHNE_UHR = 32
 
     SHADOW_HEIGHT = 2
 
@@ -172,9 +142,8 @@ class KiGHeaderBar(KiGWidget):
 
     def __init__(self, **kwargs):
 
-        # Auf einem Telefon gilt derselbe Aufbau, nur in klein - die
-        # Werte werden vor dem Bauen ausgetauscht, damit unten nichts
-        # doppelt steht.
+        # Auf Android zeigt das Geraet die Uhrzeit selbst - die Zeile
+        # entfaellt, und die Kopfzeile darf flacher werden.
         if IS_ANDROID:
 
             self.STATUS_HOEHE = self.STATUS_HOEHE_OHNE_UHR
@@ -183,36 +152,6 @@ class KiGHeaderBar(KiGWidget):
             # flacher machen - 90 dp waren fuer Uhr UND Umsatz
             # gerechnet.
             self.HEADER_HEIGHT = 70
-
-        if theme.is_narrow():
-
-            self.HEADER_HEIGHT = theme.NARROW_HEADER_HEIGHT
-
-            self.STATUS_HOEHE = (
-                self.NARROW_STATUS_HOEHE_OHNE_UHR if IS_ANDROID
-                else self.NARROW_STATUS_HOEHE
-            )
-
-            self.LOGO_SIZE = self.NARROW_LOGO_SIZE
-            self.LOGO_AREA_WIDTH = self.NARROW_LOGO_AREA_WIDTH
-            self.STATUS_AREA_WIDTH = self.NARROW_STATUS_AREA_WIDTH
-
-            self.PADDING_LEFT = self.NARROW_PADDING
-            self.PADDING_RIGHT = self.NARROW_PADDING
-            self.PADDING_TOP = 4
-            self.PADDING_BOTTOM = 4
-            self.CONTENT_SPACING = self.NARROW_SPACING
-
-            self.EVENT_FONT_SIZE = self.NARROW_EVENT_FONT_SIZE
-            self.EVENT_INFO_FONT_SIZE = self.NARROW_EVENT_INFO_FONT_SIZE
-            self.DATE_FONT_SIZE = self.NARROW_DATE_FONT_SIZE
-            self.REVENUE_TITLE_SIZE = self.NARROW_REVENUE_TITLE_SIZE
-            self.REVENUE_FONT_SIZE = self.NARROW_REVENUE_FONT_SIZE
-
-            self.BESITZ_AREA_WIDTH = self.NARROW_BESITZ_AREA_WIDTH
-            self.BESITZ_FONT_SIZE = self.NARROW_BESITZ_FONT_SIZE
-            self.DEMO_AREA_WIDTH = self.NARROW_DEMO_AREA_WIDTH
-            self.DEMO_FONT_SIZE = self.NARROW_DEMO_FONT_SIZE
 
         super().__init__(**kwargs)
 
@@ -251,6 +190,8 @@ class KiGHeaderBar(KiGWidget):
         # Vordergrund
         #
 
+        self.wood = WoodHeader(self)
+
         with self.canvas.after:
             Color(*theme.HEADER_SEPARATOR)
 
@@ -262,6 +203,8 @@ class KiGHeaderBar(KiGWidget):
         #
 
         self.content = BoxLayout(
+
+            size_hint=(None, None),
 
             orientation="horizontal",
 
@@ -327,12 +270,9 @@ class KiGHeaderBar(KiGWidget):
         #
         self.content.add_widget(self.logo_container)
 
-        # Auf dem Telefon ohne Trennstriche: Jeder kostet Breite, die
-        # dem Veranstaltungsnamen fehlt.
-        if not theme.is_narrow():
-            self.content.add_widget(
-                KiGDividerVertical()
-            )
+        self.content.add_widget(
+            KiGDividerVertical()
+        )
 
         # Im Demo-Modus steht hier gross DEMO. Zusammen mit der gruenen
         # Akzentfarbe soll auf einen Blick klar sein, dass gerade auf
@@ -342,10 +282,9 @@ class KiGHeaderBar(KiGWidget):
 
             self.content.add_widget(self._build_demo_badge())
 
-            if not theme.is_narrow():
-                self.content.add_widget(
-                    KiGDividerVertical()
-                )
+            self.content.add_widget(
+                KiGDividerVertical()
+            )
 
         # Gehoeren die Stammdaten einem anderen Geraet, steht das
         # hier - sonst tippt jemand eine Viertelstunde lang Artikel
@@ -357,17 +296,15 @@ class KiGHeaderBar(KiGWidget):
 
             self.content.add_widget(besitzstreifen)
 
-            if not theme.is_narrow():
-                self.content.add_widget(
-                    KiGDividerVertical()
-                )
-
-        self.content.add_widget(self.event_container)
-
-        if not theme.is_narrow():
             self.content.add_widget(
                 KiGDividerVertical()
             )
+
+        self.content.add_widget(self.event_container)
+
+        self.content.add_widget(
+            KiGDividerVertical()
+        )
 
         self.content.add_widget(self.status_container)
 
@@ -399,7 +336,7 @@ class KiGHeaderBar(KiGWidget):
     # Logo
     # =====================================================
 
-        self.logo = KiGLogoButton()
+        self.logo = KiGLogoButton(logo_source=str(config.LOGO_PATH))
 
         self.logo.set_logo_size(
             dp(self.LOGO_SIZE)
@@ -440,7 +377,7 @@ class KiGHeaderBar(KiGWidget):
 
             width=dp(self.EVENT_AREA_WIDTH),
 
-            height=dp(38 if theme.is_narrow() else 58)
+            height=dp(58)
 
         )
 
@@ -485,11 +422,11 @@ class KiGHeaderBar(KiGWidget):
         #
 
         self.lbl_event.set_color(
-            (0, 0, 0, 1)
+            theme.HEADER_TEXT
         )
 
         self.lbl_event_info.set_color(
-            (0, 0, 0, 0.5)
+            theme.HEADER_MUTED
         )
 
         #
@@ -541,11 +478,11 @@ class KiGHeaderBar(KiGWidget):
         self.lbl_datetime.set_bold(True)
 
         self.lbl_datetime.set_color(
-            (0, 0, 0, 1)
+            theme.HEADER_TEXT
         )
 
         self.lbl_datetime.size_hint_y = None
-        self.lbl_datetime.height = dp(16 if theme.is_narrow() else 22)
+        self.lbl_datetime.height = dp(22)
 
         self.lbl_datetime.halign = "right"
         self.lbl_datetime.valign = "middle"
@@ -576,7 +513,7 @@ class KiGHeaderBar(KiGWidget):
         )
 
         self.lbl_revenue_title.set_color(
-            theme.TEXT_SECONDARY
+            theme.HEADER_MUTED
         )
 
         #
@@ -600,7 +537,7 @@ class KiGHeaderBar(KiGWidget):
         )
 
         self.lbl_revenue.set_color(
-            theme.PRIMARY_ORANGE
+            theme.HEADER_ACCENT
         )
 
         #
@@ -707,10 +644,41 @@ class KiGHeaderBar(KiGWidget):
         self.content.pos = self.pos
         self.content.size = self.size
 
+    def set_navigation(self, navigation):
+        """Schmaler Holzheader: Originallogo links, Navigation rechts."""
+        self.navigation = navigation
+        self.stop()
+        self.height = dp(86)
+        # Demo- und Gerätehinweise bleiben erhalten; Titel, Uhr und Umsatz
+        # gehören jetzt zum Dashboard.
+        badges = [child for child in reversed(self.content.children)
+                  if isinstance(child, BoxLayout)]
+        self.content.clear_widgets()
+        self.content.padding = (dp(12), dp(8), dp(12), dp(8))
+        self.content.spacing = dp(8)
+        self.logo_container.width = dp(116)
+        self.logo.size = (dp(108), dp(70))
+        self.logo.size_hint = (None, None)
+        self.logo.fit_mode = 'contain'
+        self.content.add_widget(self.logo_container)
+        for badge in badges:
+            self.content.add_widget(badge)
+        self.navigation_slot = AnchorLayout(anchor_x='right', anchor_y='center')
+        navigation.size_hint = (None, 1)
+        self.navigation_slot.add_widget(navigation)
+        self.content.add_widget(self.navigation_slot)
+        self.navigation_slot.bind(width=self._navigation_layout)
+        self._navigation_layout()
+        self._update_layout()
 
-    # =====================================================
-    # Home aufrufen
-    # =====================================================
+    def _navigation_layout(self, *_):
+        slot = getattr(self, 'navigation_slot', None)
+        if slot is not None:
+            compact = self.width < dp(600)
+            self.logo_container.width = dp(80 if compact else 116)
+            self.logo.size = (dp(76 if compact else 108), dp(64 if compact else 70))
+            count = len(self.navigation.buttons)
+            self.navigation.width = min(slot.width, dp(106 * count + 5 * max(0, count - 1)))
 
     def go_home(self):
         """
@@ -841,7 +809,7 @@ class KiGHeaderBar(KiGWidget):
         hinweis = KiGLabel(text=f"Stammdaten bei {name}")
         hinweis.set_font_size(12)
         hinweis.set_alignment("center")
-        hinweis.set_color(theme.TEXT_SECONDARY)
+        hinweis.set_color(theme.HEADER_MUTED)
 
         behaelter.add_widget(hinweis)
 

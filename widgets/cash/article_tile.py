@@ -1,5 +1,8 @@
 from kivy.properties import StringProperty
+from kivy.graphics import Color, RoundedRectangle
+from widgets.cash.design import category_color
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.widget import Widget
 
 from kivy.metrics import dp
 
@@ -27,19 +30,13 @@ class CashArticleTile(KiGTile):
     price = StringProperty("")
     stock = StringProperty("")
 
-    PADDING = theme.TILE_PADDING
+    PADDING = 14
     SPACING = theme.SPACE_XS
 
-    TITLE_SIZE = 24
-    PRICE_SIZE = 18
+    TITLE_SIZE = 20
+    PRICE_SIZE = 28
 
-    # Telefon: kleinere Kachel, kleinere Schrift. Mit 24 sp blieb von
-    # "Apfelschorle" auf 168 dp Breite nur noch "Apfel…" übrig.
-    NARROW_TITLE_SIZE = 16
-    NARROW_PRICE_SIZE = 14
-    NARROW_STOCK_SIZE = 11
-
-    STOCK_SIZE = 13
+    STOCK_SIZE = 17
 
     # Kleiner als das wird ein Name nicht - lieber bricht die zweite
     # Zeile ab, als dass er unlesbar wird.
@@ -49,14 +46,9 @@ class CashArticleTile(KiGTile):
             self,
             article,
             callback=None,
+            category_name="",
             **kwargs
     ):
-
-        if theme.is_narrow():
-            self.TITLE_SIZE = self.NARROW_TITLE_SIZE
-            self.PRICE_SIZE = self.NARROW_PRICE_SIZE
-            self.STOCK_SIZE = self.NARROW_STOCK_SIZE
-            self.PADDING = theme.SPACE_S
 
         super().__init__(**kwargs)
 
@@ -64,8 +56,13 @@ class CashArticleTile(KiGTile):
         # Daten
         # =====================================================
 
+        self.category_name = category_name
         self.article = article
         self.callback = callback
+        category_id = article.category_id if hasattr(article, 'category_id') else article['category_id']
+        self.normal_color = theme.tinted(category_color(category_id), .11)
+        self.background_color = self.normal_color
+        self.border_color.rgba = (0, 0, 0, 0)
 
         # =====================================================
         # Größe
@@ -73,9 +70,7 @@ class CashArticleTile(KiGTile):
 
         self.size_hint = (None, None)
 
-        self.size = tuple(
-            dp(wert) for wert in theme.narrow_article_tile()
-        ) if theme.is_narrow() else (
+        self.size = (
             dp(theme.ARTICLE_TILE_WIDTH),
             dp(theme.ARTICLE_TILE_HEIGHT)
         )
@@ -101,12 +96,8 @@ class CashArticleTile(KiGTile):
         # Mehr Höhe als früher: Passt ein Name nicht in eine Zeile,
         # steht er in zweien (siehe _titel_einpassen). Bestand und
         # Preis rücken dafür nach unten.
-        # Auf dem Telefon ist die Kachel flach - dort braucht der
-        # Bestand einen größeren Anteil, sonst wird er angeschnitten.
-        schmal = theme.is_narrow()
-
         self.lbl_title = KiGLabel(
-            size_hint=(1, 0.52 if schmal else 0.58)
+            size_hint=(1, 0.58)
         )
 
         self.lbl_title.set_bold(True)
@@ -120,7 +111,7 @@ class CashArticleTile(KiGTile):
         )
 
         self.lbl_title.horizontal_alignment = "left"
-        self.lbl_title.vertical_alignment = "middle"
+        self.lbl_title.vertical_alignment = "top"
 
         # Höchstens zwei Zeilen. "shorten" bleibt aus: Damit setzt Kivy
         # jeden Text in eine einzige Zeile und kürzt ihn - aus
@@ -144,7 +135,7 @@ class CashArticleTile(KiGTile):
             self.lbl_title
         )
 
-        self.lbl_stock = KiGLabel(size_hint=(1, 0.2 if schmal else 0.14))
+        self.lbl_stock = KiGLabel(size_hint=(1, 0.14))
         self.lbl_stock.set_font_size(self.STOCK_SIZE)
         self.lbl_stock.set_color(theme.TEXT_SECONDARY)
         self.lbl_stock.horizontal_alignment = "left"
@@ -152,7 +143,13 @@ class CashArticleTile(KiGTile):
         self.lbl_stock.bind(
             size=lambda instance, value: setattr(instance, "text_size", value)
         )
+        self.layout.add_widget(Widget(size_hint_y=None, height=dp(12)))
         self.layout.add_widget(self.lbl_stock)
+        self.lbl_title.size_hint_y = None
+        self.lbl_title.height = dp(50)
+        self.lbl_stock.size_hint_y = None
+        self.lbl_stock.height = dp(28)
+        self.layout.add_widget(Widget())
 
         # =====================================================
         # Preis
@@ -162,18 +159,20 @@ class CashArticleTile(KiGTile):
             size_hint=(1, 0.28)
         )
 
-        self.lbl_price.set_bold(False)
+        self.lbl_price.set_bold(True)
+        self.lbl_price.size_hint_y = None
+        self.lbl_price.height = dp(38)
 
         self.lbl_price.set_font_size(
             self.PRICE_SIZE
         )
 
         self.lbl_price.set_color(
-            theme.TEXT_SECONDARY
+            theme.PRIMARY_ORANGE
         )
 
-        self.lbl_price.horizontal_alignment = "right"
-        self.lbl_price.vertical_alignment = "middle"
+        self.lbl_price.horizontal_alignment = "left"
+        self.lbl_price.vertical_alignment = "bottom"
 
         self.lbl_price.bind(
             size=lambda instance, value:
@@ -232,6 +231,15 @@ class CashArticleTile(KiGTile):
 
         self.price = geldformat.geld(price)
 
+        with self.canvas.after:
+            Color(*category_color(article.category_id if hasattr(article, 'category_id') else article['category_id']))
+            self.category_marker = RoundedRectangle(radius=[dp(2)])
+        self.bind(pos=self._marker_layout, size=self._marker_layout)
+
+        # Der Streifen hängt am Namen, nicht am Kachelrand.
+        self.lbl_title.bind(pos=self._marker_layout, size=self._marker_layout)
+
+        self._marker_layout()
         self._mark_sold_out()
 
         # =====================================================
@@ -244,6 +252,26 @@ class CashArticleTile(KiGTile):
     # =========================================================
     # Layout
     # =========================================================
+
+    # Höhe des Farbstreifens unter dem Artikelnamen
+    MARKER_HOEHE = 7
+
+    def _marker_layout(self, *_):
+        """Der Farbstreifen der Kategorie - unter dem Namen.
+
+        Über dem Namen lag er am oberen Kachelrand und ging neben dem
+        Rahmen unter; unter dem Namen gehört er sichtbar zum Artikel.
+        """
+
+        innen = dp(self.PADDING)
+
+        self.category_marker.pos = (
+            self.x + innen,
+            self.lbl_title.y - dp(self.MARKER_HOEHE) - dp(2),
+        )
+        self.category_marker.size = (
+            max(0, self.width - 2 * innen), dp(self.MARKER_HOEHE)
+        )
 
     def _update_layout(self, *args):
 

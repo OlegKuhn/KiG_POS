@@ -1,4 +1,5 @@
 from kivy.metrics import dp
+from widgets.cash.design import CashButton
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
@@ -12,7 +13,7 @@ from widgets.common.rounded_panel import RoundedPanel
 from widgets.kig_label import KiGLabel
 
 
-class CashArticlePanel(RoundedPanel):
+class CashArticlePanel(BoxLayout):
     """Optisch an widgets/products/article_list_panel.py angeglichen
     (weiße Karte mit orangem Titel "Artikel") - die Artikel bleiben
     aber bewusst große, antippbare Kacheln statt einer Zeilenliste,
@@ -36,7 +37,8 @@ class CashArticlePanel(RoundedPanel):
         self._alle_artikel = []
 
         self.orientation = "vertical"
-        self.padding = dp(theme.CARD_PADDING)
+        self.padding = 0
+        self.category_names = {}
         self.spacing = dp(theme.CARD_SPACING)
 
         # =====================================================
@@ -44,7 +46,7 @@ class CashArticlePanel(RoundedPanel):
         # =====================================================
 
         kopf = BoxLayout(
-            size_hint_y=None, height=dp(44), spacing=dp(theme.ROW_SPACING)
+            size_hint_y=None, height=dp(50), spacing=dp(theme.ROW_SPACING)
         )
 
         title = KiGLabel(text="Artikel")
@@ -52,31 +54,30 @@ class CashArticlePanel(RoundedPanel):
         title.set_bold(True)
         title.set_alignment("left")
         title.set_color(theme.PRIMARY_ORANGE)
-        kopf.add_widget(title)
+        # Die Suche ist die erste Zeile; keine doppelte Bereichsüberschrift.
 
         self.search_input = RoundedInput(
-            hint_text="Artikel suchen...", multiline=False,
-            size_hint_x=None, width=dp(240),
+            hint_text="Artikel suchen …", multiline=False,
+            size_hint_x=1,
         )
         self.search_input.bind(text=lambda *_args: self._apply_filter())
         kopf.add_widget(self.search_input)
 
-        self.clear_search_button = Button(
-            text="X", size_hint=(None, None), size=(dp(44), dp(44)),
-            background_normal="", background_down="",
-            background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
+        self.clear_search_button = CashButton(
+            text="×", size_hint=(None, 1), width=dp(50),
             font_size="16sp", bold=True, opacity=0, disabled=True,
         )
         self.clear_search_button.bind(on_release=lambda *_args: self.clear_search())
         kopf.add_widget(self.clear_search_button)
 
+        self.search_row = kopf
         self.add_widget(kopf)
 
         # =====================================================
         # ScrollView
         # =====================================================
 
-        scroll = ScrollView(bar_width=dp(10))
+        scroll = ScrollView(bar_width=dp(6), do_scroll_x=False)
 
         # =====================================================
         # Artikel-Grid
@@ -97,6 +98,7 @@ class CashArticlePanel(RoundedPanel):
             tile_height=kachel_hoehe
         )
 
+        self.grid.bind(width=self._fit_grid)
         scroll.add_widget(
             self.grid
         )
@@ -108,6 +110,23 @@ class CashArticlePanel(RoundedPanel):
     # =====================================================
     # Kategorie anzeigen
     # =====================================================
+
+    def _fit_grid(self, *_):
+        grid = self.grid
+        cols = max(1, min(4, int((grid.width + dp(10)) // dp(180))))
+        width = max(dp(100), (grid.width - (cols - 1) * dp(10)) / cols)
+        grid.fixed_cols = cols
+        grid.tile_width = grid.col_default_width = width
+        grid.tile_height = grid.row_default_height = dp(182)
+        grid.spacing = (dp(10), dp(10))
+        for tile in grid.children:
+            tile.size = (width, dp(182))
+        grid._update_columns()
+
+    def _tile(self, article, callback=None):
+        category_id = article.category_id if hasattr(article, 'category_id') else article['category_id']
+        return CashArticleTile(article, callback=callback,
+                               category_name=self.category_names.get(category_id, ''))
 
     def show_category(self, category):
 
@@ -168,9 +187,10 @@ class CashArticlePanel(RoundedPanel):
 
         self.grid.set_tiles(
             sichtbar,
-            CashArticleTile,
+            self._tile,
             callback=self.article_callback
         )
+        self._fit_grid()
 
     @staticmethod
     def _artikelname(artikel):

@@ -186,8 +186,8 @@ class CategoryPiePanel(BoxLayout):
                 halign="left", valign="middle",
             )
 
-            # Umbruch an der eigenen Breite - auf einem Telefon lief
-            # der Satz sonst rechts aus der Karte heraus.
+            # Umbruch an der eigenen Breite - in einer schmalen Karte
+            # lief der Satz sonst rechts heraus.
             hinweis.bind(
                 size=lambda instanz, groesse: setattr(
                     instanz, "text_size", groesse

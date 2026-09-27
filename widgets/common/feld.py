@@ -176,10 +176,7 @@ class Feldknopf(Button):
         )
 
 
-def feldhoehe(schmal=None):
+def feldhoehe():
     """Die Hoehe, in der ein Feld ueberall gleich hoch ist."""
 
-    if schmal is None:
-        schmal = theme.is_narrow()
-
-    return dp(46 if schmal else 52)
+    return dp(52)

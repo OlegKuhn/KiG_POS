@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+from decimal import Decimal, InvalidOperation
 
 from datetime import datetime
 from pathlib import Path
@@ -76,6 +77,7 @@ MERGE_TABELLEN = (
     "sale_items",
     "stock_movements",
     "cash_book_entries",
+    "manual_entries",
     "checklists",
     "checklist_items",
     "shift_plans",
@@ -449,6 +451,7 @@ class DatabaseManager:
         self._create_settings_table()
 
         self._create_cash_book_table()
+        self._create_manual_entries_table()
 
         self._create_checklist_tables()
 
@@ -1842,6 +1845,77 @@ class DatabaseManager:
     #################################################################
     # Tabelle Veranstaltungen
     #################################################################
+
+    def _create_manual_entries_table(self):
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS manual_entries(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                entry_date TEXT NOT NULL,
+                event_id INTEGER REFERENCES events(id),
+                kind TEXT NOT NULL CHECK(kind IN ('INCOME', 'EXPENSE')),
+                amount_cents INTEGER NOT NULL CHECK(amount_cents > 0),
+                description TEXT NOT NULL,
+                reference TEXT NOT NULL DEFAULT '',
+                voided INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        """)
+
+    def get_manual_entries(self, date_from=None, date_to=None, event_id=None,
+                           category_id=None):
+        # Diese Buchungen besitzen keine Artikelkategorie.
+        if category_id is not None:
+            return []
+        query = """SELECT m.*, COALESCE(e.name, 'Ohne Event') AS event_name
+                   FROM manual_entries m LEFT JOIN events e ON e.id=m.event_id
+                   WHERE m.voided=0"""
+        params = []
+        for value, clause in ((date_from, 'm.entry_date >= ?'),
+                              (date_to, 'm.entry_date <= ?'),
+                              (event_id, 'm.event_id = ?')):
+            if value is not None:
+                query += ' AND ' + clause
+                params.append(value)
+        self.cursor.execute(query + ' ORDER BY m.entry_date DESC, m.id DESC', params)
+        return self.cursor.fetchall()
+
+    def save_manual_entry(self, entry_date, event_id, kind, amount,
+                          description, reference='', entry_id=None):
+        try:
+            parsed = datetime.strptime(entry_date, '%Y-%m-%d')
+            value = Decimal(str(amount).strip().replace(',', '.'))
+            if (not value.is_finite() or value <= 0 or value > Decimal('999999999.99')
+                    or value != value.quantize(Decimal('0.01'))):
+                raise ValueError()
+            cents = int(value * 100)
+        except (ValueError, TypeError, InvalidOperation):
+            raise ValueError('Bitte ein gültiges Datum und einen positiven Betrag mit maximal zwei Nachkommastellen eingeben.')
+        if not description.strip() or kind not in ('INCOME', 'EXPENSE'):
+            raise ValueError('Bezeichnung und Buchungsart sind erforderlich.')
+        if event_id is not None:
+            self.cursor.execute("SELECT id FROM events WHERE id=? AND entry_type='EVENT'", (event_id,))
+            if self.cursor.fetchone() is None:
+                raise ValueError('Bitte eine gültige Veranstaltung auswählen.')
+        values = (parsed.date().isoformat(), event_id, kind, cents,
+                  description.strip(), reference.strip(), datetime.now().isoformat(timespec='microseconds'))
+        with self.connection:
+            if entry_id is None:
+                self.cursor.execute('''INSERT INTO manual_entries
+                    (entry_date,event_id,kind,amount_cents,description,reference,updated_at,created_at)
+                    VALUES (?,?,?,?,?,?,?,?)''', (*values, self.timestamp()))
+                return self.cursor.lastrowid
+            self.cursor.execute('''UPDATE manual_entries SET entry_date=?, event_id=?,
+                kind=?, amount_cents=?, description=?, reference=?, updated_at=?
+                WHERE id=? AND voided=0''', (*values, entry_id))
+            if self.cursor.rowcount != 1:
+                raise ValueError('Die Buchung ist nicht mehr vorhanden.')
+        return entry_id
+
+    def void_manual_entry(self, entry_id):
+        with self.connection:
+            self.cursor.execute('UPDATE manual_entries SET voided=1, updated_at=? WHERE id=?',
+                                (datetime.now().isoformat(timespec='microseconds'), entry_id))
 
     def _create_cash_book_table(self):
         """Kassenbuch: je Zeile ein Tag mit Kassenstand und Bewegungen.
@@ -5269,15 +5343,24 @@ class DatabaseManager:
 
         entwertet = self.get_entwertet(date_from, date_to, event_id, category_id)
 
+        manual = self.get_manual_entries(date_from, date_to, event_id, category_id)
+        manual_income = sum(r['amount_cents'] for r in manual if r['kind'] == 'INCOME') / 100
+        manual_expenses = sum(r['amount_cents'] for r in manual if r['kind'] == 'EXPENSE') / 100
+        sale_revenue = einnahmen
+        einnahmen += manual_income
+        ausgaben += manual_expenses
+
         return {
             "revenue": einnahmen,
             "expenses": ausgaben,
             "profit": einnahmen - ausgaben,
             "quantity": sum(row["quantity"] for row in rows),
             "receipts": len({row["sale_id"] for row in rows}),
+            "manual_income": manual_income,
+            "manual_expenses": manual_expenses,
             "kig_karte": entwertet["kig_karte"],
             "gutschein": entwertet["gutschein"],
-            "bar": einnahmen - entwertet["kig_karte"] - entwertet["gutschein"],
+            "bar": sale_revenue - entwertet["kig_karte"] - entwertet["gutschein"],
         }
 
     def get_entwertet(self, date_from=None, date_to=None, event_id=None,

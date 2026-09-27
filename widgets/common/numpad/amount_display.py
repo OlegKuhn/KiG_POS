@@ -31,7 +31,7 @@ class AmountDisplay(BoxLayout):
 
         with self.canvas.before:
 
-            Color(1, 1, 1, 1)
+            Color(*theme.SURFACE)
 
             self.background = RoundedRectangle(
                 radius=[self.RADIUS]

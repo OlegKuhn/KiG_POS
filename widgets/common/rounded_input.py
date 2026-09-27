@@ -18,8 +18,8 @@ class RoundedInput(TextInput):
         alles andere -> Tastatur des Systems
 
     Eine eigene Buchstabentastatur gibt es nicht mehr: Windows und
-    Android bringen beide eine mit, und auf dem Telefon erschienen
-    sonst zwei Tastaturen übereinander.
+    Android bringen beide eine mit, und auf Android erschienen sonst
+    zwei Tastaturen übereinander.
     """
 
     numpad_callback = ObjectProperty(
@@ -108,6 +108,8 @@ class RoundedInput(TextInput):
         self.hint_text_color = (
             theme.INPUT_HINT
         )
+        self.cursor_color = theme.PRIMARY_ORANGE
+        self.selection_color = (*theme.PRIMARY_ORANGE[:3], 0.28)
 
         # Wichtig:
         # Kivy verwendet bei disabled=True eine eigene

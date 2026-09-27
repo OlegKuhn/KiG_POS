@@ -34,6 +34,7 @@ from widgets.common.feld import Feldknopf
 from widgets.common.kig_bildknopf import loeschknopf
 from widgets.common.filterleiste import Filterleiste
 from widgets.common.rounded_panel import RoundedPanel
+from widgets.kig_divider import KiGDividerVertical
 from widgets.common.rounded_spinner import RoundedSpinner
 from widgets.kig_label import KiGLabel
 from widgets.statistics.verkaufsauswertung import Verkaufsauswertung
@@ -184,7 +185,10 @@ class StatisticsScreen(Screen):
 
     # Höhe einer Kennzahlenzeile (Einnahmen, Ausgaben, Gewinn)
     TOTAL_ROW_HEIGHT = 34
-    NARROW_TOTAL_ROW_HEIGHT = 28
+
+    # Anteil der Breite, den im Querformat das Bild bekommt - der Rest
+    # gehört den Einzelverkäufen.
+    BILD_ANTEIL = 0.66
 
     def __init__(self, revenue_changed_callback=None, **kwargs):
         super().__init__(**kwargs)
@@ -201,51 +205,84 @@ class StatisticsScreen(Screen):
         # statt daneben (siehe theme.set_orientation).
         self.hochformat = theme.is_portrait()
 
-        if theme.is_narrow():
-            self.TOTAL_ROW_HEIGHT = self.NARROW_TOTAL_ROW_HEIGHT
-
         root = BoxLayout(
-            orientation="vertical" if self.hochformat else "horizontal",
+            orientation="vertical",
             padding=dp(theme.SCREEN_PADDING),
             spacing=dp(theme.SCREEN_SPACING),
         )
-        # Links das Bild, rechts die Belege: Die Auswertung beantwortet
-        # die Frage ("Was ging weg?"), die Einzelverkaeufe belegen sie.
-        # Frueher war es umgekehrt - die Tabelle nahm zwei Drittel,
-        # das Diagramm sass klein in der Ecke.
-        root.add_widget(self._build_auswertung_panel())
-        root.add_widget(self._build_sales_panel())
+
+        chart = self._build_auswertung_panel()
+        sales = self._build_sales_panel()
+
+        self.eigene_filter = False
+
+        from widgets.common.title_actions import TitleActions
+        self.title_actions = TitleActions(self._title('Statistik'), self.design_actions)
+
+        root.add_widget(self.title_actions)
+        root.add_widget(self.design_metrics)
+
+        if self.hochformat:
+
+            # Hochkant ist fuer zwei Spalten keine Breite da: Bild und
+            # Tabelle stehen untereinander, die Seite rollt.
+            root.size_hint_y = None
+            root.bind(minimum_height=root.setter('height'))
+
+            chart.size_hint = (1, None)
+            chart.height = dp(350)
+            sales.size_hint = (1, None)
+            sales.height = dp(520)
+
+            root.add_widget(chart)
+            root.add_widget(sales)
+
+            scroll = ScrollView(do_scroll_x=False, bar_width=dp(8))
+            scroll.add_widget(root)
+            self.add_widget(scroll)
+
+            return
+
+        # Quer: links das Bild ueber zwei Drittel, rechts die Belege
+        # im letzten Drittel. Die Auswertung beantwortet die Frage
+        # ("Was ging weg?"), die Einzelverkaeufe belegen sie - sie
+        # braucht deshalb den Platz, die Tabelle die Spalte daneben.
+        #
+        # Beide fuellen die Hoehe, statt untereinander zu rollen: Wer
+        # die Statistik oeffnet, will das Bild sehen, nicht erst
+        # dorthin scrollen.
+        self.inhalt = BoxLayout(
+            orientation="horizontal",
+            spacing=dp(theme.SCREEN_SPACING),
+        )
+
+        chart.size_hint = (self.BILD_ANTEIL, 1)
+        sales.size_hint = (1 - self.BILD_ANTEIL, 1)
+
+        self.inhalt.add_widget(chart)
+        self.inhalt.add_widget(sales)
+
+        root.add_widget(self.inhalt)
 
         self.add_widget(root)
 
     def _build_sales_panel(self):
-        schmal = theme.is_narrow()
-
-        # Auf dem Telefon ruecken die Zeilen enger zusammen: Sonst
-        # brauchen Ueberschrift, Filter, Kopfzeile und die beiden
-        # Loeschknoepfe zusammen mehr Hoehe, als die Karte hat - und
-        # die Ueberschrift wurde oben aus ihr hinausgedrueckt.
         panel = RoundedPanel(
             orientation="vertical",
-            padding=dp(theme.SPACE_S if schmal else theme.CARD_PADDING),
-            spacing=dp(theme.SPACE_XS if schmal else theme.CARD_SPACING),
-            size_hint=(
-                (1, 0.42 if schmal else 0.42)
-                if self.hochformat else (0.36, 1)
-            ),
+            padding=dp(theme.CARD_PADDING),
+            spacing=dp(theme.CARD_SPACING),
+            size_hint=(1, 0.42) if self.hochformat else (0.36, 1),
         )
 
         title = KiGLabel(text="Einzelverkäufe")
         title.set_font_size(26)
         title.set_bold(True)
         title.set_alignment("left")
-        title.set_color(theme.PRIMARY_ORANGE)
+        title.set_color(theme.section_color('sage'))
         title.size_hint_y = None
         title.height = dp(38)
         panel.add_widget(title)
 
-        # Auf dem Telefon passen Ereignisauswahl, zwei Datumsfelder und
-        # "Aktualisieren" nicht in eine Zeile - dort brechen sie um.
         # Die Felder stehen untereinander, jedes ueber die ganze
         # Breite der Filterkarte. Nebeneinander gezogen blieben fuer
         # Ereignis, Von, Bis und "Aktualisieren" je rund ein Viertel
@@ -309,7 +346,8 @@ class StatisticsScreen(Screen):
             lambda: self.clear_date_filter("to"),
         )))
 
-        aktualisieren = self._button("Aktualisieren", self.refresh)
+        aktualisieren = self._button("Übernehmen", self._filter_bestaetigen)
+        self.filter_confirm_button = aktualisieren
         aktualisieren.size_hint_y = None
         aktualisieren.height = dp(theme.FELD_HOEHE)
 
@@ -331,30 +369,15 @@ class StatisticsScreen(Screen):
         )
 
         actions_top = BoxLayout(
-            size_hint_y=None, height=dp(36 if schmal else 40),
+            size_hint_y=None, height=dp(40),
             spacing=dp(theme.ROW_SPACING),
         )
 
-        if schmal:
-            # 170 + 110 dp neben einem Platzhalter passen auf ein
-            # Telefon nicht - dort teilen sich beide, was da ist.
-            actions_top.add_widget(
-                self._button("Excel", self.export_excel)
-            )
-            actions_top.add_widget(
-                self._button("PDF", self.export_pdf)
-            )
-            actions_top.add_widget(
-                self._button("Teilen", self.teilen_clicked)
-            )
+        actions_top.add_widget(self._button("Excel", self.export_excel, width=dp(100)))
+        actions_top.add_widget(self._button("PDF", self.export_pdf, width=dp(90)))
+        actions_top.add_widget(self._button("Teilen", self.teilen_clicked, width=dp(100)))
 
-        else:
-            actions_top.add_widget(Widget())
-            actions_top.add_widget(self._button("Excel", self.export_excel, width=dp(100)))
-            actions_top.add_widget(self._button("PDF", self.export_pdf, width=dp(90)))
-            actions_top.add_widget(self._button("Teilen", self.teilen_clicked, width=dp(100)))
-
-        panel.add_widget(actions_top)
+        self.design_actions = actions_top
 
         # Eigene Zeile unter den Knoepfen: Der Hinweis nennt den Ordner
         # mit, und ein vollstaendiger Pfad braucht die ganze Breite
@@ -428,16 +451,27 @@ class StatisticsScreen(Screen):
             font_size="15sp", bold=True,
         ))
         panel.add_widget(actions)
+        manual_button = self._button('Manuelle Buchungen', self.open_manual_entries, width=dp(200))
+        manual_button.size_hint_y = None
+        manual_button.height = dp(44)
+        actions_top.add_widget(manual_button)
         return panel
+
+    def open_manual_entries(self):
+        from widgets.statistics.manual_entries import ManualEntriesPopup
+        if self._auswahl()[3] is not None:
+            self.category_filter.text = self.ALLE_KATEGORIEN
+        ManualEntriesPopup(self.db, self._auswahl(), self.refresh).open()
 
     @staticmethod
     def spalten():
         """Ueberschriften und Breiten der Verkaufstabelle.
 
-        Auf dem Telefon vier statt sieben: Sieben Ueberschriften ergaben
-        auf 412 dp einen einzigen Streifen, in dem "VerkaufEinkaufGewinn"
-        uebereinanderlag. Event, Kategorie und Einkauf entfallen dort -
-        wer sie braucht, sieht sie in der Ausgabe nach Excel.
+        In der schmalen rechten Spalte vier statt sieben: Sieben
+        Ueberschriften ergaben dort einen einzigen Streifen, in dem
+        "VerkaufEinkaufGewinn" uebereinanderlag. Event, Kategorie und
+        Einkauf entfallen dann - wer sie braucht, sieht sie in der
+        Ausgabe nach Excel.
         """
 
         if StatisticsScreen.kompakt():
@@ -463,11 +497,11 @@ class StatisticsScreen(Screen):
         """Ob die Verkaufstabelle in ihrer kurzen Fassung steht.
 
         Sie sitzt jetzt in der schmalen rechten Spalte - dort ist fuer
-        sieben Spalten kein Platz. Im Hochformat auf einem Tablet steht
-        sie dagegen ueber die ganze Breite und darf alles zeigen.
+        sieben Spalten kein Platz. Im Hochformat steht sie dagegen
+        ueber die ganze Breite und darf alles zeigen.
         """
 
-        return theme.is_narrow() or not theme.is_portrait()
+        return not theme.is_portrait()
 
     # =====================================================
     # Fehlende Einkaufspreise nachtragen
@@ -565,16 +599,11 @@ class StatisticsScreen(Screen):
         das gewählte Event; ohne Filter auf sämtliche Verkäufe.
         """
 
-        schmal = theme.is_narrow()
-
         panel = RoundedPanel(
             orientation="vertical",
-            padding=dp(theme.SPACE_S if schmal else theme.CARD_PADDING),
-            spacing=dp(theme.SPACE_XS if schmal else theme.CARD_SPACING),
-            size_hint=(
-                (1, 0.58 if schmal else 0.58)
-                if self.hochformat else (0.64, 1)
-            ),
+            padding=dp(theme.CARD_PADDING),
+            spacing=dp(theme.CARD_SPACING),
+            size_hint=(1, 0.58) if self.hochformat else (0.64, 1),
         )
 
         panel.add_widget(self._title("Auswertung"))
@@ -583,7 +612,7 @@ class StatisticsScreen(Screen):
 
         panel.add_widget(self.auswertung)
 
-        panel.add_widget(self._kennzahlen_block())
+        self.design_metrics = self._kennzahlen_block()
 
         # Was davon mit KiG Karte oder Gutschein beglichen wurde. Der
         # Umsatz darüber enthält diese Beträge: Verkauft wurde die Ware
@@ -612,21 +641,24 @@ class StatisticsScreen(Screen):
         return panel
 
     def _kennzahlen_block(self):
-        """Einnahmen, Ausgaben und Gewinn - nebeneinander unter dem
-        Bild.
+        """Einnahmen, Ausgaben und Gewinn - eine Leiste aus drei
+        Abschnitten.
 
-        Untereinander wie frueher waeren es drei Zeilen unter einem
-        Diagramm, das selbst aus Zeilen besteht; nebeneinander sind es
-        drei Zahlen, die man mit einem Blick erfasst.
+        Hier standen drei einzelne Karten mit Luecken dazwischen. Drei
+        Zahlen, die sich zueinander verhalten (Einnahmen minus
+        Ausgaben ergibt den Gewinn), gehoeren aber zusammen: Die
+        Leiste ist EINE Karte, in die zwei Striche die drei gleich
+        breiten Abschnitte teilen.
         """
 
-        hoehe = dp(self.TOTAL_ROW_HEIGHT * 2)
+        hoehe = dp(92)
 
-        block = BoxLayout(
+        leiste = RoundedPanel(
             orientation="horizontal",
             size_hint_y=None,
             height=hoehe,
-            spacing=dp(theme.CARD_SPACING),
+            padding=(0, dp(4)),
+            spacing=0,
         )
 
         self.total_labels = {}
@@ -637,28 +669,42 @@ class StatisticsScreen(Screen):
             ("profit", "Gewinn", theme.PRIMARY_ORANGE),
         ):
 
-            kasten = BoxLayout(orientation="vertical")
+            # Zwischen den Abschnitten ein Strich, aussen keiner - der
+            # Rand der Karte ist dort schon.
+            if leiste.children:
+                leiste.add_widget(KiGDividerVertical(
+                    color=theme.CARD_BORDER, padding=dp(14),
+                ))
 
-            kasten.add_widget(Label(
+            abschnitt = BoxLayout(
+                orientation="vertical",
+                padding=(dp(18), dp(10)),
+                spacing=dp(4),
+            )
+
+            titel = Label(
                 text=beschriftung, color=theme.TEXT_SECONDARY,
-                font_size="13sp", halign="left", valign="bottom",
-                text_size=(None, hoehe / 2),
-            ))
+                font_size="13sp", halign="left", valign="middle",
+                size_hint_y=None, height=dp(24),
+            )
+            titel.bind(size=lambda obj, value: setattr(obj, 'text_size', value))
+            abschnitt.add_widget(titel)
 
             wert = Label(
                 text=self.money(0), color=farbe,
-                font_size="15sp" if theme.is_narrow() else "22sp",
-                bold=True, halign="left", valign="top",
-                text_size=(None, hoehe / 2),
+                font_size="22sp",
+                bold=True, halign="left", valign="middle",
+                size_hint_y=None, height=dp(40),
             )
+            wert.bind(size=lambda obj, value: setattr(obj, 'text_size', value))
 
             self.total_labels[schluessel] = wert
 
-            kasten.add_widget(wert)
+            abschnitt.add_widget(wert)
 
-            block.add_widget(kasten)
+            leiste.add_widget(abschnitt)
 
-        return block
+        return leiste
 
     @staticmethod
     def _button(text, callback, width=None):
@@ -674,15 +720,13 @@ class StatisticsScreen(Screen):
 
     @staticmethod
     def _title(text):
-        schmal = theme.is_narrow()
-
         label = KiGLabel(text=text)
-        label.set_font_size(17 if schmal else 22)
+        label.set_font_size(22)
         label.set_bold(True)
         label.set_alignment("left")
-        label.set_color(theme.PRIMARY_ORANGE)
+        label.set_color(theme.section_color('sage'))
         label.size_hint_y = None
-        label.height = dp(26 if schmal else 34)
+        label.height = dp(34)
         return label
 
 
@@ -771,6 +815,10 @@ class StatisticsScreen(Screen):
 
         if getattr(self, "filterleiste", None) is not None:
             self.filterleiste.aktualisieren()
+
+    def _filter_bestaetigen(self):
+        self.refresh()
+        self.filterleiste.zuklappen()
 
     def _filter_text(self):
         """Was in der zugeklappten Filterleiste steht."""
@@ -912,6 +960,9 @@ class StatisticsScreen(Screen):
             label.text = self.money(kennzahlen[schluessel])
 
         self.period_label.text = self._period_text(kennzahlen)
+        if kennzahlen.get('manual_income') or kennzahlen.get('manual_expenses'):
+            self.period_label.text += (' | manuell: +' + self.money(kennzahlen['manual_income'])
+                                       + ' / -' + self.money(kennzahlen['manual_expenses']))
 
         self.entwertet_label.text = self._entwertet_text(kennzahlen)
 
@@ -1038,7 +1089,7 @@ class StatisticsScreen(Screen):
 
         daten = statistik_bericht.sammeln(self.db, auswahl, self._beschreibung())
 
-        if not daten["einzeln"]:
+        if not daten["einzeln"] and not daten.get('manual'):
             self.export_status.text = "Keine Verkäufe in der gewählten Auswahl zum Exportieren."
             return
 

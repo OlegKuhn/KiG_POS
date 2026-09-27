@@ -161,7 +161,7 @@ class ChecklistItemRow(BoxLayout):
             theme.PRIMARY_ORANGE if self.done else theme.SURFACE
         )
         self.check_button.set_symbol_color(
-            theme.TEXT_WHITE if self.done else theme.TEXT_PRIMARY
+            theme.TEXT_ON_ACCENT if self.done else theme.TEXT_PRIMARY
         )
 
     def toggle(self):

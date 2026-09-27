@@ -87,23 +87,10 @@ COLUMNS = (
 )
 
 
-# Auf dem Telefon vier statt sieben Spalten. Sieben Ueberschriften
-# ergaben auf 412 dp Breite einen einzigen unlesbaren Streifen
-# ("DatumStartbestaEinnahmeAusgabenEndbestaKommentaPruefer").
-# Startbestand, Kommentar und Pruefer stehen weiterhin im Formular
-# darunter, sobald eine Zeile angetippt wird.
-NARROW_COLUMNS = (
-    ("Datum", 0.28),
-    ("Einnahmen", 0.24),
-    ("Ausgaben", 0.24),
-    ("Endbestand", 0.24),
-)
-
-
 def spalten():
-    """Die Spalten dieses Bildschirms - je nach Breite."""
+    """Die Spalten dieses Bildschirms."""
 
-    return NARROW_COLUMNS if theme.is_narrow() else COLUMNS
+    return COLUMNS
 
 
 class CashBookRow(ButtonBehavior, BoxLayout):
@@ -138,33 +125,17 @@ class CashBookRow(ButtonBehavior, BoxLayout):
 
         datum = CashBookScreen.format_date(entry["entry_date"])
 
-        if theme.is_narrow():
+        werte = (
+            datum,
+            CashBookScreen.money(entry["opening_balance"]),
+            CashBookScreen.money(entry["income"]),
+            CashBookScreen.money(entry["expenses"]),
+            CashBookScreen.money(entry["closing_balance"]),
+            kommentar,
+            entry["auditor"] or "",
+        )
 
-            # Ohne Kommentarspalte braeuchte der Befund einen anderen
-            # Platz - er wandert an das Datum, damit ein Hinweis nicht
-            # verlorengeht.
-            werte = (
-                f"! {datum}" if self.problems else datum,
-                CashBookScreen.money(entry["income"]),
-                CashBookScreen.money(entry["expenses"]),
-                CashBookScreen.money(entry["closing_balance"]),
-            )
-
-            befund_spalte = 0
-
-        else:
-
-            werte = (
-                datum,
-                CashBookScreen.money(entry["opening_balance"]),
-                CashBookScreen.money(entry["income"]),
-                CashBookScreen.money(entry["expenses"]),
-                CashBookScreen.money(entry["closing_balance"]),
-                kommentar,
-                entry["auditor"] or "",
-            )
-
-            befund_spalte = 5
+        befund_spalte = 5
 
         for spalte, (wert, (_titel, breite)) in enumerate(
                 zip(werte, spalten())
@@ -205,14 +176,11 @@ class CashBookRow(ButtonBehavior, BoxLayout):
 class CashBookScreen(Screen):
     """Kassenbuch mit Jahres- und Monatsauswahl."""
 
-    # Hoehe einer Formularzeile. Auf dem Telefon flacher: Dort sind
-    # von acht Zeilen sonst nur eineinhalb zu sehen.
+    # Hoehe einer Formularzeile
     ZEILENHOEHE = 52
 
     YEAR_BUTTON_HEIGHT = 48
-    NARROW_YEAR_BUTTON_HEIGHT = 40
     MONTH_BUTTON_HEIGHT = 42
-    NARROW_MONTH_BUTTON_HEIGHT = 34
     SELECTION_WIDTH = 190
 
     def __init__(self, **kwargs):
@@ -225,11 +193,6 @@ class CashBookScreen(Screen):
 
         self.selected_year = heute.year
         self.selected_month = heute.month
-
-        if theme.is_narrow():
-            self.ZEILENHOEHE = 46
-            self.YEAR_BUTTON_HEIGHT = self.NARROW_YEAR_BUTTON_HEIGHT
-            self.MONTH_BUTTON_HEIGHT = self.NARROW_MONTH_BUTTON_HEIGHT
 
         self.selected_entry_id = None
         self.selected_row = None
@@ -258,7 +221,7 @@ class CashBookScreen(Screen):
             inhalt=self._build_zeitraum_inhalt(),
             titel="Zeitraum",
             zusammenfassung=self._zeitraum_text,
-            inhalt_hoehe=300 if theme.is_narrow() else 340,
+            inhalt_hoehe=340,
         )
 
         root.add_widget(self._build_table_panel())
@@ -310,6 +273,10 @@ class CashBookScreen(Screen):
         self.month_scroll = ScrollView(do_scroll_x=False, bar_width=dp(8))
         self.month_scroll.add_widget(self.month_box)
         inhalt.add_widget(self.month_scroll)
+        self.filter_confirm_button = self._selection_button(
+            "Übernehmen", dp(48), lambda: self.filterleiste.zuklappen()
+        )
+        inhalt.add_widget(self.filter_confirm_button)
 
         return inhalt
 
@@ -394,7 +361,7 @@ class CashBookScreen(Screen):
             rahmen=None if gewaehlt else theme.BORDER_COLOR,
         )
 
-        button.color = theme.TEXT_WHITE if gewaehlt else theme.INPUT_TEXT
+        button.color = theme.TEXT_ON_ACCENT if gewaehlt else theme.INPUT_TEXT
 
     def _highlight_selection(self):
         """Färbt die gewählte Jahres- und Monatsschaltfläche."""
@@ -431,14 +398,10 @@ class CashBookScreen(Screen):
             orientation="vertical",
             padding=dp(theme.CARD_PADDING),
             spacing=dp(theme.CARD_SPACING),
-            size_hint=(
-                (1, 0.40 if theme.is_narrow() else 0.52)
-                if self.hochformat else (1, 1)
-            ),
+            size_hint=(1, 0.52) if self.hochformat else (1, 1),
         )
 
         self.table_title = self._title("Kassenbuch")
-        panel.add_widget(self.table_title)
 
         # Ausgabe zum Abheften: Der Kassenprüfer bekommt den Monat auf
         # Papier, nicht das Tablet in die Hand.
@@ -446,33 +409,23 @@ class CashBookScreen(Screen):
             size_hint_y=None, height=dp(40), spacing=dp(theme.ROW_SPACING)
         )
 
-        aktionen.add_widget(Widget())
-
-        schmal = theme.is_narrow()
 
         export_knopf = self._action_button(
-            "Export" if schmal else "Excel exportieren", self.export_excel
+            "Excel exportieren", self.export_excel
         )
         teilen_knopf = self._action_button("Teilen", self.teilen_clicked)
 
-        if schmal:
-            # 190 + 110 dp passen auf ein Telefon nicht neben den
-            # Platzhalter - dort teilen sich beide, was da ist.
-            aktionen.clear_widgets()
-            aktionen.add_widget(export_knopf)
-            aktionen.add_widget(teilen_knopf)
+        export_knopf.size_hint_x = None
+        export_knopf.width = dp(190)
+        aktionen.add_widget(export_knopf)
 
-        else:
+        teilen_knopf.size_hint_x = None
+        teilen_knopf.width = dp(110)
+        aktionen.add_widget(teilen_knopf)
 
-            export_knopf.size_hint_x = None
-            export_knopf.width = dp(190)
-            aktionen.add_widget(export_knopf)
-
-            teilen_knopf.size_hint_x = None
-            teilen_knopf.width = dp(110)
-            aktionen.add_widget(teilen_knopf)
-
-        panel.add_widget(aktionen)
+        from widgets.common.title_actions import TitleActions
+        self.title_actions = TitleActions(self.table_title, aktionen)
+        panel.add_widget(self.title_actions)
 
         # Der Hinweis steht unter der Zeile und nicht daneben: Er nennt
         # den Ordner mit, und ein vollständiger Pfad braucht die ganze
@@ -530,10 +483,7 @@ class CashBookScreen(Screen):
             orientation="vertical",
             padding=dp(theme.CARD_PADDING),
             spacing=dp(theme.CARD_SPACING),
-            size_hint=(
-                (1, 0.38 if theme.is_narrow() else 0.32)
-                if self.hochformat else (None, 1)
-            ),
+            size_hint=(1, 0.32) if self.hochformat else (None, 1),
         )
 
         if not self.hochformat:
@@ -542,9 +492,9 @@ class CashBookScreen(Screen):
         self.form_title = self._title("Neue Zeile")
         panel.add_widget(self.form_title)
 
-        # Acht Zeilen zu je gut 50 dp passen auf einem Telefon nicht
-        # neben die Tabelle - und im Hochformat erst recht nicht
-        # darunter. Die Felder bekommen deshalb einen Rollbereich;
+        # Acht Zeilen zu je gut 50 dp passen im Hochformat nicht
+        # unter die Tabelle. Die Felder bekommen deshalb einen
+        # Rollbereich;
         # Überschrift und Schaltflächen bleiben stehen, damit
         # "Speichern" immer erreichbar ist.
         self.form_fields = BoxLayout(
@@ -635,7 +585,7 @@ class CashBookScreen(Screen):
         zeile.add_widget(Label(
             text=beschriftung, color=theme.TEXT_SECONDARY, font_size="14sp",
             halign="left", valign="middle",
-            size_hint_x=0.34 if theme.is_narrow() else 0.42,
+            size_hint_x=0.42,
             text_size=(None, hoehe),
         ))
 
@@ -644,7 +594,7 @@ class CashBookScreen(Screen):
         # eines (siehe widgets/common/feld.py).
         button = Feldknopf(
             text=wert,
-            size_hint_x=0.66 if theme.is_narrow() else 0.58,
+            size_hint_x=0.58,
         )
 
         button.bind(on_release=lambda *_args: callback())
@@ -664,13 +614,13 @@ class CashBookScreen(Screen):
         zeile.add_widget(Label(
             text=beschriftung, color=theme.TEXT_SECONDARY, font_size="14sp",
             halign="left", valign="middle",
-            size_hint_x=0.34 if theme.is_narrow() else 0.42,
+            size_hint_x=0.42,
             text_size=(None, hoehe),
         ))
 
         feld = RoundedInput(
             hint_text=hinweis, multiline=False,
-            size_hint_x=0.66 if theme.is_narrow() else 0.58,
+            size_hint_x=0.58,
         )
         feld.foreground_color = theme.INPUT_TEXT
         feld.hint_text_color = theme.INPUT_HINT
@@ -695,15 +645,13 @@ class CashBookScreen(Screen):
     @staticmethod
     def _title(text):
 
-        schmal = theme.is_narrow()
-
         label = KiGLabel(text=text)
-        label.set_font_size(18 if schmal else 24)
+        label.set_font_size(24)
         label.set_bold(True)
         label.set_alignment("left")
-        label.set_color(theme.PRIMARY_ORANGE)
+        label.set_color(theme.section_color('sage'))
         label.size_hint_y = None
-        label.height = dp(28 if schmal else 36)
+        label.height = dp(36)
 
         return label
 

@@ -49,10 +49,8 @@ class KiGTextTile(KiGTile):
         )
 
         self.lbl_title.set_bold(True)
-        # Telefon: kleinere Schrift, sonst bricht schon
-        # "Bearbeiten" in einer 96 dp breiten Kachel um.
         self.lbl_title.set_font_size(
-            13 if theme.is_narrow() else self.TITLE_SIZE
+            self.TITLE_SIZE
         )
         self.lbl_title.set_color(theme.TEXT_PRIMARY)
 

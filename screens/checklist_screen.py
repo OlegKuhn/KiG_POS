@@ -190,7 +190,7 @@ class ChecklistScreen(Screen):
             button.background_color = (
                 theme.PRIMARY_ORANGE if gewaehlt else theme.SURFACE
             )
-            button.color = theme.TEXT_WHITE if gewaehlt else theme.TEXT_PRIMARY
+            button.color = theme.TEXT_ON_ACCENT if gewaehlt else theme.TEXT_PRIMARY
 
     def select_checklist(self, checklist_id):
 
@@ -219,7 +219,7 @@ class ChecklistScreen(Screen):
 
         if self.hochformat:
 
-            # Auf dem Telefon bliebe neben zwei Knöpfen kaum noch Platz
+            # Hochkant bliebe neben zwei Knöpfen kaum noch Platz
             # für den Listennamen - dort stehen sie darunter.
             kopf = BoxLayout(
                 orientation="vertical", size_hint_y=None,
@@ -325,7 +325,7 @@ class ChecklistScreen(Screen):
 
         hinzufuegen = self._button(
             "Hinzufügen", self.add_item,
-            background=theme.PRIMARY_ORANGE, color=theme.TEXT_WHITE,
+            background=theme.PRIMARY_ORANGE, color=theme.TEXT_ON_ACCENT,
         )
         hinzufuegen.size_hint_x = None
         hinzufuegen.width = dp(150)
@@ -520,7 +520,7 @@ class ChecklistScreen(Screen):
         knoepfe.add_widget(self._button(
             "Anlegen",
             lambda: (popup.dismiss(), self._create_checklist(feld.text)),
-            background=theme.PRIMARY_ORANGE, color=theme.TEXT_WHITE,
+            background=theme.PRIMARY_ORANGE, color=theme.TEXT_ON_ACCENT,
         ))
         inhalt.add_widget(knoepfe)
 
@@ -690,7 +690,7 @@ class ChecklistScreen(Screen):
         label.set_font_size(24)
         label.set_bold(True)
         label.set_alignment("left")
-        label.set_color(theme.PRIMARY_ORANGE)
+        label.set_color(theme.section_color('lavender'))
         label.size_hint_y = None
         label.height = dp(36)
 

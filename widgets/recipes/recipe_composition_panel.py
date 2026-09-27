@@ -69,9 +69,8 @@ class RecipeCompositionPanel(RoundedPanel):
         self.add_widget(self.title_label)
 
         # Die Ueberschrift der Karte lautet beim Rezept selbst schon
-        # "Zusammensetzung" (siehe products_screen). Auf dem Telefon
-        # stand das Wort deshalb zweimal untereinander - dort bleibt
-        # die Zweitzeile weg.
+        # "Zusammensetzung" (siehe products_screen) - dann stuende das
+        # Wort zweimal untereinander, und die Zweitzeile bleibt weg.
         self.subtitle = KiGLabel(text="Zusammensetzung")
         self.subtitle.set_font_size(15)
         self.subtitle.set_alignment("left")
@@ -126,13 +125,7 @@ class RecipeCompositionPanel(RoundedPanel):
         # Zutat hinzufügen
         #
 
-        # Auf dem Telefon steht die Zutat ueber ihren Angaben statt
-        # daneben: Menge (90), Einheit (90) und "Hinzufuegen" (150)
-        # belegen 330 dp - mehr, als die ganze Karte dort breit ist.
-        # Nachgemessen bekam das Zutatenfeld genau 0 Bildpunkte.
-        self.schmal = theme.is_narrow()
-
-        self.add_row, steuerzeile = self._zweizeilig()
+        self.add_row, steuerzeile = self._zeile()
 
         self.ingredient_spinner = RoundedSpinner(
             text=self.NO_INGREDIENTS_TEXT
@@ -158,7 +151,7 @@ class RecipeCompositionPanel(RoundedPanel):
         self.add_button = Button(
             text="Hinzufügen", size_hint_x=None, width=dp(150),
             background_normal="", background_down="",
-            background_color=theme.PRIMARY_ORANGE, color=theme.TEXT_WHITE,
+            background_color=theme.PRIMARY_ORANGE, color=theme.TEXT_ON_ACCENT,
             font_size="16sp", bold=True,
         )
         self.add_button.bind(
@@ -176,8 +169,6 @@ class RecipeCompositionPanel(RoundedPanel):
         # echte Zutaten-Artikel (siehe database.py:get_ingredient_articles).
         #
 
-        # Schmal braucht der Satz zwei Zeilen - in einer 20 dp hohen
-        # Zeile lief die zweite sonst in die Felder darunter.
         self.free_text_hint = KiGLabel(
             text="...oder eine Zutat ohne Artikel eintragen "
                  "(z. B. Minze, Limette)"
@@ -186,10 +177,10 @@ class RecipeCompositionPanel(RoundedPanel):
         self.free_text_hint.set_alignment("left")
         self.free_text_hint.set_color(theme.TEXT_SECONDARY)
         self.free_text_hint.size_hint_y = None
-        self.free_text_hint.height = dp(36 if self.schmal else 20)
+        self.free_text_hint.height = dp(20)
         self.add_widget(self.free_text_hint)
 
-        self.free_text_row, freie_steuerzeile = self._zweizeilig()
+        self.free_text_row, freie_steuerzeile = self._zeile()
 
         self.free_text_name_input = RoundedInput(
             hint_text="Name (z. B. Minze)", multiline=False,
@@ -234,91 +225,33 @@ class RecipeCompositionPanel(RoundedPanel):
         self.set_recipe(None)
 
     ########################################################
-    # Eine Zeile - auf dem Telefon zwei
+    # Eine Zeile
     ########################################################
 
     ZEILE_HOEHE = 58
-    SCHMAL_ZEILE_HOEHE = 52
 
-    def _zweizeilig(self):
+    def _zeile(self):
         """Liefert die Zeile und die Stelle, an die ihre Angaben
-        gehoeren.
+        gehoeren - hier beides dasselbe."""
 
-        Breit ist beides dasselbe: eine Zeile. Schmal ist es ein Kasten
-        aus zwei Zeilen - oben das Feld, unten Menge, Einheit und
-        "Hinzufuegen".
-        """
-
-        if not self.schmal:
-
-            zeile = BoxLayout(
-                orientation="horizontal",
-                size_hint_y=None,
-                height=dp(self.ZEILE_HOEHE),
-                spacing=dp(theme.ROW_SPACING),
-            )
-
-            return zeile, zeile
-
-        kasten = BoxLayout(
-            orientation="vertical",
-            size_hint_y=None,
-            height=dp(2 * self.SCHMAL_ZEILE_HOEHE + theme.ROW_SPACING),
-            spacing=dp(theme.ROW_SPACING),
-        )
-
-        steuerzeile = BoxLayout(
+        zeile = BoxLayout(
             orientation="horizontal",
             size_hint_y=None,
-            height=dp(self.SCHMAL_ZEILE_HOEHE),
+            height=dp(self.ZEILE_HOEHE),
             spacing=dp(theme.ROW_SPACING),
         )
 
-        return kasten, steuerzeile
+        return zeile, zeile
 
-    def _oben(self, kasten, steuerzeile, widget):
-        """Haengt das Namensfeld ein - schmal in seine eigene Zeile,
-        mit den Angaben darunter.
-
-        Kivy stellt in einer senkrechten Reihe das zuerst Hinzugefuegte
-        nach oben; das Feld muss also vor der Steuerzeile kommen.
-        """
-
-        if self.schmal:
-            widget.size_hint_y = None
-            widget.height = dp(self.SCHMAL_ZEILE_HOEHE)
+    def _oben(self, kasten, _steuerzeile, widget):
+        """Haengt das Namensfeld ein."""
 
         kasten.add_widget(widget)
 
-        if self.schmal:
-            kasten.add_widget(steuerzeile)
-
-    def _unten(self, steuerzeile, widget, anteil):
-        """Haengt eine Angabe ein - schmal mit Anteil statt fester
-        Breite, damit die drei zusammen genau die Zeile fuellen."""
-
-        if self.schmal:
-            widget.size_hint_x = anteil
-            widget.width = 0
+    def _unten(self, steuerzeile, widget, _anteil):
+        """Haengt eine Angabe ein."""
 
         steuerzeile.add_widget(widget)
-
-    def inhaltshoehe(self):
-        """Wie hoch die Karte sein muss, damit beide Eingabezeilen und
-        ein paar Zutaten sichtbar sind (siehe Stammdatenkarte)."""
-
-        fest = (
-            dp(42)                      # Ueberschrift
-            + self.subtitle.height      # "Zusammensetzung"
-            + self.summary_label.height
-            + self.add_row.height
-            + self.free_text_hint.height
-            + self.free_text_row.height
-            + dp(theme.CARD_SPACING) * 5
-            + dp(theme.CARD_PADDING) * 2
-        )
-
-        return fest + max(dp(120), self.list_layout.minimum_height)
 
     ########################################################
     # Rezept

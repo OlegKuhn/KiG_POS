@@ -18,6 +18,7 @@ from kivy.metrics import dp
 import theme
 import config
 import geldformat
+from widgets.cash.design import CashButton
 
 from widgets.kig_label import KiGLabel
 
@@ -37,9 +38,9 @@ class CartItemWidget(ButtonBehavior, BoxLayout):
     # Höhe einer Position. Bemessen nach den Mengentasten: Sie sollen
     # quadratisch sein (QUANTITY_BUTTON_WIDTH), und der Innenabstand
     # kommt oben und unten dazu.
-    HEIGHT = 64
+    HEIGHT = 76
 
-    PADDING = theme.TILE_PADDING
+    PADDING = 10
     SPACING = theme.SPACE_XS
 
     TITLE_SIZE = 18
@@ -80,7 +81,7 @@ class CartItemWidget(ButtonBehavior, BoxLayout):
         self.padding = dp(self.PADDING)
         self.spacing = dp(self.SPACING)
 
-        self.always_release = True
+        self.always_release = False
 
         # =====================================================
         # Hintergrund
@@ -271,11 +272,9 @@ class CartItemWidget(ButtonBehavior, BoxLayout):
 
     def _quantity_button(self, beschriftung, veraenderung):
 
-        button = Button(
+        button = CashButton(
             text=beschriftung,
             size_hint=(1, 1),
-            background_normal="", background_down="",
-            background_color=theme.SURFACE, color=theme.TEXT_PRIMARY,
             font_size=f"{self.QUANTITY_BUTTON_FONT}sp", bold=True,
         )
         button.bind(

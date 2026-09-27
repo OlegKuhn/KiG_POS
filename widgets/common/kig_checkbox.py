@@ -134,5 +134,5 @@ class KiGCheckbox(BoxLayout):
             theme.PRIMARY_ORANGE if self.aktiv else theme.SURFACE
         )
         self.kaestchen.set_symbol_color(
-            theme.TEXT_WHITE if self.aktiv else theme.TEXT_PRIMARY
+            theme.TEXT_ON_ACCENT if self.aktiv else theme.TEXT_PRIMARY
         )

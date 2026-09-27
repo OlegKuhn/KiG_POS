@@ -1,4 +1,4 @@
-"""Vollflächiger Monatskalender für Events, Barschichten und Termine."""
+"""Planner-Kalender mit Detailauswahl und bestehenden Bearbeitungsdialogen."""
 
 import calendar
 from datetime import date
@@ -27,6 +27,8 @@ from widgets.common.kig_popup import KiGPopup
 from widgets.common.rounded_input import RoundedInput
 from widgets.common.rounded_panel import RoundedPanel
 from widgets.kig_label import KiGLabel
+from widgets.planner_overview import PlannerOverview
+from widgets.cash.design import CashButton
 
 
 MONTH_NAMES = (
@@ -45,21 +47,22 @@ class CalendarDayButton(Button):
         super().__init__(**kwargs)
         self.day = day
         self.callback = callback
+        self.entries = entries
 
-        visible_entries = [self._display_name(entry) for entry in entries[:4]]
-        if len(entries) > 4:
-            visible_entries.append(f"+ {len(entries) - 4} weitere")
+        visible_entries = [self._display_name(entry) for entry in entries[:2]]
+        if len(entries) > 2:
+            visible_entries.append(f"+ {len(entries) - 2} weitere")
 
         self.text = "\n".join([str(day.day), *visible_entries])
-        self.font_size = "15sp"
+        self.font_size = "13sp"
         self.bold = True
         self.halign = "left"
         self.valign = "top"
-        self.padding = (dp(theme.TILE_PADDING), dp(theme.SPACE_XS))
+        self.padding = (dp(6), dp(6))
         self.background_normal = ""
         self.background_down = ""
         self.background_color = (0, 0, 0, 0)
-        self.color = theme.TEXT_PRIMARY
+        self.color = theme.TEXT_ON_ACCENT if selected else theme.TEXT_PRIMARY
 
         with self.canvas.before:
             Color(*(theme.PRIMARY_ORANGE if selected else theme.CARD))
@@ -82,10 +85,20 @@ class CalendarDayButton(Button):
         self.background.size = self.size
         self.calendar_border.rounded_rectangle = (*self.pos, *self.size, dp(8))
         self.text_size = (self.width - dp(16), self.height - dp(12))
+        capacity = max(1, int((self.height - dp(12)) / dp(20)) - 1)
+        shown = self.entries[:capacity]
+        if len(self.entries) > capacity:
+            shown = shown[:-1]
+        limit = max(4, int((self.width - dp(16)) / dp(7)))
+        names = [self._display_name(entry) for entry in shown]
+        lines = [name if len(name) <= limit else name[:limit - 1] + '…' for name in names]
+        if len(self.entries) > len(shown):
+            lines.append(f'+ {len(self.entries) - len(shown)} weitere')
+        self.text = '\n'.join([str(self.day.day), *lines])
 
 
-class EventsScreen(Screen):
-    """Kalenderansicht; Detail- und Bearbeitungsfunktionen liegen in Popups."""
+class EventsScreen(PlannerOverview, Screen):
+    """Kalender mit seitlichen Details; Bearbeitung erfolgt im vorhandenen Dialog."""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -98,60 +111,28 @@ class EventsScreen(Screen):
         self.month_options = {}
         self.day_popup = None
 
-        root = BoxLayout(padding=dp(theme.SCREEN_PADDING))
-
-        panel = RoundedPanel(
-            orientation="vertical",
-            padding=dp(theme.CARD_PADDING),
-            spacing=dp(theme.CARD_SPACING),
-        )
-
-        title = KiGLabel(text="Kalender")
-        title.set_font_size(18 if theme.is_narrow() else 26)
-        title.set_bold(True)
-        title.set_alignment("left")
-        title.set_color(theme.PRIMARY_ORANGE)
-        title.size_hint_y = None
-        title.height = dp(42)
-        panel.add_widget(title)
-
-        panel.add_widget(self._build_header())
-
-        weekdays = GridLayout(cols=7, size_hint_y=None, height=dp(34))
-        for weekday in WEEKDAYS:
-            label = KiGLabel(text=weekday)
-            label.set_bold(True)
-            label.set_color(theme.TEXT_SECONDARY)
-            weekdays.add_widget(label)
-        panel.add_widget(weekdays)
-
-        self.calendar_grid = GridLayout(cols=7, spacing=dp(theme.ROW_SPACING))
-        panel.add_widget(self.calendar_grid)
-        root.add_widget(panel)
-        self.add_widget(root)
+        self.build_overview(WEEKDAYS)
 
         self._populate_month_picker()
         self.refresh_calendar()
 
     def _build_header(self):
-        header = BoxLayout(size_hint_y=None, height=dp(62), spacing=dp(theme.ROW_SPACING))
-        header.add_widget(self._button("‹", self.previous_month, width=dp(68)))
+        header = BoxLayout(size_hint_y=None, height=dp(50), spacing=dp(6))
+        header.add_widget(self._button("Heute", self.show_today, width=dp(76), height=dp(48)))
+        header.add_widget(self._button("‹", self.previous_month, width=dp(44), height=dp(48)))
 
         self.month_spinner = RoundedSpinner()
         self.month_spinner.bind(text=self._month_selected)
         header.add_widget(self.month_spinner)
-        header.add_widget(self._button("›", self.next_month, width=dp(68)))
+        header.add_widget(self._button("›", self.next_month, width=dp(44), height=dp(48)))
         return header
 
     @staticmethod
     def _button(text, callback, width=None, height=None):
-        button = Button(
+        button = CashButton(
             text=text,
             font_size="18sp",
             bold=True,
-            background_normal="",
-            background_down="",
-            background_color=theme.SURFACE,
             color=theme.TEXT_PRIMARY,
             size_hint=(None, None) if width else (1, None),
             height=height or dp(54)
@@ -203,9 +184,7 @@ class EventsScreen(Screen):
             self.refresh_calendar()
 
     def refresh_calendar(self):
-        entries_by_date = {}
-        for entry in self.db.get_entries_for_month(self.visible_year, self.visible_month):
-            entries_by_date.setdefault(entry["start_date"], []).append(entry)
+        self.entries = [dict(entry) for entry in self.db.get_events()]
 
         self.calendar_grid.clear_widgets()
         first_weekday, days_in_month = calendar.monthrange(self.visible_year, self.visible_month)
@@ -217,11 +196,15 @@ class EventsScreen(Screen):
             self.calendar_grid.add_widget(
                 CalendarDayButton(
                     day,
-                    entries_by_date.get(day.isoformat(), []),
+                    self.entries_on(day),
                     day == self.selected_day,
-                    self.open_day_popup
+                    self.select_day
                 )
             )
+
+        for _ in range(-(first_weekday + days_in_month) % 7):
+            self.calendar_grid.add_widget(Widget())
+        self.refresh_overview()
 
     def open_day_popup(self, selected_day):
         self.selected_day = selected_day

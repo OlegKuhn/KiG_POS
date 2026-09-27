@@ -45,3 +45,8 @@ __pycache__/
 
 # Beim Bauen erzeugt (siehe config._buildnummer)
 buildnummer.txt
+
+# Vorschaubilder der Pruefwerkzeuge (werkzeuge/pruefe_*.py):
+# jederzeit neu erzeugbar - und sie gehoeren nicht in die APK,
+# die alles unter berichte/ mitnimmt.
+berichte/design-vorschau/

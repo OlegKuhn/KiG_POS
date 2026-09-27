@@ -1,4 +1,5 @@
 from kivy.metrics import dp
+from kivy.graphics import Color, Line, Rectangle
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -43,7 +44,7 @@ class _Warenkorbleiste(BoxLayout):
             text="Bezahlen",
             size_hint=(None, 1), width=dp(82),
             background_normal="", background_down="",
-            background_color=theme.PRIMARY_ORANGE, color=theme.TEXT_WHITE,
+            background_color=theme.PRIMARY_ORANGE, color=theme.TEXT_ON_ACCENT,
             font_size="17sp", bold=True,
         )
 
@@ -177,7 +178,7 @@ class CartPanel(RoundedPanel):
     cremefarbenen Hintergrunds.
     """
 
-    HEADER_HEIGHT = 60
+    HEADER_HEIGHT = 44
 
     # Schmaler als die Standardkachel (theme.CATEGORY_TILE_WIDTH = 160),
     # damit neben "Storno" und "Leeren" noch Platz für die Überschrift
@@ -190,9 +191,9 @@ class CartPanel(RoundedPanel):
     PADDING = theme.CARD_PADDING
     SPACING = theme.CARD_SPACING
 
-    # Telefon: Der Warenkorb belegte dort fast die halbe Hoehe - meist,
-    # um "Summe 0,00" anzuzeigen. Zugeklappt bleibt eine Zeile stehen;
-    # ein Tipp darauf holt ihn hoch.
+    # Hochformat: Der Warenkorb belegte dort fast die halbe Hoehe -
+    # meist, um "Summe 0,00" anzuzeigen. Zugeklappt bleibt eine Zeile
+    # stehen; ein Tipp darauf holt ihn hoch.
     SCHMAL_LEISTE_HOEHE = 62
 
     def __init__(
@@ -243,7 +244,7 @@ class CartPanel(RoundedPanel):
         self.lbl_title.text = "Warenkorb"
         self.lbl_title.set_bold(True)
         self.lbl_title.set_font_size(26)
-        self.lbl_title.set_color(theme.PRIMARY_ORANGE)
+        self.lbl_title.set_color(theme.TEXT_PRIMARY)
 
         self.lbl_title.horizontal_alignment = "left"
         self.lbl_title.vertical_alignment = "middle"
@@ -292,18 +293,11 @@ class CartPanel(RoundedPanel):
         # übergebenes width. Zwei solche Kacheln würden vom Kopfbereich
         # nichts mehr für die Überschrift übrig lassen - deshalb hier
         # NACH der Konstruktion schmaler setzen.
-        # Auf dem Telefon noch einmal schmaler: Bei 84 dp je Schaltfläche
-        # blieben der Überschrift 114 Bildpunkte - "Warenkorb" wurde zu
-        # "Waren" abgeschnitten. Nachgemessen bei 339 dp Breite.
-        knopfbreite = 70 if theme.is_narrow() else self.HEADER_BUTTON_WIDTH
-
         for schaltflaeche in (self.btn_storno, self.btn_clear):
             schaltflaeche.size_hint = (None, None)
-            schaltflaeche.width = dp(knopfbreite)
-            schaltflaeche.height = dp(theme.CATEGORY_TILE_HEIGHT)
-            schaltflaeche.lbl_title.set_font_size(
-                13 if theme.is_narrow() else 15
-            )
+            schaltflaeche.width = dp(self.HEADER_BUTTON_WIDTH)
+            schaltflaeche.height = dp(46)
+            schaltflaeche.lbl_title.set_font_size(15)
             self.header.add_widget(schaltflaeche)
 
         self.add_widget(
@@ -352,6 +346,7 @@ class CartPanel(RoundedPanel):
 
         self.items_container = BoxLayout(
             orientation="vertical",
+            spacing=dp(6),
             size_hint_y=None
         )
 
@@ -388,13 +383,33 @@ class CartPanel(RoundedPanel):
         )
 
         # -------------------------------------------------
-        # Telefon: die zugeklappte Zeile
+        # Die zugeklappte Zeile
         # -------------------------------------------------
 
         # Klappbar ist der Warenkorb ueberall dort, wo er UNTEN steht -
-        # also im Hochformat, auf dem Telefon wie auf dem Tablet. Im
-        # Querformat ist er eine Spalte neben den Artikeln und bleibt,
-        # wie er ist.
+        # also im Hochformat. Im Querformat ist er eine Spalte neben
+        # den Artikeln und bleibt, wie er ist.
+        self.empty_hint = KiGLabel(text="Noch keine Artikel gewählt.", size_hint_y=None, height=dp(116))
+        self.empty_hint.set_font_size(15)
+        self.empty_hint.set_color(theme.TEXT_SECONDARY)
+        with self.empty_hint.canvas.before:
+            Color(*theme.CARD_BORDER)
+            empty_border = Line(width=1, dash_length=dp(3), dash_offset=dp(3))
+        def empty_geometry(widget, *_):
+            empty_border.rounded_rectangle = (*widget.pos, *widget.size, dp(12))
+        self.empty_hint.bind(pos=empty_geometry, size=empty_geometry)
+        with self.header.canvas.before:
+            Color(*theme.PRIMARY_ORANGE)
+            title_mark = Rectangle()
+        def title_geometry(widget, *_):
+            title_mark.pos = (widget.x, widget.y + dp(8))
+            title_mark.size = (dp(4), max(0, widget.height - dp(16)))
+        self.header.bind(pos=title_geometry, size=title_geometry)
+        self.header.padding = (dp(14), 0, 0, 0)
+        self.items_container.add_widget(self.empty_hint)
+        self.footer.update(0, has_items=False)
+        self.btn_clear.disabled = True
+        self.btn_clear.opacity = 0
         self.klappbar = theme.is_portrait()
         self.aufgeklappt = not self.klappbar
 
@@ -419,7 +434,7 @@ class CartPanel(RoundedPanel):
             self._nur_leiste()
 
     # =====================================================
-    # Zugeklappt / aufgeklappt (nur Telefon)
+    # Zugeklappt / aufgeklappt (nur im Hochformat)
     # =====================================================
 
     def _nur_leiste(self):
@@ -509,7 +524,7 @@ class CartPanel(RoundedPanel):
         """
 
         self.lbl_title.text = "Storno" if aktiv else "Warenkorb"
-        self.lbl_title.set_color(theme.ERROR if aktiv else theme.PRIMARY_ORANGE)
+        self.lbl_title.set_color(theme.ERROR if aktiv else theme.TEXT_PRIMARY)
 
         self.lbl_storno_hint.height = dp(30) if aktiv else 0
         self.lbl_storno_hint.opacity = 1 if aktiv else 0
@@ -585,7 +600,11 @@ class CartPanel(RoundedPanel):
 
             self.items_container.add_widget(widget)
 
-        self.footer.update(total=cart.total())
+        if not cart.items:
+            self.items_container.add_widget(self.empty_hint)
+        self.btn_clear.disabled = not bool(cart.items)
+        self.btn_clear.opacity = 1 if cart.items else 0
+        self.footer.update(total=cart.total(), has_items=bool(cart.items))
 
         # Die zugeklappte Zeile zeigt dasselbe in klein.
         self.leiste_aktualisieren(

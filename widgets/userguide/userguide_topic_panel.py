@@ -27,10 +27,6 @@ class UserguideTopicPanel(RoundedPanel):
     PORTRAIT_EXPORT_WIDTH = 210
     PORTRAIT_COLUMNS = 3
 
-    # Telefon: zwei Themen nebeneinander - drei ergaben Karten von
-    # 105 dp, in denen "Artikelverwaltung" dreizeilig umbrach.
-    NARROW_COLUMNS = 2
-
     # Der Teilen-Knopf bleibt schmal: Er trägt nur ein Wort und soll
     # dem Export nicht den Platz nehmen.
     TEILEN_WIDTH = 110
@@ -70,7 +66,7 @@ class UserguideTopicPanel(RoundedPanel):
             text="Als PDF exportieren",
             size_hint_y=None, height=dp(theme.CATEGORY_TILE_HEIGHT),
             background_normal="", background_down="",
-            background_color=theme.PRIMARY_ORANGE, color=theme.TEXT_WHITE,
+            background_color=theme.PRIMARY_ORANGE, color=theme.TEXT_ON_ACCENT,
             font_size="16sp", bold=True,
         )
         self.export_button.bind(on_release=lambda *_args: self._export_clicked())
@@ -95,25 +91,11 @@ class UserguideTopicPanel(RoundedPanel):
                 height=dp(theme.CATEGORY_TILE_HEIGHT)
             )
 
-            # Auf dem Telefon tritt die Ueberschrift zurueck: Neben
-            # zwei Schaltflaechen blieben ihr keine 40 dp, und von
-            # "Themen" stand dort nur noch "en".
-            if not theme.is_narrow():
-                title.size_hint_y = 1
-                header.add_widget(title)
+            title.size_hint_y = 1
+            header.add_widget(title)
 
-            if theme.is_narrow():
-
-                # 200 + 110 dp passen auf ein Telefon nicht - dort
-                # teilen sich beide, was da ist.
-                self.export_button.size_hint_x = 1
-                self.teilen_button.size_hint = (1, None)
-                self.teilen_button.height = dp(theme.CATEGORY_TILE_HEIGHT)
-
-            else:
-
-                self.export_button.size_hint_x = None
-                self.export_button.width = dp(self.PORTRAIT_EXPORT_WIDTH)
+            self.export_button.size_hint_x = None
+            self.export_button.width = dp(self.PORTRAIT_EXPORT_WIDTH)
 
             header.add_widget(self.export_button)
             header.add_widget(self.teilen_button)
@@ -127,10 +109,7 @@ class UserguideTopicPanel(RoundedPanel):
 
         if self.hochformat:
             self.list_layout = GridLayout(
-                cols=(
-                    self.NARROW_COLUMNS if theme.is_narrow()
-                    else self.PORTRAIT_COLUMNS
-                ),
+                cols=self.PORTRAIT_COLUMNS,
                 spacing=dp(theme.ROW_SPACING),
                 size_hint_y=None
             )

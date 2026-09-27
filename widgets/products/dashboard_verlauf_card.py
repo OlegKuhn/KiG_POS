@@ -260,11 +260,3 @@ class VerlaufCard(RoundedPanel):
 
         for position, eintrag in enumerate(eintraege):
             self.zeilen.add_widget(_Zeile(eintrag, dunkel=position % 2 == 1))
-
-    def inhaltshoehe(self):
-        """Fuer die gestapelte Fassung auf dem Telefon."""
-
-        return (
-            dp(30) + dp(26) + min(self.zeilen.height, dp(34 * 8))
-            + dp(theme.CARD_SPACING) * 2 + dp(theme.CARD_PADDING) * 2
-        )

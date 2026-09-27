@@ -65,6 +65,7 @@ _LIGHT_COLORS = {
     "TEXT_SECONDARY": (0.42, 0.42, 0.42, 1.0),
     "TEXT_LIGHT": (0.70, 0.70, 0.70, 1.0),
     "TEXT_WHITE": (1.0, 1.0, 1.0, 1.0),
+    "TEXT_ON_ACCENT": (1.0, 1.0, 1.0, 1.0),
 
     # Eingabefelder: Was hineingeschrieben wurde, ist fast schwarz -
     # der Platzhalter deutlich blasser, aber kraeftig genug, um ihn im
@@ -121,17 +122,18 @@ _DARK_COLORS = {
 
     # Hintergründe
     "BACKGROUND": (0.09, 0.09, 0.10, 1),
-    "SURFACE": (0.15, 0.15, 0.16, 1.0),
-    "CARD": (0.17, 0.17, 0.18, 1.0),
-    "ZEILE_ALT": (0.21, 0.21, 0.22, 1.0),
+    "SURFACE": (0.12, 0.14, 0.17, 1.0),
+    "CARD": (0.18, 0.20, 0.23, 1.0),
+    "ZEILE_ALT": (0.23, 0.25, 0.28, 1.0),
     "CONTENT_BACKGROUND": (0.10, 0.10, 0.11, 1),
-    "CARD_BORDER": (0.28, 0.28, 0.30, 1),
+    "CARD_BORDER": (0.49, 0.53, 0.58, 1),
 
     # Text
     "TEXT_PRIMARY": (0.93, 0.93, 0.94, 1.0),
-    "TEXT_SECONDARY": (0.66, 0.66, 0.69, 1.0),
-    "TEXT_LIGHT": (0.50, 0.50, 0.53, 1.0),
+    "TEXT_SECONDARY": (0.80, 0.82, 0.85, 1.0),
+    "TEXT_LIGHT": (0.72, 0.75, 0.79, 1.0),
     "TEXT_WHITE": (1.0, 1.0, 1.0, 1.0),
+    "TEXT_ON_ACCENT": (0.08, 0.09, 0.11, 1.0),
 
     # Eingabefelder (siehe hellen Modus)
     "INPUT_TEXT": (0.97, 0.97, 0.98, 1.0),
@@ -157,14 +159,14 @@ _DARK_COLORS = {
     "BUTTON_DISABLED": (0.30, 0.30, 0.32, 1),
 
     # Rahmen / Schatten
-    "BORDER_COLOR": (0.30, 0.30, 0.32, 1),
+    "BORDER_COLOR": (0.49, 0.53, 0.58, 1),
     "SHADOW_COLOR": (0, 0, 0, 0.35),
 
     # Header/Footer - bewusst deutlich heller als BACKGROUND/CARD,
     # damit sich die "Chrome"-Leisten klar vom Inhalt abheben und
     # das (dunkle Linienkunst-)Vereinslogo darauf gut lesbar bleibt.
     "HEADER_BACKGROUND": (0.26, 0.26, 0.28, 1),
-    "HEADER_SEPARATOR": (0.38, 0.38, 0.41, 1),
+    "HEADER_SEPARATOR": (0.49, 0.53, 0.58, 1),
 
     # Warenkorb (warmer Unterton bleibt erhalten, nur abgedunkelt)
     "CART_BACKGROUND": (0.15, 0.12, 0.11, 1),
@@ -176,9 +178,57 @@ _DARK_COLORS = {
     "TILE_SOLD_OUT": (0.13, 0.13, 0.14, 1),
 
     # Buttonpress
-    "TILE_PRESS_COLOR": (0.60, 0.32, 0.20, 1),
+    "TILE_PRESS_COLOR": (0.32, 0.19, 0.12, 1),
 
 }
+
+# Helle, warme Flächen lassen dem Holzheader seine Eigenständigkeit.
+_LIGHT_COLORS.update({
+    "BACKGROUND": (0.965, 0.963, 0.946, 1),
+    "CONTENT_BACKGROUND": (0.982, 0.981, 0.967, 1),
+    "CARD": (1.0, 0.995, 0.978, 1),
+    "SURFACE": (0.975, 0.976, 0.963, 1),
+    "ZEILE_ALT": (0.948, 0.964, 0.954, 1),
+    "CARD_BORDER": (0.83, 0.85, 0.81, 1),
+    "BORDER_COLOR": (0.72, 0.76, 0.72, 1),
+    "TEXT_PRIMARY": (0.12, 0.16, 0.18, 1),
+    "TEXT_SECONDARY": (0.36, 0.39, 0.37, 1),
+    "TEXT_LIGHT": (0.43, 0.46, 0.43, 1),
+    "INPUT_HINT": (0.40, 0.43, 0.40, 1),
+    "SHADOW_COLOR": (0.15, 0.20, 0.16, 0.045),
+    "HEADER_SEPARATOR": (0.68, 0.53, 0.36, 1),
+    "CART_BACKGROUND": (1.0, 0.995, 0.978, 1),
+    "CART_FOOTER_BACKGROUND": (1.0, 0.94, 0.875, 1),
+    "CART_SEPARATOR": (0.87, 0.86, 0.80, 1),
+    "TILE_SOLD_OUT": (0.89, 0.91, 0.89, 1),
+})
+
+SECTION_COLORS = {
+    'teal': (.04, .46, .49, 1), 'lavender': (.45, .28, .65, 1),
+    'sage': (.24, .51, .34, 1), 'amber': (.61, .39, .04, 1),
+    'blue': (.23, .43, .65, 1), 'slate': (.36, .42, .48, 1),
+    'terracotta': (.76, .30, .18, 1),
+}
+
+
+def section_color(tone):
+    if tone == 'orange':
+        return PRIMARY_ORANGE
+    color = SECTION_COLORS[tone]
+    if CURRENT_MODE == 'dark':
+        return tuple(c * .62 + .38 for c in color[:3]) + (1,)
+    return color
+
+
+def tinted(color, strength=.10, base=None):
+    return tuple(a * strength + b * (1 - strength)
+                 for a, b in zip(color, base or CARD))
+
+# Die Holz-Kopfzeile ist in beiden Modi dunkel; ihre Textfarben sind
+# deshalb unabhaengig von der Textfarbe der Inhaltskarten.
+HEADER_TEXT = (0.16, 0.12, 0.08, 1)
+HEADER_MUTED = (0.36, 0.29, 0.21, 1)
+HEADER_ACCENT = (0.72, 0.22, 0.035, 1)
 
 _MODES = {
     "light": _LIGHT_COLORS,
@@ -245,9 +295,27 @@ def _apply_accent():
     aus ihnen ableitet."""
 
     global PROGRESS_FOREGROUND, BUTTON_PRIMARY, BUTTON_PRIMARY_HOVER
-    global BUTTON_PRIMARY_PRESSED
+    global BUTTON_PRIMARY_PRESSED, BUTTON_TEXT, SELECTION_BACKGROUND
 
     globals().update(_ACCENTS[CURRENT_ACCENT])
+
+    # Text auf Akzentflaechen und Akzenttext brauchen unterschiedliche
+    # Kontraste. Die dunkle Auswahl behaelt helle Kachelbeschriftungen.
+    if CURRENT_MODE == "dark":
+        if CURRENT_ACCENT == "normal":
+            globals().update(
+                PRIMARY_ORANGE=(1.0, 0.49, 0.24, 1),
+                PRIMARY_ORANGE_LIGHT=(1.0, 0.60, 0.37, 1),
+                PRIMARY_ORANGE_DARK=(0.88, 0.39, 0.17, 1),
+                TILE_PRESS_COLOR=(0.32, 0.19, 0.12, 1),
+            )
+        else:
+            globals()["TILE_PRESS_COLOR"] = (0.16, 0.26, 0.12, 1)
+
+    SELECTION_BACKGROUND = (
+        TILE_PRESS_COLOR if CURRENT_MODE == "dark" else PRIMARY_ORANGE
+    )
+    BUTTON_TEXT = TEXT_ON_ACCENT
 
     PROGRESS_FOREGROUND = PRIMARY_ORANGE
 
@@ -361,59 +429,16 @@ def is_portrait():
 
 
 # =========================================================
-# SCHMALE BILDSCHIRME
-# =========================================================
-#
-# Quer und hoch reichen nicht: Ein Telefon im Hochformat bekam bisher
-# dieselbe Anordnung wie das 10-Zoll-Tablet im Hochformat, nur auf
-# einem Drittel der Fläche. Kategorienamen brachen mitten im Wort um,
-# und von neun Startkacheln waren fünf zu sehen.
-#
-# Deshalb eine dritte Frage neben der Ausrichtung: Ist überhaupt Platz
-# nebeneinander? Sie hängt an der wirklichen Breite in dp, nicht an
-# einer Geräteliste - ein schmales Fenster am Rechner ist genauso
-# schmal wie ein Telefon.
-
-# Ab hier gilt ein Bildschirm als schmal. 500 dp liegt zwischen den
-# üblichen Telefonen (360-430 dp) und den kleinen Tablets (ab 600 dp).
-NARROW_MAX_WIDTH = 500
-
-CURRENT_WIDTH = None
-
-
-def set_breite(breite_dp):
-    """Merkt sich die kürzere Bildschirmseite in dp.
-
-    Wird beim Start gesetzt (siehe KiGPOS.build). Bewusst die kürzere
-    Seite: Sie ändert sich beim Drehen nicht, und damit bleibt ein
-    Telefon auch quer ein Telefon.
-
-    Ohne Angabe bleibt es beim Normalfall breit - ein Skript ohne
-    Fenster soll nicht versehentlich die Telefonanordnung bekommen.
-    """
-
-    global CURRENT_WIDTH
-
-    CURRENT_WIDTH = breite_dp
-
-
-def is_narrow():
-    """True, wenn nebeneinander kein Platz mehr ist."""
-
-    return CURRENT_WIDTH is not None and CURRENT_WIDTH < NARROW_MAX_WIDTH
-
-
-# =========================================================
 # RADIUS
 # =========================================================
 
-CARD_RADIUS = 18
+CARD_RADIUS = 12
 
-BUTTON_RADIUS = 14
+BUTTON_RADIUS = 7
 
 PROGRESS_RADIUS = 10
 
-INPUT_RADIUS = 10
+INPUT_RADIUS = 6
 
 # Schriftgröße in Eingabefeldern.
 #
@@ -432,7 +457,7 @@ DIALOG_RADIUS = 18
 # RAHMEN
 # =========================================================
 
-BORDER_WIDTH = 1.5
+BORDER_WIDTH = 0.8
 
 # =========================================================
 # ABSTÄNDE
@@ -542,45 +567,14 @@ SPLASH_STATUS_CENTER_Y = 0.095
 
 SPLASH_VERSION_CENTER_Y = 0.045
 
-# ---------------------------------------------------------
-# Startbildschirm auf dem Telefon
-# ---------------------------------------------------------
-#
-# Die Werte oben sind fuer ein Tablet im 16:10-Format gerechnet. Auf
-# einem 424 x 918 Punkte grossen Telefonbildschirm stand das Logo
-# (600 Punkte breit) links und rechts ueber dem Rand, zwischen Logo und
-# Titel klaffte ein Drittel Bildschirm, und Titel und Untertitel lagen
-# uebereinander. Schmal gilt deshalb ein eigener, enger Satz - und die
-# Logobreite richtet sich nach dem Bildschirm statt nach einer festen
-# Zahl.
-
+# Das Logo richtet sich nach der Fensterbreite statt nach einer
+# festen Zahl - in einem schmalen Fenster stand es sonst links und
+# rechts ueber dem Rand.
 SPLASH_LOGO_BREITENANTEIL = 0.82
-
-NARROW_SPLASH_LOGO_CENTER_Y = 0.80
-NARROW_SPLASH_TITLE_CENTER_Y = 0.62
-NARROW_SPLASH_SUBTITLE_CENTER_Y = 0.53
-NARROW_SPLASH_SEPARATOR_CENTER_Y = 0.46
-NARROW_SPLASH_SLOGAN_CENTER_Y = 0.41
-NARROW_SPLASH_PROGRESS_CENTER_Y = 0.30
-NARROW_SPLASH_STATUS_CENTER_Y = 0.20
-NARROW_SPLASH_VERSION_CENTER_Y = 0.09
 
 
 def splash_positionen():
     """Die senkrechten Mitten der Elemente des Startbildschirms."""
-
-    if is_narrow():
-
-        return {
-            "logo": NARROW_SPLASH_LOGO_CENTER_Y,
-            "title": NARROW_SPLASH_TITLE_CENTER_Y,
-            "subtitle": NARROW_SPLASH_SUBTITLE_CENTER_Y,
-            "separator": NARROW_SPLASH_SEPARATOR_CENTER_Y,
-            "slogan": NARROW_SPLASH_SLOGAN_CENTER_Y,
-            "progress": NARROW_SPLASH_PROGRESS_CENTER_Y,
-            "status": NARROW_SPLASH_STATUS_CENTER_Y,
-            "version": NARROW_SPLASH_VERSION_CENTER_Y,
-        }
 
     return {
         "logo": SPLASH_LOGO_CENTER_Y,
@@ -599,18 +593,11 @@ def splash_positionen():
 
 HEADER_HEIGHT = 90
 
-# Telefon: Kopf- und Fusszeile kosten dort zusammen 150 dp von 730 -
-# ein Fuenftel des Bildschirms fuer Logo und Versionsnummer. Beide
-# ruecken deshalb zusammen (siehe widgets/kig_headerbar.py).
-NARROW_HEADER_HEIGHT = 54
-
 # ----------------------------------------------------
 # Footer
 # ----------------------------------------------------
 
 FOOTER_HEIGHT = 60
-
-NARROW_FOOTER_HEIGHT = 34
 
 
 # ----------------------------------------------------
@@ -643,40 +630,6 @@ ARTICLE_TILE_HEIGHT = 120
 # Artikelbereich die Höhe mit dem Warenkorb darunter.
 PORTRAIT_ARTICLE_TILE_WIDTH = 165
 PORTRAIT_ARTICLE_TILE_HEIGHT = 100
-
-# Telefon: zwei Kacheln nebeneinander - wie breit, rechnet
-# narrow_article_tile() aus der wirklichen Bildschirmbreite aus. Ein
-# festes Mass ging schief: gebaut fuer 412 dp, auf einem S24 dann 339
-# dp - und schon passte nur noch eine Kachel in die Reihe.
-NARROW_ARTICLE_TILE_WIDTH = 168
-NARROW_ARTICLE_TILE_HEIGHT = 88
-
-NARROW_ARTICLE_SPALTEN = 2
-NARROW_ARTICLE_MIN_WIDTH = 120
-# Etwas höher als früher (0,56): Ein Name darf zwei Zeilen belegen, und
-# darunter muss "Bestand: 48" noch ganz zu lesen sein.
-NARROW_ARTICLE_VERHAELTNIS = 0.64
-
-
-def narrow_article_tile():
-    """Breite und Hoehe einer Artikelkachel auf dem Telefon.
-
-    Abgezogen werden Bildschirmrand, Kartenrand und der Abstand
-    zwischen den beiden Spalten - was bleibt, teilen sie sich.
-    """
-
-    verfuegbar = (
-        (CURRENT_WIDTH or NARROW_ARTICLE_TILE_WIDTH * 2)
-        - 2 * SCREEN_PADDING
-        - 2 * CARD_PADDING
-        - (NARROW_ARTICLE_SPALTEN - 1) * TILE_SPACING
-    )
-
-    breite = max(
-        NARROW_ARTICLE_MIN_WIDTH, verfuegbar / NARROW_ARTICLE_SPALTEN
-    )
-
-    return breite, round(breite * NARROW_ARTICLE_VERHAELTNIS)
 
 # ----------------------------------------------------
 # Warenkorb

@@ -106,7 +106,23 @@ def sammeln(db, auswahl, beschreibung):
         "artikel": artikel,
         "kategorien": kategorien,
         "einzeln": einzeln,
+        "manual": [dict(row) for row in db.get_manual_entries(*auswahl)],
     }
+
+
+# Die vier Zahlen, die auf die erste Seite gehören.
+#
+# Wer den Bericht aufschlägt, will wissen, was hereinkam, was es
+# gekostet hat, was übrig blieb und wie viel dafür über die Theke
+# ging. Alles Weitere (Bons, manuelle Buchungen, Entwertetes) sind
+# Aufschlüsselungen davon - sie stehen hinten in einer eigenen
+# Aufstellung, statt die Übersicht auf zwei Reihen zu dehnen.
+UEBERBLICK = (
+    "Einnahmen",
+    "Wareneinsatz + Ausgaben",
+    "Gewinn",
+    "Verkaufte Einheiten",
+)
 
 
 def _kennzahlen_paare(kennzahlen):
@@ -114,11 +130,17 @@ def _kennzahlen_paare(kennzahlen):
 
     paare = [
         ("Einnahmen", kennzahlen["revenue"], "geld"),
-        ("Ausgaben (Einkauf)", kennzahlen["expenses"], "geld"),
+        ("Wareneinsatz + Ausgaben", kennzahlen["expenses"], "geld"),
         ("Gewinn", kennzahlen["profit"], "geld"),
         ("Verkaufte Einheiten", kennzahlen["quantity"], "zahl"),
         ("Bons", kennzahlen["receipts"], "zahl"),
     ]
+
+    if kennzahlen.get('manual_income') or kennzahlen.get('manual_expenses'):
+        paare += [
+            ('Davon manuelle Einnahmen', kennzahlen['manual_income'], 'geld'),
+            ('Davon manuelle Ausgaben', kennzahlen['manual_expenses'], 'geld'),
+        ]
 
     if kennzahlen.get("kig_karte") or kennzahlen.get("gutschein"):
         paare += [
@@ -128,6 +150,17 @@ def _kennzahlen_paare(kennzahlen):
         ]
 
     return paare
+
+
+def _kennzahlen_geteilt(kennzahlen):
+    """(Überblick, Weitere) - vier Zahlen vorn, der Rest dahinter."""
+
+    alle = _kennzahlen_paare(kennzahlen)
+
+    return (
+        [p for p in alle if p[0] in UEBERBLICK],
+        [p for p in alle if p[0] not in UEBERBLICK],
+    )
 
 
 # =========================================================
@@ -156,13 +189,22 @@ def excel(daten, pfad):
     blatt.blatt.title = "Zusammenfassung"
 
     kennzahlen = daten["kennzahlen"]
-    paare = _kennzahlen_paare(kennzahlen)
 
-    blatt.ueberschrift("Kennzahlen")
-    blatt.kennzahlen(
-        [(bezeichnung, round(wert or 0, 2)) for bezeichnung, wert, _f in paare],
-        formate=[format_ for _b, _w, format_ in paare],
-    )
+    ueberblick, weitere = _kennzahlen_geteilt(kennzahlen)
+
+    def kennzahlen_block(titel, paare):
+
+        if not paare:
+            return
+
+        blatt.ueberschrift(titel)
+        blatt.kennzahlen(
+            [(bezeichnung, round(wert or 0, 2))
+             for bezeichnung, wert, _f in paare],
+            formate=[format_ for _b, _w, format_ in paare],
+        )
+
+    kennzahlen_block("Kennzahlen", ueberblick)
 
     # ---- Kategorien mit Kreis --------------------------------
 
@@ -284,6 +326,11 @@ def excel(daten, pfad):
 
         blatt.blatt.add_chart(balken, f"G{balken_zeile}")
 
+    # Erst hier, ganz unten: Bons, manuelle Buchungen und Entwertetes
+    # sind Aufschlüsselungen der vier Zahlen oben - sie sollen ihnen
+    # nicht den ersten Blick nehmen.
+    kennzahlen_block("Weitere Kennzahlen", weitere)
+
     blatt.drucken(titel_wiederholen=False)
 
     # -----------------------------------------------------
@@ -361,6 +408,59 @@ def excel(daten, pfad):
 
     zweites.drucken()
 
+    # -----------------------------------------------------
+    # Manuelle Buchungen
+    # -----------------------------------------------------
+
+    if daten.get('manual'):
+
+        manual = Exportblatt(
+            mappe.create_sheet('Manuelle Buchungen'),
+            'Manuelle Buchungen', daten['beschreibung'],
+            breiten=(16, 28, 36, 22, 16),
+        )
+
+        # Je eine Tabelle: Einnahmen und Ausgaben stehen in einer
+        # gemeinsamen Liste mit Vorzeichen nebeneinander, lassen sich
+        # aber nicht getrennt summieren.
+        for titel, art in (
+            ('Manuelle Einnahmen', 'INCOME'),
+            ('Manuelle Ausgaben', 'EXPENSE'),
+        ):
+
+            zeilen = manuelle_buchungen(daten, art)
+
+            manual.ueberschrift(titel)
+
+            manual.tabelle(
+                ('Datum', 'Event', 'Bezeichnung', 'Beleg', 'Betrag'),
+                [(d, e, n, beleg, round(betrag, 2))
+                 for d, e, n, beleg, betrag in zeilen],
+                formate=('text', 'text', 'text', 'text', 'geld'),
+                summe=('Summe', '', '', '', round(_manual_summe(zeilen), 2)),
+            )
+
+        # Und die Rechnung dahinter: Diese Betraege stecken in den
+        # Kennzahlen der Zusammenfassung.
+        rechnung = _gesamtrechnung(daten)
+
+        gesamt_posten, gesamt_ein, gesamt_aus = rechnung[-1]
+
+        manual.ueberschrift('Gesamtsumme')
+
+        manual.tabelle(
+            ('Posten', 'Einnahmen', 'Ausgaben', 'Gewinn'),
+            [(posten, round(ein, 2), round(aus, 2), round(ein - aus, 2))
+             for posten, ein, aus in rechnung[:-1]],
+            formate=('text', 'geld', 'geld', 'geld'),
+            summe=(
+                gesamt_posten, round(gesamt_ein, 2), round(gesamt_aus, 2),
+                round(gesamt_ein - gesamt_aus, 2),
+            ),
+        )
+
+        manual.drucken()
+
     mappe.save(pfad)
 
     return pfad
@@ -420,15 +520,127 @@ def topseller(daten):
     return ergebnis
 
 
+def manuelle_buchungen(daten, art):
+    """Die manuellen Buchungen einer Art als Zeilen, Beträge positiv.
+
+    art: "INCOME" oder "EXPENSE". Ein Vorzeichen braucht es hier
+    nicht - in welche Richtung der Betrag zählt, sagt die Überschrift
+    der Tabelle.
+    """
+
+    return [
+        (_datum(r['entry_date']), r['event_name'], r['description'],
+         r['reference'], r['amount_cents'] / 100)
+        for r in daten.get('manual', [])
+        if r['kind'] == art
+    ]
+
+
+def _manual_summe(zeilen):
+
+    return sum(betrag for *_rest, betrag in zeilen)
+
+
+def _gesamtrechnung(daten):
+    """(Posten, Einnahmen, Ausgaben) - woraus die Gesamtsumme besteht.
+
+    Die manuellen Buchungen stecken in den Kennzahlen der ersten
+    Seite, sind dort aber nicht zu sehen. Hier steht die Rechnung
+    offen: Verkäufe plus manuelle Buchungen ergibt, was vorn steht.
+    """
+
+    kennzahlen = daten["kennzahlen"]
+
+    manuelle_einnahmen = kennzahlen.get("manual_income", 0) or 0
+    manuelle_ausgaben = kennzahlen.get("manual_expenses", 0) or 0
+
+    return [
+        ("Verkäufe",
+         kennzahlen["revenue"] - manuelle_einnahmen,
+         kennzahlen["expenses"] - manuelle_ausgaben),
+        ("Manuelle Buchungen", manuelle_einnahmen, manuelle_ausgaben),
+        ("Gesamt", kennzahlen["revenue"], kennzahlen["expenses"]),
+    ]
+
+
+def _manual_pdf(bericht, daten):
+    """Die manuellen Buchungen: je eine Tabelle für Einnahmen und
+    Ausgaben, dahinter die Rechnung zur Gesamtsumme."""
+
+    geld = geldformat.geld
+
+    einnahmen = manuelle_buchungen(daten, "INCOME")
+    ausgaben = manuelle_buchungen(daten, "EXPENSE")
+
+    if not (einnahmen or ausgaben):
+        return
+
+    bericht.seitenumbruch()
+
+    bericht.ueberschrift("Manuelle Buchungen")
+
+    bericht.text(
+        "Buchungen ohne Verkauf - Spenden, Standgebühr, Einkäufe. "
+        "Sie sind in den Einnahmen und Ausgaben der ersten Seite "
+        "enthalten."
+    )
+
+    for titel, zeilen in (
+        ("Manuelle Einnahmen", einnahmen),
+        ("Manuelle Ausgaben", ausgaben),
+    ):
+
+        bericht.ueberschrift(titel)
+
+        if not zeilen:
+            bericht.text("Keine im gewählten Zeitraum.")
+            continue
+
+        bericht.tabelle(
+            ("Datum", "Event", "Bezeichnung / Beleg", "Betrag"),
+            [
+                (datum, event, name + (" / " + beleg if beleg else ""),
+                 geld(betrag))
+                for datum, event, name, beleg, betrag in zeilen
+            ],
+            anteile=(0.15, 0.24, 0.43, 0.18),
+            ausrichtung=("left", "left", "left", "right"),
+            summe=("Summe", "", "", geld(_manual_summe(zeilen))),
+        )
+
+    # ---- Wie sich die Gesamtsumme zusammensetzt ----
+
+    bericht.ueberschrift("Gesamtsumme")
+
+    rechnung = _gesamtrechnung(daten)
+
+    bericht.tabelle(
+        ("Posten", "Einnahmen", "Ausgaben", "Gewinn"),
+        [
+            (posten, geld(ein), geld(aus), geld(ein - aus))
+            for posten, ein, aus in rechnung[:-1]
+        ],
+        anteile=(0.34, 0.22, 0.22, 0.22),
+        ausrichtung=("left", "right", "right", "right"),
+        summe=(
+            rechnung[-1][0],
+            geld(rechnung[-1][1]),
+            geld(rechnung[-1][2]),
+            geld(rechnung[-1][1] - rechnung[-1][2]),
+        ),
+    )
+
+
 def pdf(daten, pfad):
     """Schreibt den Bericht als PDF nach `pfad` und liefert den Pfad.
 
-    Seite 1   das Dashboard: Kennzahlen, Kreis je Kategorie und der
-              Topseller jeder Kategorie
+    Seite 1   der Überblick: vier Kennzahlen, der Kreis je Kategorie
+              und der Topseller jeder Kategorie
     Seite 2   die Verkäufe nach Kategorie: je Kategorie Summe und
               ihre Artikel als Balken (gleicher Maßstab für alle)
     danach    die Artikel als Tabelle - in derselben Reihenfolge wie
               auf Seite 2, auf die Kategorien verteilt
+    danach    die übrigen Kennzahlen und die manuellen Buchungen
     """
 
     geld = geldformat.geld
@@ -437,23 +649,41 @@ def pdf(daten, pfad):
 
     kennzahlen = daten["kennzahlen"]
 
+    ueberblick, weitere = _kennzahlen_geteilt(kennzahlen)
+
+    def kacheln(paare, spalten=4):
+        bericht.kennzahlen(
+            [
+                (bezeichnung, geld(wert) if format_ == "geld" else _zahl(wert))
+                for bezeichnung, wert, format_ in paare
+            ],
+            spalten=spalten,
+            hervorheben=("Gewinn",),
+        )
+
     # -----------------------------------------------------
-    # Seite 1: Dashboard
+    # Seite 1: Überblick
     # -----------------------------------------------------
 
     bericht.ueberschrift("Kennzahlen")
 
-    bericht.kennzahlen(
-        [
-            (bezeichnung, geld(wert) if format_ == "geld" else _zahl(wert))
-            for bezeichnung, wert, format_ in _kennzahlen_paare(kennzahlen)
-        ],
-        spalten=4,
-        hervorheben=("Gewinn",),
-    )
+    kacheln(ueberblick)
+
+    def weitere_kennzahlen():
+        """Alles, was nicht auf die erste Seite gehört - auf einer
+        eigenen Seite dahinter."""
+
+        if not weitere:
+            return
+
+        bericht.seitenumbruch()
+        bericht.ueberschrift("Weitere Kennzahlen")
+        kacheln(weitere, spalten=3)
 
     if not daten["artikel"]:
         bericht.text("Im gewählten Zeitraum wurde nichts verkauft.")
+        weitere_kennzahlen()
+        _manual_pdf(bericht, daten)
         bericht.speichern(pfad)
         return pfad
 
@@ -541,6 +771,13 @@ def pdf(daten, pfad):
         farben=lambda werte: ROT if werte[3].startswith("-") else None,
     )
 
+    # -----------------------------------------------------
+    # Dahinter: die übrigen Kennzahlen und die Buchungen
+    # -----------------------------------------------------
+
+    weitere_kennzahlen()
+
+    _manual_pdf(bericht, daten)
     bericht.speichern(pfad)
 
     return pfad

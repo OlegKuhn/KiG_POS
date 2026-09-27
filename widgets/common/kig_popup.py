@@ -43,7 +43,7 @@ class KiGPopup(Popup):
 
         kwargs.setdefault("title_color", theme.TEXT_PRIMARY)
         kwargs.setdefault("separator_color", theme.PRIMARY_ORANGE)
-        kwargs.setdefault("title_size", "18sp")
+        kwargs.setdefault("title_size", "22sp")
 
         super().__init__(**kwargs)
 
@@ -55,7 +55,7 @@ class KiGPopup(Popup):
         with self.canvas.before:
 
             Color(*theme.CARD)
-            self._karte = RoundedRectangle(radius=[dp(theme.CARD_RADIUS)])
+            self._karte = RoundedRectangle(radius=[dp(theme.DIALOG_RADIUS)])
 
             Color(*theme.CARD_BORDER)
             self._rand = Line(width=theme.BORDER_WIDTH)
@@ -70,5 +70,5 @@ class KiGPopup(Popup):
 
         self._rand.rounded_rectangle = (
             self.x, self.y, self.width, self.height,
-            dp(theme.CARD_RADIUS),
+            dp(theme.DIALOG_RADIUS),
         )

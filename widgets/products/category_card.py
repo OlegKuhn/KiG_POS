@@ -19,21 +19,12 @@ class CategoryCard(Button):
         self.callback = callback
 
         self.size_hint = (1, None)
-        self.height = dp(52) if theme.is_narrow() else dp(64)
+        self.height = dp(64)
 
         self.text = category["name"]
 
-        # Auf dem Telefon stehen zwei Karten nebeneinander, jede rund
-        # 137 dp breit - mit 19 sp brach "Alkoholfrei" dort dreizeilig
-        # um, mit 15 sp immer noch zweizeilig.
-        self.font_size = "13sp" if theme.is_narrow() else "19sp"
+        self.font_size = "19sp"
 
-        # Und wenn ein Name doch zu lang ist, wird er gekuerzt statt
-        # umgebrochen: Eine Kategorie ist eine Zeile.
-        if theme.is_narrow():
-            self.shorten = True
-            self.shorten_from = "right"
-            self.max_lines = 1
         self.bold = True
 
         self.halign = "left"
@@ -60,7 +51,7 @@ class CategoryCard(Button):
     def select(self):
 
         self.background_color = theme.PRIMARY_ORANGE
-        self.color = theme.TEXT_WHITE
+        self.color = theme.TEXT_ON_ACCENT
 
     def unselect(self):
 
@@ -74,4 +65,3 @@ class CategoryCard(Button):
                 self,
                 self.category
             )
-

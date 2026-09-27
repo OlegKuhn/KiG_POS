@@ -41,6 +41,7 @@ from database import DatabaseManager
 
 from widgets.common.confirm_popup import ConfirmPopup
 from widgets.kig_headerbar import KiGHeaderBar
+from widgets.common.design_navigation import DesignNavigation
 
 from screens.home_screen import HomeScreen
 from screens.cash_screen import CashScreen
@@ -48,6 +49,8 @@ from screens.cash_book_screen import CashBookScreen
 from screens.checklist_screen import ChecklistScreen
 from screens.shift_plan_screen import ShiftPlanScreen
 from screens.events_screen import EventsScreen
+from screens.planner_screen import PlannerScreen
+from screens.earnings_screen import EarningsScreen
 from screens.products_screen import ProductsScreen
 from screens.statistics_screen import StatisticsScreen
 from screens.settings_screen import SettingsScreen
@@ -81,17 +84,12 @@ class MainLayout(BoxLayout):
         self.header.set_home_callback(
             self.show_home
         )
-        # Der Wahlspruch steht auf dem Telefon nicht: Dort bricht er
-        # zweizeilig um und drückt den Namen an den oberen Rand. Auf
-        # den zwei Zeilen, die er kostet, steht sonst eine Kachelreihe.
-        self.header.set_event_info(
-            "" if theme.is_narrow()
-            else "Gemeinsam feiern. Gemeinsam stark."
-        )
+        self.header.set_event_info("Gemeinsam feiern. Gemeinsam stark.")
 
+        # Ohne diese Zeile bleibt in der Kopfzeile "Keine
+        # Veranstaltung" stehen, auch wenn heute eines im Kalender
+        # steht (siehe veranstaltung_anzeigen).
         self.veranstaltung_anzeigen()
-
-        self.header.set_revenue(self.db.get_daily_revenue())
 
         #
         # ScreenManager
@@ -102,6 +100,7 @@ class MainLayout(BoxLayout):
 
 
         self.home_screen = HomeScreen(
+            database=self.db,
             name=config.SCREEN_HOME
         )
         self.cash_screen = CashScreen(
@@ -144,14 +143,20 @@ class MainLayout(BoxLayout):
 
         self.home_screen.size_hint = (1, 1)
 
+        self.planner_screen = PlannerScreen(
+            calendar=self.events_screen, shifts=self.shift_plan_screen,
+            checklist=self.checklist_screen, name=config.SCREEN_PLANNER,
+        )
+
         self.screen_manager.add_widget(self.home_screen)
         self.screen_manager.add_widget(self.cash_screen)
-        self.screen_manager.add_widget(self.events_screen)
-        self.screen_manager.add_widget(self.cash_book_screen)
-        self.screen_manager.add_widget(self.checklist_screen)
-        self.screen_manager.add_widget(self.shift_plan_screen)
+        self.screen_manager.add_widget(self.planner_screen)
+        self.earnings_screen = EarningsScreen(
+            cashbook=self.cash_book_screen, statistics=self.statistics_screen,
+            name=config.SCREEN_EARNINGS,
+        )
+        self.screen_manager.add_widget(self.earnings_screen)
         self.screen_manager.add_widget(self.products_screen)
-        self.screen_manager.add_widget(self.statistics_screen)
         self.screen_manager.add_widget(self.settings_screen)
         self.screen_manager.add_widget(self.userguide_screen)
 
@@ -171,6 +176,8 @@ class MainLayout(BoxLayout):
         self.add_widget(
             self.screen_manager
         )
+        self.navigation = DesignNavigation(self.screen_manager)
+        self.header.set_navigation(self.navigation)
 
         # Am unteren Rand, wo die Fusszeile stand: die Filterleiste des
         # gerade sichtbaren Bildschirms - zugeklappt eine Zeile, die
@@ -188,9 +195,8 @@ class MainLayout(BoxLayout):
             minimum_height=self.filterbereich.setter("height")
         )
 
-        self.add_widget(
-            self.filterbereich
-        )
+        # Eigener Platz unter dem Screen, keine überlagernde Fußleiste.
+        self.add_widget(self.filterbereich)
 
         # Beim Wechsel des Bildschirms nachsehen, ob heute etwas
         # ansteht: Wer im Kalender gerade eine Veranstaltung angelegt
@@ -207,11 +213,10 @@ class MainLayout(BoxLayout):
         self.background.size = self.size
 
     def refresh_revenue(self):
-        self.header.set_revenue(self.db.get_daily_revenue())
+        self.home_screen.refresh()
 
     def _bildschirm_gewechselt(self):
 
-        self.veranstaltung_anzeigen()
         self.filterleiste_zeigen()
 
     def filterleiste_zeigen(self):
@@ -231,6 +236,10 @@ class MainLayout(BoxLayout):
             self.filterbereich.height = 0
             return
 
+        if getattr(bildschirm, "eigene_filter", False):
+            self.filterbereich.height = 0
+            return
+
         if leiste.parent is not None:
             leiste.parent.remove_widget(leiste)
 
@@ -240,21 +249,14 @@ class MainLayout(BoxLayout):
         leiste.aktualisieren()
 
         self.filterbereich.add_widget(leiste)
+        self.filterbereich.height = leiste.height
 
     def veranstaltung_anzeigen(self):
         """Traegt die heutige Veranstaltung in die Kopfzeile ein.
 
         Bis hierher stand dort fest verdrahtet "KiG POS" - der Kalender
         wurde nie gefragt, auch wenn ein Fest eingetragen war.
-
-        Auf dem Telefon bleibt die Mitte leer: Dort reicht die Breite
-        gerade fuer Logo und Tagesumsatz, ein Name brach Buchstabe fuer
-        Buchstabe um.
         """
-
-        if theme.is_narrow():
-            self.header.set_event_name("")
-            return
 
         heute = date.today().isoformat()
 
@@ -265,7 +267,32 @@ class MainLayout(BoxLayout):
         )
 
     def show_screen(self, screen_name):
+        if screen_name in self.earnings_screen.buttons:
+            self.earnings_screen.select_tab(screen_name)
+            screen_name = config.SCREEN_EARNINGS
+        if screen_name in self.planner_screen.buttons:
+            self.planner_screen.select_tab(screen_name)
+            screen_name = config.SCREEN_PLANNER
         self.screen_manager.current = screen_name
+
+    def get_screen(self, screen_name):
+        """Liefert den Bildschirm zu einem Namen - auch die Reiter.
+
+        Der ScreenManager selbst kennt Kalender, Schichtplan,
+        Checkliste, Kassenbuch und Statistik nicht mehr: Sie stecken
+        als Reiter im Planner und in den Ertraegen. Wer nach ihnen
+        fragt, meint sie trotzdem - genau wie bei show_screen.
+        """
+
+        for verwalter in (
+                self.screen_manager,
+                self.planner_screen.tab_manager,
+                self.earnings_screen.tab_manager,
+        ):
+            if verwalter.has_screen(screen_name):
+                return verwalter.get_screen(screen_name)
+
+        raise KeyError(screen_name)
 
     def show_home(self):
         self.screen_manager.current = config.SCREEN_HOME

@@ -93,7 +93,7 @@ class ConfirmPopup(KiGPopup):
         buttons.add_widget(self._button(
             confirm_text,
             confirm_color if confirm_color else theme.ERROR,
-            theme.TEXT_WHITE,
+            theme.TEXT_ON_ACCENT,
             self._confirmed,
         ))
         content.add_widget(buttons)

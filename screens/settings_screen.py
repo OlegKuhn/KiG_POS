@@ -26,6 +26,7 @@ from kivy.app import App
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.gridlayout import GridLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
@@ -74,7 +75,7 @@ class SettingsOptionButton(Button):
     def select(self):
 
         self.background_color = theme.PRIMARY_ORANGE
-        self.color = theme.TEXT_WHITE
+        self.color = theme.TEXT_ON_ACCENT
 
     def unselect(self):
 
@@ -95,15 +96,6 @@ class SettingsScreen(Screen):
             padding=dp(theme.CARD_PADDING),
             spacing=dp(theme.CARD_SPACING)
         )
-
-        title = KiGLabel(text="Einstellungen")
-        title.set_font_size(26)
-        title.set_bold(True)
-        title.set_alignment("left")
-        title.set_color(theme.PRIMARY_ORANGE)
-        title.size_hint_y = None
-        title.height = dp(42)
-        panel.add_widget(title)
 
         # Die Einstellungen wachsen mit jeder Funktion; ohne
         # Rollbereich ragt der unterste Abschnitt aus der Karte, sobald
@@ -149,21 +141,10 @@ class SettingsScreen(Screen):
         #
         # Bildschirmausrichtung
         #
-        # Auf dem Tablet und am Rechner zur Wahl: Ein Tablet im Ständer
-        # ist quer ebenso sinnvoll wie hochkant.
-        #
-        # Auf einem Telefon nicht. Quer blieben dort von 915 dp Höhe
-        # noch 412 - abzüglich Kopf- und Fußzeile keine 300, und darin
-        # sollen Kategorien, Artikel und Warenkorb untereinander Platz
-        # finden. Die Wahl wird deshalb gar nicht erst angeboten (und
-        # das Gerät selbst festgehalten, siehe
-        # KiGPOS._drehung_festhalten).
+        # Zur Wahl: Ein Tablet im Ständer ist quer ebenso sinnvoll
+        # wie hochkant.
 
-        self.schmal = theme.is_narrow()
-
-        if not self.schmal:
-
-            inhalt.add_widget(self._section_label("Bildschirmausrichtung"))
+        inhalt.add_widget(self._section_label("Bildschirmausrichtung"))
 
         orientation_row = self._option_row()
 
@@ -187,21 +168,19 @@ class SettingsScreen(Screen):
         hint = KiGLabel(text=(
             "Im Hochformat stehen zusammengehörige Bereiche untereinander "
             "statt nebeneinander - gedacht für hochkant montierte "
-            "Bildschirme und Telefone. Am Rechner wird das Fenster dabei "
+            "Bildschirme. Am Rechner wird das Fenster dabei "
             "passend angepasst, auf einem Gerät mit Drehsensor drehst du "
             "es einfach."
         ))
         hint.set_font_size(14)
         hint.set_alignment("left")
         hint.set_color(theme.TEXT_SECONDARY)
-        # Waechst mit dem Text: Auf einem Telefon braucht
-        # derselbe Satz doppelt so viele Zeilen wie am Rechner,
-        # und eine feste Hoehe schnitt den Rest einfach ab.
+        # Waechst mit dem Text: Eine feste Hoehe schnitt den Rest
+        # einfach ab.
         hinweisfeld_vorbereiten(hint, dp(46))
 
-        if not self.schmal:
-            inhalt.add_widget(orientation_row)
-            inhalt.add_widget(hint)
+        inhalt.add_widget(orientation_row)
+        inhalt.add_widget(hint)
 
         #
         # Demo-Modus
@@ -239,9 +218,9 @@ class SettingsScreen(Screen):
         demo_hint.set_font_size(14)
         demo_hint.set_alignment("left")
         demo_hint.set_color(theme.TEXT_SECONDARY)
-        # Waechst mit dem Text: Auf einem Telefon braucht
-        # derselbe Satz doppelt so viele Zeilen wie am Rechner,
-        # und eine feste Hoehe schnitt den Rest einfach ab.
+        # Waechst mit dem Text: In einem schmalen Fenster braucht
+        # derselbe Satz doppelt so viele Zeilen, und eine feste
+        # Hoehe schnitt den Rest einfach ab.
         hinweisfeld_vorbereiten(demo_hint, dp(76))
         inhalt.add_widget(demo_hint)
 
@@ -266,8 +245,7 @@ class SettingsScreen(Screen):
         # Vorher standen hier "Kasse übergeben", "Übergabe einspielen",
         # "Gerät ausstatten", "Ausstattung einspielen", "Buchungen
         # bereitstellen" und "Buchungen einsammeln" nebeneinander - man
-        # musste wissen, welche zu welcher Gegenseite gehört, und auf
-        # einem Telefon fand man sie ohnehin kaum.
+        # musste wissen, welche zu welcher Gegenseite gehört.
         uebertragung_row = self._option_row()
 
         self.senden_button = SettingsOptionButton(
@@ -322,9 +300,9 @@ class SettingsScreen(Screen):
         uebergabe_hint.set_font_size(14)
         uebergabe_hint.set_alignment("left")
         uebergabe_hint.set_color(theme.TEXT_SECONDARY)
-        # Waechst mit dem Text: Auf einem Telefon braucht
-        # derselbe Satz doppelt so viele Zeilen wie am Rechner,
-        # und eine feste Hoehe schnitt den Rest einfach ab.
+        # Waechst mit dem Text: In einem schmalen Fenster braucht
+        # derselbe Satz doppelt so viele Zeilen, und eine feste
+        # Hoehe schnitt den Rest einfach ab.
         hinweisfeld_vorbereiten(uebergabe_hint, dp(290))
         inhalt.add_widget(uebergabe_hint)
 
@@ -382,8 +360,43 @@ class SettingsScreen(Screen):
 
         self._geraet_anzeigen()
 
+        # Die vorhandenen Felder werden nur gruppiert, nicht dupliziert.
+        self.settings_sections = {name: [] for name in (
+            'Darstellung', 'Demo', 'Gerät und Übergabe', 'Programm')}
+        section = 'Darstellung'
+        for child in reversed(inhalt.children[:]):
+            caption = getattr(child, 'text', '')
+            if caption in ('Demo', 'Gerät und Übergabe', 'Programm'):
+                section = caption
+            self.settings_sections[section].append(child)
+        inhalt.clear_widgets()
+        self.settings_body = inhalt
+        self.settings_scroll = scroll
+        navigation = GridLayout(cols=1, size_hint=(None, 1),
+                                width=dp(230), height=dp(116), spacing=dp(8))
+        self.section_buttons = {}
+        for name in self.settings_sections:
+            button = Button(text=name, background_normal='', background_down='',
+                            color=theme.TEXT_PRIMARY, font_size='16sp',
+                            size_hint_y=None, height=dp(54))
+            button.bind(on_release=lambda _, key=name: self.show_section(key))
+            self.section_buttons[name] = button
+            navigation.add_widget(button)
+        root.orientation = 'horizontal'
+        root.spacing = dp(theme.SCREEN_SPACING)
+        root.add_widget(navigation)
         root.add_widget(panel)
         self.add_widget(root)
+        self.show_section('Darstellung')
+
+    def show_section(self, name):
+        self.settings_body.clear_widgets()
+        for child in self.settings_sections[name]:
+            self.settings_body.add_widget(child)
+        for key, button in self.section_buttons.items():
+            button.background_color = theme.SELECTION_BACKGROUND if key == name else theme.CARD
+            button.color = theme.TEXT_PRIMARY
+        self.settings_scroll.scroll_y = 1
 
     # =====================================================
     # Bausteine
@@ -686,7 +699,7 @@ class SettingsScreen(Screen):
             background_color=(
                 theme.PRIMARY_ORANGE if hervorgehoben else theme.SURFACE
             ),
-            color=theme.TEXT_WHITE if hervorgehoben else theme.TEXT_PRIMARY,
+            color=theme.TEXT_ON_ACCENT if hervorgehoben else theme.TEXT_PRIMARY,
             font_size="15sp", bold=True,
         )
         button.bind(on_release=lambda *_args: callback())

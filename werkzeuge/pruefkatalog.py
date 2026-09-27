@@ -23,15 +23,13 @@ Beschreibung:
     Je Zeile eine Funktion, je Gerät eine Spalte. Wo eine
     Funktion auf einem Gerät nicht vorkommt, steht ein
     Strich - dort ist nichts zu prüfen, und niemand soll
-    suchen (der PDF-Export gibt es nur am Rechner, die
-    Dateiauswahl des Systems nur auf Android, Querformat
-    nicht auf dem Telefon).
+    suchen (den PDF-Export gibt es nur am Rechner, die
+    Dateiauswahl des Systems nur auf Android).
 
     Die Liste ist aus dem Programm abgeleitet: Sie folgt
     den Themen des Handbuchs (widgets/userguide/content.py)
     und ergänzt, was dort noch nicht steht - Übertragung
-    zwischen Geräten, Sperren auf dem Nebengerät und die
-    Handy-Ansicht.
+    zwischen Geräten und das Sperren auf dem Nebengerät.
 
 Version:
     1.0.0
@@ -60,7 +58,7 @@ import config
 # Geräte und Zustände
 # =========================================================
 
-GERAETE = ("Rechner", "Tablet", "Handy")
+GERAETE = ("Rechner", "Tablet")
 
 ZUSTAENDE = ("offen", "OK", "Fehler", "Teilweise", "entfällt")
 
@@ -128,7 +126,7 @@ FARBEN = {
 #
 # (Funktion, Wo zu finden, Erwartetes Verhalten, Geräte)
 #
-# Geräte: Zeichenkette aus R (Rechner), T (Tablet), H (Handy).
+# Geräte: Zeichenkette aus R (Rechner) und T (Tablet).
 # Was fehlt, entfällt dort.
 
 KATALOG = [
@@ -138,18 +136,18 @@ KATALOG = [
         ("Programm startet",
          "Programmsymbol / Startseite",
          "Startbild erscheint, danach die Startseite mit den Kacheln.",
-         "RTH"),
+         "RT"),
 
         ("Leere Datenbank beim ersten Start",
          "Erster Start auf einem neuen Gerät",
          "Sechs Kategorien, keine Artikel, keine Verkäufe.",
-         "RTH"),
+         "RT"),
 
         ("Automatische Sicherung",
          "Ordner daten/backups",
          "Bei jedem Start entsteht eine Sicherung; die letzten 15 "
          "bleiben liegen.",
-         "RTH"),
+         "RT"),
 
         ("Kaputte Datenbank",
          "daten/kig.db unlesbar machen (Sicherung vorher!)",
@@ -160,18 +158,18 @@ KATALOG = [
         ("Kopfzeile: Logo führt heim",
          "Kopfzeile links",
          "Ein Tipp auf das Logo öffnet die Startseite.",
-         "RTH"),
+         "RT"),
 
         ("Kopfzeile: Tagesumsatz",
          "Kopfzeile rechts",
          "Der Tagesumsatz ändert sich nach einem Verkauf sofort.",
-         "RTH"),
+         "RT"),
 
         ("Kopfzeile: Datum und Uhrzeit nur am Rechner",
          "Kopfzeile rechts",
-         "Am Rechner läuft die Uhr mit. Auf Tablet und Telefon steht "
-         "dort nichts dergleichen - das zeigt das Gerät selbst.",
-         "RTH"),
+         "Am Rechner läuft die Uhr mit. Auf dem Tablet steht dort "
+         "nichts dergleichen - das zeigt das Gerät selbst.",
+         "RT"),
 
         ("Kopfzeile: Veranstaltung des Tages",
          "Kopfzeile Mitte (Event im Kalender anlegen)",
@@ -184,47 +182,36 @@ KATALOG = [
          "Alle Bildschirme, unterer Rand",
          "Unten steht nur noch, was zum Bildschirm gehört - Warenkorb "
          "oder Filter. Kein Streifen mit Version und Beenden.",
-         "RTH"),
+         "RT"),
 
         ("Version, Build und Beenden in den Einstellungen",
          "Einstellungen, Abschnitt \"Programm\"",
          "Version und Buildnummer stehen dort; \"Programm beenden\" "
          "fragt vorher nach und beendet erst dann.",
-         "RTH"),
+         "RT"),
 
         ("Buildnummer steigt mit jeder Fassung",
          "Einstellungen, Abschnitt \"Programm\"",
          "Nicht mehr fest 0001: Die Nummer ist bei jedem neuen Stand "
          "höher als beim vorigen.",
-         "RTH"),
+         "RT"),
 
         ("Startbild sitzt richtig",
          "Beim Start, vor der Startseite",
          "Das Logo ist ganz zu sehen und nicht abgeschnitten; Titel, "
          "Untertitel und Wahlspruch überlappen einander nicht.",
-         "RTH"),
+         "RT"),
 
         ("Startseite: drei Gruppen",
          "Startseite",
          "Operativ, Administrativ, Support - alle neun Kacheln "
          "erreichbar.",
-         "RTH"),
-
-        ("Startseite: Gruppen klappbar",
-         "Startseite, Überschrift antippen",
-         "Die Gruppe klappt zu und wieder auf.",
-         "H"),
-
-        ("Startseite: zwei Kacheln je Reihe",
-         "Startseite",
-         "Zwei Kacheln nebeneinander, nichts abgeschnitten, kein "
-         "Scrollen nötig.",
-         "H"),
+         "RT"),
 
         ("Jede Kachel öffnet ihren Bereich",
          "Startseite, alle neun Kacheln",
          "Jeder Bereich öffnet sich und lässt sich wieder verlassen.",
-         "RTH"),
+         "RT"),
 
     ]),
 
@@ -235,12 +222,6 @@ KATALOG = [
          "Kategorien, Artikel und Warenkorb sind zu sehen.",
          "RT"),
 
-        ("Kategorien als Klappköpfe",
-         "Kasse (Telefon)",
-         "Kategorien stehen untereinander mit Anzahl; offen ist immer "
-         "genau eine.",
-         "H"),
-
         ("Nach Kategorie filtern",
          "Kasse, Kategorie antippen",
          "Nur deren Artikel; zweiter Tipp hebt den Filter auf.",
@@ -249,153 +230,148 @@ KATALOG = [
         ("Artikel suchen",
          "Kasse, Suchfeld",
          "Treffer erscheinen beim Tippen; das Kreuz setzt zurück.",
-         "RTH"),
-
-        ("Suche geht über alle Kategorien",
-         "Kasse (Telefon), Suchfeld",
-         "Während der Suche treten die Kategorien zurück, Treffer "
-         "kommen aus allen.",
-         "H"),
+         "RT"),
 
         ("Bestand auf der Kachel",
          "Kasse, Artikelkacheln",
          "\"Bestand\" bei normalen Artikeln, \"Verfügbar\" bei "
          "Rezepten; ausverkauft ist grau.",
-         "RTH"),
+         "RT"),
 
         ("Artikel in den Warenkorb",
          "Kasse, Kachel antippen",
          "Position erscheint im Warenkorb, Summe stimmt.",
-         "RTH"),
+         "RT"),
 
         ("Lange Namen auf der Kachel",
          "Kasse, Artikel mit langem Namen (z. B. \"Apfelschorle naturtrüb\")",
          "Name in zwei Zeilen, nicht abgeschnitten; Bestand darunter "
          "vollständig lesbar, Preis unten.",
-         "RTH"),
+         "RT"),
 
         ("Menge direkt ändern",
          "Warenkorb, Plus/Minus an der Position",
          "Menge und Summe ändern sich sofort.",
-         "RTH"),
+         "RT"),
 
         ("Position bearbeiten",
          "Warenkorb, Position antippen, \"Bearbeiten\"",
          "Preis und Menge lassen sich ändern; kein Löschen, kein "
          "Duplizieren. \"Abbrechen\" verwirft auch einen geänderten Preis.",
-         "RTH"),
+         "RT"),
 
         ("Mix antippen: keine Sprechblase",
          "Kasse, Mix-Artikel im Warenkorb antippen",
          "Die Position wird nur ausgewählt, es geht nichts auf.",
-         "RTH"),
+         "RT"),
 
         ("Mischgetränk verstärken",
          "Mix-Position, \"Bearbeiten\", Zutatenliste",
          "Zutaten mit Menge stehen da; \"+\" nur bei Zutaten mit Shot, "
          "je Tipp ein Shot mehr und Preis + Shotpreis; \"-\" nicht unter "
          "das Rezept.",
-         "RTH"),
+         "RT"),
 
         ("Verstärkter Drink im Warenkorb",
          "Nach \"Übernehmen\"",
          "Zeile heißt z. B. \"Jacky Cola  +1 Jack Daniels\"; derselbe "
          "Drink neu angetippt wird eine eigene Position zum Normalpreis.",
-         "RTH"),
+         "RT"),
 
         ("Extra-Shot im Bestand",
          "Verstärkten Drink bezahlen, Flasche ansehen",
          "Der Bestand der Flasche sinkt um Rezept plus Extra-Shot.",
-         "RTH"),
+         "RT"),
 
         ("Warenkorb leeren",
          "Warenkorb, \"Leeren\"",
          "Nach Rückfrage ist der Warenkorb leer.",
-         "RTH"),
+         "RT"),
 
         ("Warenkorb als Zeile",
          "Kasse im Hochformat, unten",
          "Zugeklappt eine Zeile: Postenzahl, Summe, \"Bezahlen\".",
-         "RTH"),
+         "RT"),
 
         ("Warenkorb aufklappen",
          "Kasse im Hochformat, auf die Zeile tippen",
          "Er klappt hoch und nimmt den ganzen Bildschirm ein; die "
          "Artikel treten so lange beiseite.",
-         "RTH"),
+         "RT"),
 
         ("Warenkorb wieder zuklappen",
          "Aufgeklappter Warenkorb, auf \"Warenkorb\" oben tippen",
          "Der Winkel zeigt nach oben; ein Tipp klappt zu, die Artikel "
          "sind wieder da.",
-         "RTH"),
+         "RT"),
 
         ("Bezahlen aus der zugeklappten Zeile",
          "Kasse im Hochformat, \"Bezahlen\" in der Zeile",
          "Das Zahlungsfenster geht mit der richtigen Summe auf - ohne "
          "vorher aufzuklappen.",
-         "RTH"),
+         "RT"),
 
         ("Leerer Warenkorb klappt selbst zu",
          "Bezahlen oder Leeren, während er aufgeklappt ist",
          "Er klappt von allein zur Zeile zusammen, statt leer den "
          "Bildschirm zu belegen.",
-         "RTH"),
+         "RT"),
 
-        ("Bezahlen: Nummernblock",
+        ("Bezahlen: Dialog geht auf",
          "Kasse, \"Bezahlen\"",
-         "Nummernblock und Infopanel gehen auf; der zu zahlende Betrag "
-         "steht im Warenkorb.",
-         "RTH"),
+         "Ein Fenster über der Kasse: links Schnellwahl und Beträge, "
+         "rechts das Zahlenfeld, unten Abbrechen und Zahlung "
+         "abschließen. \"Zu zahlen\" steht hervorgehoben.",
+         "RT"),
 
         ("Bezahlen: Schnellwahl 5/10/20/50/100",
          "Bezahlen, Schnellwahlfelder",
          "Jeder Tipp legt einen Schein dazu (2x20 = 40); darunter "
          "steht die Aufstellung.",
-         "RTH"),
+         "RT"),
 
         ("Bezahlen: Rückgeld",
          "Bezahlen",
          "Gegeben und Rückgeld stimmen; Rückgeld wird erst grün, wenn "
          "es reicht.",
-         "RTH"),
+         "RT"),
 
         ("Bezahlen: KiG Karte",
          "Bezahlen, \"KiG Karte\", Betrag, OK",
-         "Nummernblock nimmt den Kartenbetrag auf; danach stehen \"KiG "
-         "Karte - x\" und \"Zu zahlen\" da, der Nummernblock nimmt "
-         "wieder Bargeld.",
-         "RTH"),
+         "Überschrift wird \"Bezahlen · KiG Karte\", der Betrag steht im "
+         "Knopf und geht von \"Zu zahlen\" ab; \"Bestätigen\" führt "
+         "zurück zum Bargeld.",
+         "RT"),
 
         ("Bezahlen: Gutschein",
          "Bezahlen, \"Gutschein\", Betrag, OK",
          "Wie KiG Karte; mehr als der offene Betrag wird nicht "
          "angerechnet, ganz entwertet geht OK ohne Bargeld.",
-         "RTH"),
+         "RT"),
 
         ("Entwertet in der Statistik",
          "Statistik nach Verkauf mit KiG Karte/Gutschein",
          "Einnahmen mit vollem Preis; darunter \"Entwertet: KiG Karte | "
          "Gutschein | bar\". Auch im Excel-Export.",
-         "RTH"),
+         "RT"),
 
         ("Verkauf abschließen",
          "Bezahlen, bestätigen",
          "Bon wird gebucht, Warenkorb leer, Bestand sinkt, Tagesumsatz "
          "steigt.",
-         "RTH"),
+         "RT"),
 
         ("Stornieren",
          "Kasse, \"Storno\"",
          "Artikel antippen, bestätigen: Gegenbuchung mit negativer "
          "Menge, Bestand steigt wieder.",
-         "RTH"),
+         "RT"),
 
         ("Beträge mit Komma",
          "Überall in der Kasse",
          "2,50 € statt 2.50 - im Warenkorb, auf den Kacheln und beim "
          "Bezahlen.",
-         "RTH"),
+         "RT"),
 
     ]),
 
@@ -406,98 +382,86 @@ KATALOG = [
          "Die Artikelliste hat den ganzen Bildschirm; die Kategorien "
          "stehen unten in der Leiste. Zeilen abwechselnd weiß und "
          "leicht grau.",
-         "RTH"),
+         "RT"),
 
         ("Kategorien in der Leiste",
          "Artikel, Leiste unten \"Kategorie\"",
          "Zugeklappt steht dort die gewählte Kategorie (sonst \"Alle "
          "Kategorien\"); ein Tipp klappt die Kategorien hoch.",
-         "RTH"),
+         "RT"),
 
         ("Nach Kategorie filtern",
          "Artikel, Kategorie in der Leiste antippen",
          "Die Liste zeigt nur deren Artikel, die Leiste nennt sie; "
          "ein zweiter Tipp hebt den Filter auf.",
-         "RTH"),
+         "RT"),
 
         ("Kategorie anlegen",
          "Artikel, Leiste aufklappen, \"Neu\"",
          "Neue Kategorie erscheint in der Liste und in der Kasse.",
-         "RTH"),
+         "RT"),
 
         ("Kategorie ändern und löschen",
          "Artikel, Leiste aufklappen, \"Bearbeiten\"",
          "Umbenennen wirkt überall; Löschen fragt nach.",
-         "RTH"),
+         "RT"),
 
         ("Neuen Artikel anlegen",
          "Artikel, \"+ Neuer Artikel\"",
          "Name, Preis, Kategorie reichen; der Artikel erscheint in der "
          "Kasse.",
-         "RTH"),
+         "RT"),
 
         ("Stammdaten ändern",
          "Artikel, \"Bearbeiten\"",
          "Preis, Einkaufspreis, Kategorie, Sichtbarkeit lassen sich "
          "speichern.",
-         "RTH"),
-
-        ("Maske nutzt die ganze Breite",
-         "Artikel, \"Bearbeiten\" (Telefon)",
-         "Die Karten stehen untereinander, jede über die volle Breite; "
-         "keine Zeile ist mittendrin abgeschnitten.",
-         "H"),
-
-        ("Preis und Bestand über den Nummernblock",
-         "Artikel, Bearbeiten, ins Preisfeld tippen (Telefon)",
-         "Die erste Ziffer ersetzt den Vorschlag; \"Bestätigen\" trägt "
-         "den Wert ins Feld, Speichern behält ihn.",
-         "H"),
+         "RT"),
 
         ("Artikel löschen",
          "Artikel, Mülleimer in der Zeile",
-         "Nach Rückfrage verschwindet der Artikel; \"Inaktiv\" zählt eins "
-         "hoch.",
-         "RTH"),
+         "Nach Rückfrage verschwindet der Artikel; die Zahl am Regler "
+         "\"Inaktive\" zählt eins hoch.",
+         "RT"),
 
         ("Inaktive Artikel",
-         "Artikel, Reiter \"Inaktiv\"",
-         "Gelöschte Artikel stehen dort mit Preis und Bestand; die Zahl "
-         "im Reiter stimmt.",
-         "RTH"),
+         "Artikel, Regler \"Inaktive\"",
+         "Umgelegt stehen die gelöschten Artikel mit Preis und Bestand "
+         "in der Liste; die Zahl am Regler stimmt.",
+         "RT"),
 
         ("Wieder aktivieren",
-         "Artikel, Reiter \"Inaktiv\", \"Wieder aktivieren\"",
-         "Der Artikel verschwindet aus \"Inaktiv\", steht wieder in der "
-         "Liste und an der Kasse.",
-         "RTH"),
+         "Artikel, Regler \"Inaktive\", \"Wieder aktivieren\"",
+         "Der Artikel verschwindet aus der Inaktivliste, steht wieder in "
+         "der Liste und an der Kasse.",
+         "RT"),
 
         ("Bestellmenge erfassen",
          "Artikel, Mengenfeld",
          "Nummernblock öffnet sich, Menge wird übernommen.",
-         "RTH"),
+         "RT"),
 
         ("Wareneingang buchen",
          "Artikel, \"Buchen\"",
          "Bestand steigt um die Menge, Einkaufspreis wird verrechnet.",
-         "RTH"),
+         "RT"),
 
         ("Bestand korrigieren",
          "Artikel, Bearbeiten, Bestandskorrektur",
          "Der Bestand wird auf den gezählten Wert gesetzt, die "
          "Bewegung steht in der Historie.",
-         "RTH"),
+         "RT"),
 
         ("Bestandshistorie",
          "Artikel, Bearbeiten",
          "Zugänge, Abgänge und Korrekturen mit Grund und Gerät.",
-         "RTH"),
+         "RT"),
 
         ("Bearbeiter im Bestandsverlauf",
          "Artikel, Bearbeiten, Bestand anpassen mit Namen",
          "Die Korrektur zeigt den Namen in \"Bearbeiter\"; bei Verkauf "
          "und Wareneingang bleibt die Spalte leer.",
-         "RTH"),
+         "RT"),
 
         ("Reihenfolge festlegen",
          "Artikel, \"Sortierung\"",
@@ -507,41 +471,35 @@ KATALOG = [
         ("Rezept anlegen",
          "Artikel, Mix-Artikel bearbeiten",
          "Zutaten zuordnen, Mengen und Einheiten ändern, entfernen.",
-         "RTH"),
-
-        ("Rezept: Zutatenfeld ist bedienbar",
-         "Artikel, Mix-Artikel bearbeiten (Telefon)",
-         "Zutat, Menge, Einheit und \"Hinzufügen\" stehen zweizeilig "
-         "und sind alle zu treffen.",
-         "H"),
+         "RT"),
 
         ("Zutat ohne eigenen Artikel",
          "Rezept, Freitextzutat",
          "Lässt sich mit Menge eintragen und wieder entfernen.",
-         "RTH"),
+         "RT"),
 
         ("Verfügbarkeit und Kosten je Portion",
          "Artikel, Mix-Artikel",
          "\"Verfügbar\" richtet sich nach der knappsten Zutat; Kosten "
          "stimmen.",
-         "RTH"),
+         "RT"),
 
         ("Flasche als Spirituose führen",
          "Artikel, Einheit \"Flasche\"",
          "Flaschengröße wird erfragt, Bestand läuft in ml.",
-         "RTH"),
+         "RT"),
 
         ("Shot zur Flasche",
          "Artikel, Flasche bearbeiten",
          "Der Shot verkauft aus derselben Flasche; Bestand sinkt "
          "anteilig.",
-         "RTH"),
+         "RT"),
 
         ("Einkaufsliste exportieren",
          "Artikel, \"Einkaufsliste exportieren\"",
          "Excel-Datei mit Logo, nach Kategorien gegliedert, mit "
          "Abhakkästchen; darunter stehen Dateiname und Ordner.",
-         "RTH"),
+         "RT"),
 
     ]),
 
@@ -550,34 +508,34 @@ KATALOG = [
         ("Monatsübersicht",
          "Events",
          "Der Monat wird angezeigt; Blättern vor und zurück geht.",
-         "RTH"),
+         "RT"),
 
         ("Tag öffnen",
          "Events, Tag antippen",
          "Die Einträge des Tages erscheinen.",
-         "RTH"),
+         "RT"),
 
         ("Eintrag anlegen",
          "Events, Tag, Neu",
          "Veranstaltung, Mitarbeiter oder Termin lassen sich anlegen.",
-         "RTH"),
+         "RT"),
 
         ("Checkliste und Schichtplan mit anlegen",
          "Events, Veranstaltung anlegen",
          "Die beiden Häkchen legen Liste und Plan mit demselben Namen "
          "an.",
-         "RTH"),
+         "RT"),
 
         ("Eintrag ändern und löschen",
          "Events, Eintrag antippen",
          "Änderungen werden gespeichert; Löschen fragt nach.",
-         "RTH"),
+         "RT"),
 
         ("Zusammenspiel mit Kasse und Statistik",
          "Events / Kasse / Statistik",
          "Die Veranstaltung des Tages steht in der Kopfzeile und "
          "filtert die Statistik.",
-         "RTH"),
+         "RT"),
 
     ]),
 
@@ -587,46 +545,40 @@ KATALOG = [
          "Kassenbuch, Leiste unten \"Zeitraum\"",
          "Zugeklappt steht dort Monat und Jahr; aufgeklappt lassen "
          "sich beide wählen, die Tabelle zieht nach.",
-         "RTH"),
+         "RT"),
 
         ("Zeile erfassen",
          "Kassenbuch, Formular",
          "Datum über den Kalender, Beträge über den Nummernblock; "
          "Speichern legt die Zeile an.",
-         "RTH"),
+         "RT"),
 
         ("Startbestand wird vorbelegt",
          "Kassenbuch, neue Zeile",
          "Der Endbestand des Vortags steht als Startbestand.",
-         "RTH"),
+         "RT"),
 
         ("Endbestand rechnet mit",
          "Kassenbuch, Beträge eintippen",
          "Der Endbestand ergibt sich, solange man ihn nicht selbst "
          "überschreibt.",
-         "RTH"),
+         "RT"),
 
         ("Auffällige Zeilen",
          "Kassenbuch, Zeile mit falscher Rechnung",
          "Die Zeile wird als \"Prüfen\" hervorgehoben, mit Grund.",
-         "RTH"),
+         "RT"),
 
         ("Zeile ändern und löschen",
          "Kassenbuch, Zeile antippen",
          "Änderungen werden übernommen; Löschen fragt nach.",
-         "RTH"),
+         "RT"),
 
         ("Exportieren",
          "Kassenbuch, \"Excel exportieren\"",
          "Datei mit Logo, Übersicht und Einträgen; zum Ausdrucken "
          "eingerichtet, auffällige Zeilen rot mit Hinweis.",
-         "RTH"),
-
-        ("Vier Spalten statt sieben",
-         "Kassenbuch (Telefon)",
-         "Datum, Einnahmen, Ausgaben, Endbestand - lesbar, nichts "
-         "überlappt.",
-         "H"),
+         "RT"),
 
     ]),
 
@@ -635,33 +587,33 @@ KATALOG = [
         ("Liste anlegen und löschen",
          "Checkliste, \"Neue Liste\" / \"Löschen\"",
          "Liste erscheint; Löschen nimmt ihre Aufgaben mit.",
-         "RTH"),
+         "RT"),
 
         ("Aufgabe eintragen",
          "Checkliste, Feld unten",
          "Die Aufgabe erscheint in der Liste.",
-         "RTH"),
+         "RT"),
 
         ("Aufgabe abhaken",
          "Checkliste, Häkchen",
          "Der Fortschritt oben ändert sich mit.",
-         "RTH"),
+         "RT"),
 
         ("Frist, Verantwortlich, Infos",
          "Checkliste, Felder der Zeile",
          "Alle Angaben werden gespeichert.",
-         "RTH"),
+         "RT"),
 
         ("Aufgabe entfernen",
          "Checkliste, \"Entfernen\"",
          "Die Zeile verschwindet.",
-         "RTH"),
+         "RT"),
 
         ("Exportieren",
          "Checkliste, \"Excel exportieren\"",
          "Datei mit Logo und Haken/Kästchen entsteht; leere Liste gibt "
          "einen Hinweis statt einer leeren Datei.",
-         "RTH"),
+         "RT"),
 
     ]),
 
@@ -670,65 +622,65 @@ KATALOG = [
         ("Plan anlegen und löschen",
          "Schichtplan, \"Plan anlegen\"",
          "Plan erscheint in der Liste.",
-         "RTH"),
+         "RT"),
 
         ("Schicht eintragen",
          "Schichtplan, Feld unten",
          "Tätigkeit, Zeiten und Bedarf lassen sich eintragen.",
-         "RTH"),
+         "RT"),
 
         ("Helfer eintragen",
          "Schichtplan, Helferfeld",
          "Die Zahl \"eingetragen\" steigt.",
-         "RTH"),
+         "RT"),
 
         ("Farben stimmen",
          "Schichtplan",
          "Grün besetzt, orange teilweise, rot niemand.",
-         "RTH"),
+         "RT"),
 
         ("Schichten übernehmen",
          "Schichtplan, \"Schichten übernehmen\"",
          "Die Schichten eines anderen Plans werden kopiert.",
-         "RTH"),
+         "RT"),
 
         ("Nach Helfer suchen",
          "Schichtplan, Feld \"Helfer suchen\"",
          "Nur Schichten mit diesem Namen; darüber Anzahl und Zeiten; "
          "Kreuz leert die Suche.",
-         "RTH"),
+         "RT"),
 
         ("Überschneidung",
          "Schichtplan, denselben Namen in zwei gleichzeitige Schichten",
          "Warnung im Helfer-Dialog; beide Zeilen rot mit \"!\"; darüber "
          "steht, wo es sich überschneidet. Anschluss 21:00/21:00 ist "
          "keine.",
-         "RTH"),
+         "RT"),
 
         ("Matrix als Excel",
          "Schichtplan, \"Excel\"",
          "Blatt \"Plan\": Zeit nach rechts, Tätigkeiten nach unten, "
          "Blöcke mit Namen in Ampelfarben; Blatt \"Liste\"; Name und "
          "Ordner darunter.",
-         "RTH"),
+         "RT"),
 
         ("Ausdruck nach Uhrzeit",
          "Schichtplan mit Schichten in beliebiger Reihenfolge, \"PDF\"",
          "Matrix und Liste nach Beginn sortiert; was zuerst dran ist, "
          "steht oben, Schichten nach Mitternacht unten.",
-         "RTH"),
+         "RT"),
 
         ("Matrix als PDF",
          "Schichtplan, \"PDF\"",
          "Dieselbe Matrix im Querformat, auch auf dem Tablet; Abbau "
          "nach Mitternacht steht am Ende der Zeitleiste.",
-         "RTH"),
+         "RT"),
 
         ("Plan eines Helfers ausgeben",
          "Schichtplan, Suche aktiv, \"PDF\" oder \"Excel\"",
          "Nur dessen Schichten; der Name steht im Titel und im "
          "Dateinamen.",
-         "RTH"),
+         "RT"),
 
     ]),
 
@@ -737,52 +689,52 @@ KATALOG = [
         ("Verkaufsliste",
          "Statistik",
          "Verkäufe des Zeitraums stehen in der Tabelle.",
-         "RTH"),
+         "RT"),
 
         ("Viele Verkäufe laden schnell",
          "Statistik nach einem langen Abend (tausende Verkäufe)",
          "Der Bildschirm ist in wenigen Sekunden da; die Tabelle rollt "
          "flüssig; Auswahl bleibt beim Rollen an der richtigen Zeile.",
-         "RTH"),
+         "RT"),
 
         ("Nach Event filtern",
          "Statistik, Leiste unten \"Auswahl\"",
          "Nur Verkäufe dieser Veranstaltung; die zugeklappte Leiste "
          "nennt das gewählte Event.",
-         "RTH"),
+         "RT"),
 
         ("Nach Kategorie filtern",
          "Statistik, Leiste unten \"Auswahl\", Kategorie",
          "Balken, Kreis, Kennzahlen und Tabelle zeigen nur diese "
          "Kategorie; die zugeklappte Leiste nennt sie.",
-         "RTH"),
+         "RT"),
 
         ("Nach Zeitraum filtern",
          "Statistik, Leiste unten, Von / Bis",
          "Kalender öffnet sich, Filter wirkt, Kreuz setzt zurück; die "
          "Leiste nennt den Zeitraum.",
-         "RTH"),
+         "RT"),
 
         ("Einzelne Position löschen",
          "Statistik, Zeile wählen, \"Ausgewählte löschen\"",
          "Nach Rückfrage weg; Tagesumsatz und Bestand ziehen nach.",
-         "RTH"),
+         "RT"),
 
         ("Ganzen Zeitraum löschen",
          "Statistik, \"Zeitraum löschen\"",
          "Nach deutlicher Rückfrage sind die Verkäufe des Zeitraums "
          "weg.",
-         "RTH"),
+         "RT"),
 
         ("Gesamtverkaufszahlen",
          "Statistik, Karte unten",
          "Einnahmen, Ausgaben, Gewinn passen zum Filter.",
-         "RTH"),
+         "RT"),
 
         ("Top-Artikel",
          "Statistik, Karte unten",
          "Rangliste passt zum Filter.",
-         "RTH"),
+         "RT"),
 
         ("Verteilung nach Kategorie",
          "Statistik, Tortendiagramm",
@@ -793,13 +745,13 @@ KATALOG = [
          "Statistik, Hinweiszeile",
          "Fehlende Rezeptpreise lassen sich nachtragen; Gewinn "
          "stimmt danach.",
-         "RTH"),
+         "RT"),
 
         ("Excel ausgeben",
          "Statistik, \"Excel\"",
          "Mappe mit Logo: Zusammenfassung mit Kreis- und "
          "Balkendiagramm, Blatt Einzelverkäufe; folgt der Auswahl.",
-         "RTH"),
+         "RT"),
 
         ("PDF ausgeben",
          "Statistik, \"PDF\"",
@@ -807,7 +759,7 @@ KATALOG = [
          "Seite 2 Verkäufe nach Kategorie, danach die Artikel als "
          "Tabelle nach Kategorien, Zeilen weiß/grau; auch auf dem "
          "Tablet; folgt der Auswahl.",
-         "RTH"),
+         "RT"),
 
     ]),
 
@@ -817,40 +769,34 @@ KATALOG = [
          "Einstellungen, Farbmodus",
          "Die Oberfläche wechselt vollständig; nach Neustart bleibt "
          "die Wahl.",
-         "RTH"),
+         "RT"),
 
         ("Hoch- oder Querformat",
          "Einstellungen, Bildschirmausrichtung",
          "Die Anordnung wechselt; nach Neustart bleibt die Wahl.",
          "RT"),
 
-        ("Kein Querformat auf dem Telefon",
-         "Einstellungen (Telefon)",
-         "Die Auswahl fehlt, und das Gerät bleibt beim Drehen im "
-         "Hochformat.",
-         "H"),
-
         ("Demo-Modus starten",
          "Einstellungen, \"Demo starten\"",
          "Akzentfarbe wird grün, oben steht DEMO; alles lässt sich "
          "ausprobieren.",
-         "RTH"),
+         "RT"),
 
         ("Demo-Modus beenden",
          "Einstellungen, \"Demo beenden\"",
          "Alles Ausprobierte ist verworfen, der Stand von vorher gilt "
          "wieder.",
-         "RTH"),
+         "RT"),
 
         ("Gerät umbenennen",
          "Einstellungen, \"Gerät umbenennen\"",
          "Der neue Name steht in der Kopfzeile und in den Übergaben.",
-         "RTH"),
+         "RT"),
 
         ("Übergaben anzeigen",
          "Einstellungen, \"Übergaben anzeigen\"",
          "Das Protokoll zeigt, wer wann an wen übergeben hat.",
-         "RTH"),
+         "RT"),
 
     ]),
 
@@ -859,55 +805,55 @@ KATALOG = [
         ("Daten empfangen: warten",
          "Einstellungen, \"Daten empfangen\"",
          "Das Gerät wartet und zeigt Name und Adresse.",
-         "RTH"),
+         "RT"),
 
         ("Daten senden: suchen",
          "Einstellungen, \"Daten senden\"",
          "Das wartende Gerät steht in der Liste.",
-         "RTH"),
+         "RT"),
 
         ("Gegenseite wird gefragt",
          "Senden, Gerät antippen",
          "Auf dem anderen Gerät erscheint \"möchte Daten senden - "
          "annehmen?\".",
-         "RTH"),
+         "RT"),
 
         ("Ablehnen",
          "Empfangen, \"Ablehnen\"",
          "Der Sender meldet die Ablehnung, nichts wird übertragen.",
-         "RTH"),
+         "RT"),
 
         ("Datenbank übertragen",
          "Senden, \"Datenbank\"",
          "Das andere Gerät hat danach alle Artikel und ist "
          "Nebengerät.",
-         "RTH"),
+         "RT"),
 
         ("Kasse übertragen",
          "Senden, \"Kasse\"",
          "Das Schreibrecht wandert; dieses Gerät ist danach nur noch "
          "Ansicht.",
-         "RTH"),
+         "RT"),
 
         ("Buchungen übertragen",
          "Senden, \"Buchungen\"",
          "Nur Zugänge; zweimal gesendet ändert nichts.",
-         "RTH"),
+         "RT"),
 
         ("Kasse steht auf dem Nebengerät nicht zur Wahl",
          "Senden auf einem Nebengerät",
          "Nur Datenbank und Buchungen werden angeboten, mit Begründung.",
-         "RTH"),
+         "RT"),
 
         ("Ohne WLAN: Datei schreiben",
          "Senden, \"Stattdessen als Datei\"",
          "Datei entsteht; danach lässt sie sich teilen.",
-         "RTH"),
+         "RT"),
 
         ("Ohne WLAN: Datei einlesen",
          "Empfangen, \"Kein Netz? Datei suchen\"",
          "Die Datei wird gefunden und nach Rückfrage eingespielt.",
-         "RTH"),
+         "RT"),
 
         ("Empfangene Datei wird gefunden",
          "Empfangen, Dateiliste",
@@ -919,40 +865,40 @@ KATALOG = [
          "Empfangen, \"Datei suchen\"",
          "Androids Dateiauswahl öffnet sich; die gewählte Datei wird "
          "übernommen.",
-         "TH"),
+         "T"),
 
         ("Per Bluetooth senden",
          "Senden, Datei, \"Per Bluetooth senden\"",
          "Die Bluetooth-Übertragung öffnet sich; die Gegenseite nimmt "
          "an.",
-         "TH"),
+         "T"),
 
         ("Nebengerät: Sperren sichtbar",
          "Artikel auf einem Nebengerät",
          "Neu, Sortierung, Buchen, Bearbeiten und Löschen sind grau, "
          "darüber steht der Grund.",
-         "RTH"),
+         "RT"),
 
         ("Nebengerät: kein Absturz",
          "Nebengerät, gesperrte Knöpfe antippen",
          "Nichts passiert bzw. ein wegtippbarer Hinweis - das Programm "
          "läuft weiter.",
-         "RTH"),
+         "RT"),
 
         ("Nebengerät: buchen bleibt erlaubt",
          "Nebengerät, Kasse und Listen",
          "Verkaufen, Kassenbuch, Checklisten und Schichten gehen.",
-         "RTH"),
+         "RT"),
 
         ("Bonnummern je Gerät",
          "Zwei Geräte verkaufen",
          "Keine doppelten Bonnummern nach dem Einsammeln.",
-         "RTH"),
+         "RT"),
 
         ("Bestand über mehrere Geräte",
          "Zwei Geräte verkaufen, dann einsammeln",
          "Die Abgänge beider Geräte sind zusammengerechnet.",
-         "RTH"),
+         "RT"),
 
     ]),
 
@@ -961,44 +907,44 @@ KATALOG = [
         ("Ordner steht beim Export dabei",
          "Nach jedem Export",
          "Dateiname und Ordner stehen unter dem Knopf.",
-         "RTH"),
+         "RT"),
 
         ("Teilen: Statistik",
          "Statistik, \"Teilen\"",
          "Teilen-Auswahl (Android) bzw. Ordner mit ausgewählter Datei "
          "(Rechner).",
-         "RTH"),
+         "RT"),
 
         ("Teilen: Kassenbuch",
          "Kassenbuch, \"Teilen\"",
          "wie oben",
-         "RTH"),
+         "RT"),
 
         ("Teilen: Checkliste",
          "Checkliste, \"Teilen\"",
          "wie oben",
-         "RTH"),
+         "RT"),
 
         ("Teilen: Schichtplan",
          "Schichtplan, \"Teilen\"",
          "wie oben",
-         "RTH"),
+         "RT"),
 
         ("Teilen: Einkaufsliste",
          "Artikel, \"Teilen\"",
          "wie oben",
-         "RTH"),
+         "RT"),
 
         ("Teilen ohne Export",
          "Teilen antippen, bevor exportiert wurde",
          "Hinweis \"Erst exportieren, dann teilen.\"",
-         "RTH"),
+         "RT"),
 
         ("Geteilte Datei ist auffindbar",
          "Android, nach dem Teilen",
          "Die Datei liegt in Download/KiG POS und ist im Dateimanager "
          "zu sehen.",
-         "TH"),
+         "T"),
 
         ("Handbuch als PDF",
          "Handbuch, \"Als PDF exportieren\"",
@@ -1008,7 +954,7 @@ KATALOG = [
         ("PDF-Export gesperrt",
          "Handbuch auf Android",
          "Der Knopf ist gesperrt und sagt, warum.",
-         "TH"),
+         "T"),
 
     ]),
 
@@ -1017,17 +963,17 @@ KATALOG = [
         ("Themen und Anleitung",
          "Userguide",
          "Links das Thema wählen, rechts erscheint der Text mit Bild.",
-         "RTH"),
+         "RT"),
 
         ("Alle Themen öffnen sich",
          "Userguide, jedes Thema",
          "Kein Thema bleibt leer oder bricht ab.",
-         "RTH"),
+         "RT"),
 
         ("Bilder passen zum Text",
          "Userguide",
          "Die Screenshots zeigen den beschriebenen Bildschirm.",
-         "RTH"),
+         "RT"),
 
     ]),
 
@@ -1036,46 +982,40 @@ KATALOG = [
         ("Nichts ragt über den Rand",
          "Alle Bildschirme",
          "Keine Schaltfläche und keine Beschriftung läuft aus dem Bild.",
-         "RTH"),
+         "RT"),
 
         ("Keine abgeschnittenen Wörter",
          "Alle Bildschirme",
          "Nichts bricht mitten im Wort um.",
-         "RTH"),
-
-        ("Kopfzeile schlank",
-         "Alle Bildschirme (Telefon)",
-         "Die Kopfzeile nimmt deutlich weniger als ein Zehntel der "
-         "Höhe ein; eine Fußzeile gibt es nicht mehr.",
-         "H"),
+         "RT"),
 
         ("Filterleiste sagt, was gilt",
          "Artikel, Kassenbuch, Statistik",
          "Zugeklappt steht dort der eingestellte Stand - ohne dass man "
          "sie öffnen muss.",
-         "RTH"),
+         "RT"),
 
         ("Filterleiste klappt auf und zu",
          "Artikel, Kassenbuch, Statistik",
          "Ein Tipp öffnet sie, ein zweiter schließt sie; beim Wechsel "
          "des Bildschirms ist sie wieder zu.",
-         "RTH"),
+         "RT"),
 
         ("Bildschirmtastatur schiebt das Feld hoch",
          "Listen, neues Feld beschreiben",
          "Das beschriebene Feld bleibt sichtbar.",
-         "TH"),
+         "T"),
 
         ("Nummernblock ohne Systemtastatur",
          "Zahlenfelder antippen",
          "Nur der Nummernblock geht auf, nicht zusätzlich die "
          "Tastatur.",
-         "TH"),
+         "T"),
 
         ("Dunkelmodus überall",
          "Alle Bildschirme im Dunkelmodus",
          "Kein weißer Kasten, keine unlesbare Schrift.",
-         "RTH"),
+         "RT"),
 
         ("Lesbarkeit auf E-Ink",
          "Alle Bildschirme auf dem Tablet",
@@ -1130,8 +1070,7 @@ def _anleitung(mappe):
         ("Aufbau", "Ein Blatt je Bereich. Je Zeile eine Funktion, je "
                    "Gerät eine Spalte."),
         ("", ""),
-        ("Geräte", "Rechner = Windows, Tablet = Boox Go 10.3, "
-                   "Handy = Telefon im Hochformat."),
+        ("Geräte", "Rechner = Windows, Tablet = Boox Go 10.3."),
         ("Strich (entfällt)", "Die Funktion gibt es auf diesem Gerät "
                               "nicht - dort ist nichts zu prüfen."),
         ("", ""),
@@ -1169,7 +1108,7 @@ def _anleitung(mappe):
 def _altbestand(ziel):
     """Liest Ergebnisse und Kommentare aus einer vorhandenen Mappe.
 
-    Ergebnis: {(Bereich, Funktion): ([Rechner, Tablet, Handy],
+    Ergebnis: {(Bereich, Funktion): ([Rechner, Tablet],
     Kommentar)}. Fehlt die Datei oder laesst sie sich nicht lesen,
     bleibt das Ergebnis leer - dann entsteht eben eine frische Mappe.
     """
